@@ -1,0 +1,13 @@
+{
+  "registries": [
+    {
+      "kind": "filesystem",
+      "path": ".vcpkg",
+      "packages": [
+        "bx",
+        "bimg",
+        "bgfx"
+      ]
+    }
+  ]
+}
