@@ -7,12 +7,17 @@ find_package(SDL2 REQUIRED)
 find_package(BX REQUIRED)
 find_package(BIMG REQUIRED)
 find_package(BGFX REQUIRED)
+find_package(IMGUI REQUIRED)
+set(Sources 
+	${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.cpp
+    ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.h
+    ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.h
+    ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.cpp
+    ${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 include_directories(src)
 
-add_executable(${RELEASE_NAME}
-    src/main.cpp
-)
+add_executable(${RELEASE_NAME} ${Sources})
 
 source_group(src REGULAR_EXPRESSION src)
 
@@ -33,6 +38,7 @@ target_link_libraries(
   ${BIMG_LIBRARIES}
   ${BGFX_LIBRARIES}
   ${SDL2_LIBRARIES}
+  imgui::imgui
 )
 
 target_compile_options(
