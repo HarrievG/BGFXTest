@@ -5,7 +5,9 @@
   "dependencies": [
     "bgfx",
     "sdl2",
-    "imgui"
+    "imgui",
+    "tinygltf",
+    "imguizmo"
   ],
   "overrides": [
     {

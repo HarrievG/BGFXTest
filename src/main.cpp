@@ -6,6 +6,10 @@
 #include "bx/math.h"
 #include "imgui.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
+#include "ImGuizmo.h"
+#include "tiny_gltf.h"
+
+#define TINYGLTF_IMPLEMENTATION
 
 struct context_t {
     SDL_Window *window = nullptr;
@@ -41,6 +45,7 @@ void main_loop( void *data ) {
     ImGui_ImplSDL2_NewFrame( context->window );
 
     ImGui::NewFrame( );
+    //ImGuizmo::ViewManipulate( )
     ImGui::ShowDemoWindow( ); // your drawing here
     ImGui::Render( );
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );

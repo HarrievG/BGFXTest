@@ -8,6 +8,9 @@ find_package(BX REQUIRED)
 find_package(BIMG REQUIRED)
 find_package(BGFX REQUIRED)
 find_package(IMGUI REQUIRED)
+find_package(imguizmo REQUIRED)
+find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
+
 set(Sources 
 	${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.h
@@ -30,6 +33,7 @@ target_include_directories(
   PRIVATE ${BGFX_INCLUDE_DIRS}
   PRIVATE ${SDL2_INCLUDE_DIRS}
   PRIVATE ${IMGUI_INCLUDE_DIRS}
+  PRIVATE ${TINYGLTF_INCLUDE_DIRS}
 )
 #ghp_czo78ObdlRrDLZ7QFdj9wOO0cbrgnK5GL0x7
 
@@ -40,6 +44,7 @@ target_link_libraries(
   ${BGFX_LIBRARIES}
   ${SDL2_LIBRARIES}
   imgui::imgui
+  imguizmo::imguizmo
 )
 
 target_compile_options(

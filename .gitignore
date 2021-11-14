@@ -1,5 +1,9 @@
 syntax: glob
 
+#Assets
+#GLTF
+*.glb
+
 [Bb]inaries/
 
 # Build tools related files
