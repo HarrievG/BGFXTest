@@ -16,6 +16,7 @@ strategy:
       imageName: 'windows-latest'
 
 variables:
+  RUNVCPKG_VCPKG_TRIPLET: true
   system.debug: true
   vcpkgGitCommitId: 30124253eecff36bc90f73341edbfb4f845e2a1e
   vcpkgPackages: 'sdl2'
