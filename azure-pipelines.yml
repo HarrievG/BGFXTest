@@ -30,7 +30,7 @@ steps:
     targetType: 'inline'
     script: |
       git clone https://github.com/microsoft/vcpkg
-      .\vcpkg\bootstrap-vcpkg.ps1
+      .\vcpkg\bootstrap-vcpkg.bat
       .\vcpkg\vcpkg integrate install
       mkdir build
       cd build
