@@ -19,7 +19,7 @@ variables:
   system.debug: true
   vcpkgGitCommitId: 30124253eecff36bc90f73341edbfb4f845e2a1e
   vcpkgPackages: 'sdl2'
-  VCPKG_FEATURE_FLAGS : manifests
+  #: manifests
   
 pool:
   vmImage: $(imageName)
@@ -41,6 +41,11 @@ steps:
     vcpkgArguments: '$(vcpkgPackages)'
     # Location of the vcpkg as submodule of the repository.
     vcpkgDirectory: $(Build.SourcesDirectory)/vcpkg
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: 'env:VCPKG_FEATURE_FLAGS' 
+    
 - task: run-cmake@0
   displayName: 'Run CMake with CMakeSettings.json'
   inputs:
