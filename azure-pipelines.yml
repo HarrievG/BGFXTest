@@ -47,7 +47,7 @@ steps:
      # Use the vcpkg's toolchain file for CMake.
      useVcpkgToolchainFile: true
      # Build all configurations whose name starts with "Linux".
-     configurationRegexFilter: 'msvc_x64_x64'
+     configurationRegexFilter: '*-*'
 - task: NodeTool@0
   inputs:
     versionSpec: '10.x'
