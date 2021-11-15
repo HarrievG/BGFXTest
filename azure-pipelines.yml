@@ -18,6 +18,7 @@ strategy:
 variables:
   system.debug: true
   vcpkgGitCommitId: 30124253eecff36bc90f73341edbfb4f845e2a1e
+  vcpkgPackages: 'sdl2'
   
 pool:
   vmImage: $(imageName)
@@ -36,7 +37,7 @@ steps:
   inputs:
     vcpkgGitCommitId: $(vcpkgGitCommitId)
     # Response file stored in source control, it provides the list of ports and triplet(s).
-    vcpkgArguments: 'x64_windows'
+    vcpkgArguments: '$(vcpkgPackages)'
     # Location of the vcpkg as submodule of the repository.
     vcpkgDirectory: $(Build.SourcesDirectory)/vcpkg
 - task: run-cmake@0
