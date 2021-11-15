@@ -19,6 +19,7 @@ variables:
   system.debug: true
   vcpkgGitCommitId: 30124253eecff36bc90f73341edbfb4f845e2a1e
   vcpkgPackages: 'sdl2'
+  VCPKG_FEATURE_FLAGS : manifests
   
 pool:
   vmImage: $(imageName)
