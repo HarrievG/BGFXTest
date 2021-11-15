@@ -16,10 +16,10 @@ strategy:
       imageName: 'windows-latest'
 
 variables:
-  RUNVCPKG_VCPKG_TRIPLET: true
+  RUNVCPKG_VCPKG_TRIPLET: x64-windows
+  VCPKG_ROOT : $(Build.SourcesDirectory)/vcpkg
   system.debug: true
   vcpkgGitCommitId: 30124253eecff36bc90f73341edbfb4f845e2a1e
-  vcpkgPackages: 'sdl2'
   #: manifests
   
 pool:
@@ -57,11 +57,11 @@ steps:
 #      mkdir build
 #      cd build
 #      cmake -s ..\
-- task: run-cmake@0
-  inputs:
-    cmakeListsOrSettingsJson: 'CMakeSettingsJson'
-    useVcpkgToolchainFile: true
-    configurationRegexFilter: 'x64*'
+#- task: run-cmake@0
+ # inputs:
+ #   cmakeListsOrSettingsJson: 'CMakeSettingsJson'
+  #  useVcpkgToolchainFile: true
+ #   configurationRegexFilter: 'x64*'
 
 # - task: Cache@2
 #   inputs:
