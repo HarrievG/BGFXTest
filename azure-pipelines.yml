@@ -13,26 +13,31 @@ strategy:
   #  mac:
    #   imageName: 'macos-10.13'
     windows:
-      imageName: 'vs2017-win2016'
+      imageName: 'vs2017-latest'
 
 pool:
   vmImage: $(imageName)
 
 steps:
-# - task: NodeTool@0
-#   inputs:
-#     versionSpec: '10.x'
-#   displayName: 'Install Node.js'
+- task: run-vcpkg@0
+  inputs:
+    cleanAfterBuild: false
 
-# - script: |
-#     git init
-#     git clone https://github.com/emscripten-core/emsdk.git
-#     ./emsdk/emsdk install latest
-#     ./emsdk/emsdk activate latest
-#     source ./emsdk/emsdk_env.sh
-#     npm install
-#     npm run test
-#   displayName: 'npm install and build'
+- task: NodeTool@0
+  inputs:
+    versionSpec: '10.x'
+  displayName: 'Install emsdk'
+
+- script: |
+    cd ..
+    git init
+    git clone https://github.com/emscripten-core/emsdk.git
+    ./emsdk/emsdk install latest
+    ./emsdk/emsdk activate latest
+    ./emsdk/emsdk_env.ps1
+    npm install
+    npm run test
+  displayName: 'npm install and build'
 
 - task: CmdLine@2
   inputs:
@@ -41,7 +46,7 @@ steps:
       git status
       cd ..
       git status
-
+  displayName: 'status'
 - script: 
     echo Add other tasks to build, test, and deploy your project.
     echo See https://aka.ms/yaml
