@@ -25,6 +25,16 @@ pool:
   vmImage: $(imageName)
 
 steps:
+- task: PowerShell@2
+  inputs:
+    targetType: 'inline'
+    script: |
+      git clone https://github.com/microsoft/vcpkg
+      .\vcpkg\bootstrap-vcpkg.ps1
+      .\vcpkg\vcpkg integrate install
+      mkdir build
+      cd build
+      cmake -s ..\
 # - task: Cache@2
 #   inputs:
 #     # As 'key' use the content of the response file, vcpkg's submodule fetched commit id and the platform name.
@@ -33,51 +43,51 @@ steps:
 #     key: $(Build.SourcesDirectory)/vcpkg_x64-windows.txt | "$(Build.SourcesDirectory)/.git/modules/vcpkg/HEAD" | "$(Agent.OS)"
 #     path: '$(Build.SourcesDirectory)/vcpkg'
 #   displayName: 'cache'
-- task: run-vcpkg@0
-  displayName: 'Run vcpkg'
-  inputs:
-    vcpkgGitCommitId: $(vcpkgGitCommitId)
-    # Response file stored in source control, it provides the list of ports and triplet(s).
-    vcpkgArguments: '$(vcpkgPackages)'
-    # Location of the vcpkg as submodule of the repository.
-    vcpkgDirectory: $(Build.SourcesDirectory)/vcpkg
-- task: PowerShell@2
-  inputs:
-    targetType: 'inline'
-    script: 'env:VCPKG_FEATURE_FLAGS' 
+# - task: run-vcpkg@0
+#   displayName: 'Run vcpkg'
+#   inputs:
+#     vcpkgGitCommitId: $(vcpkgGitCommitId)
+#     # Response file stored in source control, it provides the list of ports and triplet(s).
+#     vcpkgArguments: '$(vcpkgPackages)'
+#     # Location of the vcpkg as submodule of the repository.
+#     vcpkgDirectory: $(Build.SourcesDirectory)/vcpkg
+# - task: PowerShell@2
+#   inputs:
+#     targetType: 'inline'
+#     script: 'env:VCPKG_FEATURE_FLAGS' 
     
-- task: run-cmake@0
-  displayName: 'Run CMake with CMakeSettings.json'
-  inputs:
-     cmakeListsOrSettingsJson: 'CMakeSettingsJson'
-     # Use the vcpkg's toolchain file for CMake.
-     useVcpkgToolchainFile: true
-     # Build all configurations whose name starts with "Linux".
-     configurationRegexFilter: '*-*'
-- task: NodeTool@0
-  inputs:
-    versionSpec: '10.x'
-  displayName: 'Install emsdk'
-- script: |
-    cd ..
-    git init
-    git clone https://github.com/emscripten-core/emsdk.git
-    ./emsdk/emsdk install latest
-    ./emsdk/emsdk activate latest
-    ./emsdk/emsdk_env.ps1
-    npm install
-    npm run test
-  displayName: 'npm install and build'
+# - task: run-cmake@0
+#   displayName: 'Run CMake with CMakeSettings.json'
+#   inputs:
+#      cmakeListsOrSettingsJson: 'CMakeSettingsJson'
+#      # Use the vcpkg's toolchain file for CMake.
+#      useVcpkgToolchainFile: true
+#      # Build all configurations whose name starts with "Linux".
+#      configurationRegexFilter: '*-*'
+# - task: NodeTool@0
+#   inputs:
+#     versionSpec: '10.x'
+#   displayName: 'Install emsdk'
+# - script: |
+#     cd ..
+#     git init
+#     git clone https://github.com/emscripten-core/emsdk.git
+#     ./emsdk/emsdk install latest
+#     ./emsdk/emsdk activate latest
+#     ./emsdk/emsdk_env.ps1
+#     npm install
+#     npm run test
+#   displayName: 'npm install and build'
 
-- task: CmdLine@2
-  inputs:
-    script: |
-      dir
-      git status
-      cd ..
-      git status
-  displayName: 'status'
-- script: 
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
+# - task: CmdLine@2
+#   inputs:
+#     script: |
+#       dir
+#       git status
+#       cd ..
+#       git status
+#   displayName: 'status'
+# - script: 
+#     echo Add other tasks to build, test, and deploy your project.
+#     echo See https://aka.ms/yaml
+#   displayName: 'Run a multi-line script'
