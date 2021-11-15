@@ -19,105 +19,29 @@ pool:
   vmImage: $(imageName)
 
 steps:
- - task: Cache@2
-   inputs:
-     # As 'key' use the content of the response file, vcpkg's submodule fetched commit id and the platform name.
-     # The key must be one liner, each segment separated by pipe char, non-path segments enclosed by
-     # double quotes.
-     key: $(Build.SourcesDirectory)/vcpkg_x64-windows.txt | "$(Build.SourcesDirectory)/.git/modules/vcpkg/HEAD" | "$(Agent.OS)"
-     path: '$(Build.SourcesDirectory)/vcpkg'
-   displayName: 'test'
-
- - task: run-vcpkg@0
-   displayName: 'Run vcpkg'
-   inputs:
-     # Response file stored in source control, it provides the list of ports and triplet(s).
-     vcpkgArguments: @$(Build.SourcesDirectory)/vcpkg_x64-windows.txt
-     # Location of the vcpkg as submodule of the repository.
-     vcpkgDirectory: $(Build.SourcesDirectory)/vcpkg
-
- - task: run-cmake@0
-   displayName: 'Run CMake with CMakeSettings.json'
-    inputs:
-      cmakeListsOrSettingsJson: 'CMakeSettingsJson'
-      # Use the vcpkg's toolchain file for CMake.
-      useVcpkgToolchainFile: true
-      # Build all configurations whose name starts with "Linux".
-      configurationRegexFilter: 'windows.*'
-
-- task: NodeTool@0
-  inputs:
-    versionSpec: '10.x'
-  displayName: 'Install emsdk'
-- script: |
-    cd ..
-    git init
-    git clone https://github.com/emscripten-core/emsdk.git
-    ./emsdk/emsdk install latest
-    ./emsdk/emsdk activate latest
-    ./emsdk/emsdk_env.ps1
-    npm install
-    npm run test
-  displayName: 'npm install and build'
-
-- task: CmdLine@2
-  inputs:
-    script: |
-      dir
-      git status
-      cd ..
-      git status
-  displayName: 'status'
-- script: 
-    echo Add other tasks to build, test, and deploy your project.
-    echo See https://aka.ms/yaml
-  displayName: 'Run a multi-line script'
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
-trigger:
-- main
-
-strategy:
-  matrix:
-  #  linux:
- #     imageName: 'ubuntu-16.04'
-  #  mac:
-   #   imageName: 'macos-10.13'
-    windows:
-      imageName: 'windows-latest'
-
-pool:
-  vmImage: $(imageName)
-
-steps:
 - task: Cache@2
-    inputs:
+  inputs:
     # As 'key' use the content of the response file, vcpkg's submodule fetched commit id and the platform name.
     # The key must be one liner, each segment separated by pipe char, non-path segments enclosed by
     # double quotes.
     key: $(Build.SourcesDirectory)/vcpkg_x64-windows.txt | "$(Build.SourcesDirectory)/.git/modules/vcpkg/HEAD" | "$(Agent.OS)"
     path: '$(Build.SourcesDirectory)/vcpkg'
-  displayName: 'Cache vcpkg's artifacts'
-
+  displayName: 'test'
 - task: run-vcpkg@0
   displayName: 'Run vcpkg'
-     inputs:
-       # Response file stored in source control, it provides the list of ports and triplet(s).
-       vcpkgArguments: @$(Build.SourcesDirectory)/vcpkg_x64-windows.txt
-       # Location of the vcpkg as submodule of the repository.
-       vcpkgDirectory: $(Build.SourcesDirectory)/vcpkg
- - task: run-cmake@0
-   displayName: 'Run CMake with CMakeSettings.json'
-     inputs:
-       cmakeListsOrSettingsJson: 'CMakeSettingsJson'
-       # Use the vcpkg's toolchain file for CMake.
-       useVcpkgToolchainFile: true
-       # Build all configurations whose name starts with "Linux".
-       configurationRegexFilter: 'windows.*'
-
+  inputs:
+    # Response file stored in source control, it provides the list of ports and triplet(s).
+    vcpkgArguments: '@$(Build.SourcesDirectory)/vcpkg_x64-windows.txt'
+    # Location of the vcpkg as submodule of the repository.
+    vcpkgDirectory: $(Build.SourcesDirectory)/vcpkg
+- task: run-cmake@0
+  displayName: 'Run CMake with CMakeSettings.json'
+  inputs:
+     cmakeListsOrSettingsJson: 'CMakeSettingsJson'
+     # Use the vcpkg's toolchain file for CMake.
+     useVcpkgToolchainFile: true
+     # Build all configurations whose name starts with "Linux".
+     configurationRegexFilter: 'windows.*'
 - task: NodeTool@0
   inputs:
     versionSpec: '10.x'
