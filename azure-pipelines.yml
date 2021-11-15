@@ -17,7 +17,8 @@ strategy:
 
 variables:
   system.debug: true
-
+  vcpkgGitCommitId: 30124253eecff36bc90f73341edbfb4f845e2a1e
+  
 pool:
   vmImage: $(imageName)
 
@@ -33,7 +34,7 @@ steps:
 - task: run-vcpkg@0
   displayName: 'Run vcpkg'
   inputs:
-    vcpkgGitCommitId: bf1bd22f994c18afe61f770ef6f51a9c56231837
+    vcpkgGitCommitId: $(vcpkgGitCommitId)
     # Response file stored in source control, it provides the list of ports and triplet(s).
     vcpkgArguments: 'x64_windows'
     # Location of the vcpkg as submodule of the repository.
