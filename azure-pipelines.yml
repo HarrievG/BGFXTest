@@ -13,7 +13,7 @@ strategy:
   #  mac:
    #   imageName: 'macos-10.13'
     windows:
-      imageName: 'vs2017-latest'
+      imageName: 'vs2017-windows-2019'
 
 pool:
   vmImage: $(imageName)
