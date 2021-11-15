@@ -31,7 +31,7 @@ steps:
     # As 'key' use the content of the response file, vcpkg's submodule fetched commit id and the platform name.
     # The key must be one liner, each segment separated by pipe char, non-path segments enclosed by
     # double quotes.
-    key: 'vcpkg | $(Agent.OS) | bincache'
+    key: "vcpkg | $(Agent.OS) | bincache"
     #key: $(Build.SourcesDirectory)/CMakeLists.txt | "$(Build.SourcesDirectory)/.git/modules/vcpkg/HEAD" | "$(Agent.OS)"
     #path: '$(Build.SourcesDirectory)/vcpkg'
     path: 'C:\Users\VssAdministrator\AppData\Local\vcpkg\archives\'
@@ -42,7 +42,7 @@ steps:
     # As 'key' use the content of the response file, vcpkg's submodule fetched commit id and the platform name.
     # The key must be one liner, each segment separated by pipe char, non-path segments enclosed by
     # double quotes.
-    key: 'vcpkg | $(Agent.OS) | installcache'
+    key: "vcpkg | $(Agent.OS) | installcache"
     path: '$(Build.SourcesDirectory)/vcpkg'
   displayName: 'cache vcpkg installs'
 
