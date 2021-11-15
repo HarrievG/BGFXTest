@@ -34,12 +34,13 @@ steps:
 #     npm run test
 #   displayName: 'npm install and build'
 
-- task: printStatus@0
-- script: |
-    dir
-    git status
-
-  displayName: 'Run a one-line script'
+- task: CmdLine@2
+  inputs:
+    script: |
+      dir
+      git status
+      cd ..
+      git status
 
 - script: 
     echo Add other tasks to build, test, and deploy your project.
