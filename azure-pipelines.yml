@@ -55,10 +55,11 @@ steps:
       .\vcpkg\vcpkg install --triplet=x64-Windows
       .\vcpkg\vcpkg integrate install
       Install-Module VSSetup -Scope CurrentUser
-      .(( Get-VSSetupInstance ).InstallationPath + "\COMMON7\IDE\COMMONEXTENSIONS\MICROSOFT\CMAKE\CMake\bin\cmake.exe") -S . -DCMAKE_TOOLCHAIN_FILE="$(Build.SourcesDirectory)/vcpkg/scripts/buildsystems/vcpkg.cmake"
-#      mkdir build
-#      cd build
-#      cmake -s ..\
+      mkdir build
+      cd build
+      .(( Get-VSSetupInstance ).InstallationPath + "\COMMON7\IDE\COMMONEXTENSIONS\MICROSOFT\CMAKE\CMake\bin\cmake.exe") -S ..\ -DCMAKE_TOOLCHAIN_FILE="$(Build.SourcesDirectory)/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      .(( Get-VSSetupInstance ).InstallationPath + "\COMMON7\IDE\COMMONEXTENSIONS\MICROSOFT\CMAKE\CMake\bin\cmake.exe") --build .
+
 # - task: run-cmake@0
 #   inputs:
 #    cmakeListsOrSettingsJson: 'CMakeSettingsJson'
