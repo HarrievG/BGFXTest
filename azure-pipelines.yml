@@ -31,7 +31,7 @@ steps:
   displayName: 'Run vcpkg'
   inputs:
     # Response file stored in source control, it provides the list of ports and triplet(s).
-    #vcpkgArguments: '@$(Build.SourcesDirectory)/vcpkg_x64-windows.txt'
+    vcpkgArguments: 'x64_windows'
     # Location of the vcpkg as submodule of the repository.
     vcpkgDirectory: $(Build.SourcesDirectory)/vcpkg
 - task: run-cmake@0
