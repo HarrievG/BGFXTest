@@ -32,7 +32,7 @@ steps:
       git clone https://github.com/microsoft/vcpkg
       .\vcpkg\bootstrap-vcpkg.bat
       .\vcpkg\vcpkg integrate install
-      .\vcpkg\vcpkg install
+      .\vcpkg\vcpkg install x64-windows
 #      mkdir build
 #      cd build
 #      cmake -s ..\
@@ -40,7 +40,7 @@ steps:
   inputs:
     cmakeListsOrSettingsJson: 'CMakeSettingsJson'
     useVcpkgToolchainFile: true
-    configurationRegexFilter: '-*'
+    configurationRegexFilter: 'x64*'
 
 # - task: Cache@2
 #   inputs:
