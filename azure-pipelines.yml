@@ -26,7 +26,7 @@ steps:
     # double quotes.
     key: $(Build.SourcesDirectory)/vcpkg_x64-windows.txt | "$(Build.SourcesDirectory)/.git/modules/vcpkg/HEAD" | "$(Agent.OS)"
     path: '$(Build.SourcesDirectory)/vcpkg'
-  displayName: 'test'
+  displayName: 'cache'
 - task: run-vcpkg@0
   displayName: 'Run vcpkg'
   inputs:
