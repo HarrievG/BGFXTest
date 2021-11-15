@@ -35,7 +35,12 @@ steps:
       .\vcpkg\vcpkg install
       mkdir build
       cd build
-      cmake -s ..\
+
+      - task: run-cmake@0
+        inputs:
+          cmakeListsOrSettingsJson: 'CMakeSettingsJson'
+          useVcpkgToolchainFile: true
+#      cmake -s ..\
 # - task: Cache@2
 #   inputs:
 #     # As 'key' use the content of the response file, vcpkg's submodule fetched commit id and the platform name.
