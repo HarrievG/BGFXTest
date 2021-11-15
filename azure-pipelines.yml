@@ -34,7 +34,7 @@ steps:
 #     npm run test
 #   displayName: 'npm install and build'
 
-- task: print status
+- task: printStatus@0
 - script: |
     dir
     git status
