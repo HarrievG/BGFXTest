@@ -15,6 +15,10 @@ strategy:
     windows:
       imageName: 'windows-latest'
 
+variables:
+  system.debug: true
+  vcpkgGitCommitId: 30124253eecff36bc90f73341edbfb4f845e2a1e
+  
 pool:
   vmImage: $(imageName)
 
