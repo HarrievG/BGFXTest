@@ -13,11 +13,11 @@ vcpkg_from_github(OUT_SOURCE_PATH SOURCE_DIR
 
 # Set up GENie (custom project generator)
 
-if(VCPKG_CRT_LINKAGE STREQUAL dynamic)
+if(VCPKG_CRT_LINKAGE STREQUAL dynamic AND NOT VCPKG_TARGET_ARCHITECTURE STREQUAL wasm32)
     set(GENIE_OPTIONS ${GENIE_OPTIONS} --with-dynamic-runtime)
 endif()
 
-if(VCPKG_TARGET_ARCHITECTURE STREQUAL x86)
+if(VCPKG_TARGET_ARCHITECTURE STREQUAL x86 OR VCPKG_TARGET_ARCHITECTURE STREQUAL wasm32)
     set(GENIE_OPTIONS ${GENIE_OPTIONS} --platform=x32)
 elseif(VCPKG_TARGET_ARCHITECTURE STREQUAL x64)
     set(GENIE_OPTIONS ${GENIE_OPTIONS} --platform=x64)
@@ -39,7 +39,7 @@ elseif(TARGET_TRIPLET MATCHES uwp)
 endif()
 
 # GENie does not allow cmake+msvc, so we use msbuild in windows
-if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows" AND NOT VCPKG_TARGET_ARCHITECTURE STREQUAL wasm32)
     if(VCPKG_PLATFORM_TOOLSET STREQUAL "v140")
         set(GENIE_ACTION vs2015)
     elseif(VCPKG_PLATFORM_TOOLSET STREQUAL "v141")
@@ -83,10 +83,14 @@ if(GENIE_ACTION STREQUAL cmake)
     vcpkg_configure_cmake(
         SOURCE_PATH "${SOURCE_DIR}/.build/projects/${PROJ_FOLDER}"
         PREFER_NINJA
-        OPTIONS_RELEASE -DCMAKE_BUILD_TYPE=Release
-        OPTIONS_DEBUG -DCMAKE_BUILD_TYPE=Debug
+        OPTIONS_RELEASE -DCMAKE_BUILD_TYPE=Release -DEMSCRIPTEN_FORCE_COMPILERS=Off
+        OPTIONS_DEBUG -DCMAKE_BUILD_TYPE=Debug -DEMSCRIPTEN_FORCE_COMPILERS=Off
     )
-    vcpkg_install_cmake(TARGET bx/all)
+    if(VCPKG_TARGET_ARCHITECTURE STREQUAL "wasm32")
+        vcpkg_install_cmake()
+    else()
+        vcpkg_install_cmake(TARGET bx/all)
+    endif()
     # GENie does not generate an install target, so we install explicitly
     file(INSTALL
         "${SOURCE_DIR}/include/bx"

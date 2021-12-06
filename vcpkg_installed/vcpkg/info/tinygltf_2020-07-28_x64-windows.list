@@ -1,0 +1,7 @@
+x64-windows/
+x64-windows/include/
+x64-windows/include/tiny_gltf.h
+x64-windows/share/
+x64-windows/share/tinygltf/
+x64-windows/share/tinygltf/copyright
+x64-windows/share/tinygltf/vcpkg_abi_info.txt

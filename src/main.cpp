@@ -7,9 +7,39 @@
 #include "imgui.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
 #include "ImGuizmo.h"
-#include "tiny_gltf.h"
+#include "gltf-edit\gltfEditor.h"
 
-#define TINYGLTF_IMPLEMENTATION
+#include "idFramework/sys/platform.h"
+#include "idFramework/sys/sys_local.h"
+#include "stubs/common_stubs.hpp"
+#include "stubs/sys_stubs.hpp"
+//#include "TypeInfoGen.h"
+#include "idFramework/Common.h"
+#include "idFramework/Session.h"
+#include "idFramework/EventLoop.h"
+#include "idFramework/FileSystem.h"
+#include "idFramework/Licensee.h"
+#include "idlib/containers/StrList.h"
+
+idSession *session = NULL;
+//idDeclManager *		declManager = NULL;
+//idEventLoop *		eventLoop = NULL;
+
+//int idEventLoop::JournalLevel( void ) const { return 0; }
+
+
+idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
+
+idCommonLocal		commonLocal;
+idCommon *common = &commonLocal;
+
+
+idSysLocal		sysLocal;
+idSys *sys = &sysLocal;
+
+gltfSceneEditor gEditor;
+#define WINDOW_WIDTH 1600
+#define WINDOW_HEIGHT 900
 
 struct context_t {
     SDL_Window *window = nullptr;
@@ -46,8 +76,11 @@ void main_loop( void *data ) {
 
     ImGui::NewFrame( );
     //ImGuizmo::ViewManipulate( )
+    gEditor.DrawUI( );
     ImGui::ShowDemoWindow( ); // your drawing here
     ImGui::Render( );
+    gEditor.Render();
+
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
 
 
@@ -104,13 +137,36 @@ void main_loop( void *data ) {
 
 int main( int argc, char **argv )
 {
+    idStr fileName, sourcePath;
+
+    idLib::common = common;
+    idLib::cvarSystem = cvarSystem;
+    idLib::fileSystem = fileSystem;
+    idLib::sys = sys;
+
+    idLib::Init( );
+    cvarSystem->Init( );
+    idCVar::RegisterStaticVars( );
+    cmdSystem->Init( );
+    common->Init( argc, argv );
+
+
+    fileSystem->Init( );
+    fileName.Clear( );
+    sourcePath.Clear( );
+
+    fileSystem->Shutdown( false );
+    cvarSystem->Shutdown( );
+    cmdSystem->Shutdown( );
+    idLib::ShutDown( );
+
     if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
         printf( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );
         return 1;
     }
 
-    const int width = 800;
-    const int height = 600;
+    const int width = WINDOW_WIDTH;
+    const int height = WINDOW_HEIGHT;
     SDL_Window *window = SDL_CreateWindow(
         argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
         height, SDL_WINDOW_SHOWN );

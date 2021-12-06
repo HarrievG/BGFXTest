@@ -6,8 +6,11 @@
     "bgfx",
     "sdl2",
     "imgui",
-    "tinygltf",
-    "imguizmo"
+    "imguizmo",
+    "zlib",
+    "nlohmann-json",
+    "stb",
+    "tinygltf"
   ],
   "overrides": [
     {

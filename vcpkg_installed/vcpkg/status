@@ -1,0 +1,116 @@
+Package: bx
+Version: 1.0.0
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 6336a6193cd184dbda0cdffb43e58944fb2704df5023c32527a9ff6afd643ac8
+Description: Base library used across multiple projects
+Type: Port
+Status: install ok installed
+
+Package: bimg
+Version: 1.0.0
+Depends: bx
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 35b3e205fa2bdabb5336f8029d1b5faedfb0c0e31a0ceda7ee541c3ae3d85bc6
+Description: Image library
+Type: Port
+Status: install ok installed
+
+Package: bgfx
+Version: 1.0.0
+Depends: bimg, bx
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 58c369ce39509cd67de044660e5852ede6a6884f99cccedb332638568c1b8cd0
+Description: Cross-platform, graphics API agnostic, Bring Your Own Engine/Framework style rendering library.
+Type: Port
+Status: install ok installed
+
+Package: vcpkg-cmake-config
+Version: 2021-11-01
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 13ede6867a14e505784de6d0e778d6e6e7e78e885ccc7b3a286b56c6b6ce9985
+Type: Port
+Status: install ok installed
+
+Package: vcpkg-cmake
+Version: 2021-09-13
+Architecture: x64-windows
+Multi-Arch: same
+Abi: ba223abf27aa81069dbac763f8f900e37eaf7ae0b770226eccc0c990a9860d39
+Type: Port
+Status: install ok installed
+
+Package: imgui
+Version: 1.85
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: d236fef017cc65c9b4b2f4fb68a50ab7d628a7ea631d782cb2bb0dc26d91a3f8
+Description: Bloat-free Immediate Mode Graphical User interface for C++ with minimal dependencies.
+Type: Port
+Status: install ok installed
+
+Package: imguizmo
+Version: 1.83
+Depends: imgui, vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 9d4de565ec9e5007d4cea6c443a6b379d93ac21f81e73a13ff32362f573617fd
+Description: Immediate mode 3D gizmo for scene editing and other controls based on Dear ImGui
+Type: Port
+Status: install ok installed
+
+Package: sdl2
+Version: 2.0.16
+Port-Version: 1
+Architecture: x64-windows
+Multi-Arch: same
+Abi: d8e67482e80fe90c32ef0b0f774df5a8f9cd300b36308c85d9069582d4dfd69c
+Description: Simple DirectMedia Layer is a cross-platform development library designed to provide low level access to audio, keyboard, mouse, joystick, and graphics hardware via OpenGL and Direct3D.
+Type: Port
+Status: install ok installed
+
+Package: stb
+Version: 2020-09-14
+Port-Version: 1
+Architecture: x64-windows
+Multi-Arch: same
+Abi: a496d20f3f6fb298bf850ab64aefa7dec0b4405d198a9f63d3051ec55600017c
+Description: public domain header-only libraries
+Type: Port
+Status: install ok installed
+
+Package: nlohmann-json
+Version: 3.10.4
+Depends: vcpkg-cmake, vcpkg-cmake-config
+Architecture: x64-windows
+Multi-Arch: same
+Abi: 4d8ddf4fe0c0f006a23c85ef315236387d759f85e2967509e6d6c55ef85fd76c
+Description: JSON for Modern C++
+Type: Port
+Status: install ok installed
+
+Package: tinygltf
+Version: 2020-07-28
+Port-Version: 2
+Depends: nlohmann-json, stb
+Architecture: x64-windows
+Multi-Arch: same
+Abi: fd96edcfce5f040e93a366e3ee2a0c998fd92e737277fc67c80adb96d93f40ce
+Description: A header only C++11 glTF 2.0 library.
+Type: Port
+Status: install ok installed
+
+Package: zlib
+Version: 1.2.11
+Port-Version: 13
+Architecture: x64-windows
+Multi-Arch: same
+Abi: d9b32875b73db6ff60532cc231c295a05366feb61f96ea3c424b34992179ccb3
+Description: A compression library
+Type: Port
+Status: install ok installed
+
