@@ -447,7 +447,7 @@ public:
 
 	virtual bool			Command( const idCmdArgs &args );
 
-	virtual void			CommandCompletion( void(*callback)( const char *s ) );
+	virtual void			CommandCompletion( void(*callback)( const char *s, void *user ), void *user );
 	virtual void			ArgCompletion( const char *cmdString, void(*callback)( const char *s ) );
 
 	virtual void			SetModifiedFlags( int flags );
@@ -763,9 +763,9 @@ bool idCVarSystemLocal::Command( const idCmdArgs &args ) {
 idCVarSystemLocal::CommandCompletion
 ============
 */
-void idCVarSystemLocal::CommandCompletion( void(*callback)( const char *s ) ) {
+void idCVarSystemLocal::CommandCompletion( void(*callback)( const char *s, void * user), void *user ) {
 	for( int i = 0; i < cvars.Num(); i++ ) {
-		callback( cvars[i]->GetName() );
+		callback( cvars[i]->GetName(),user);
 	}
 }
 

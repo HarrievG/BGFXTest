@@ -44,7 +44,7 @@ If you have questions concerning this license or the applicable additional terms
 #define ENGINE_VERSION					"dhewm3 1.5.1pre"	// printed in console
 
 // paths
-#define	BASE_GAMEDIR					"base"
+#define	BASE_GAMEDIR					"assets"
 
 // filenames
 #ifndef CONFIG_FILE

@@ -13,15 +13,14 @@
 #include "idFramework/sys/sys_local.h"
 #include "stubs/common_stubs.hpp"
 #include "stubs/sys_stubs.hpp"
-//#include "TypeInfoGen.h"
 #include "idFramework/Common.h"
 #include "idFramework/Session.h"
 #include "idFramework/EventLoop.h"
 #include "idFramework/FileSystem.h"
 #include "idFramework/Licensee.h"
 #include "idlib/containers/StrList.h"
+#include "idFramework/idImGui/idImConsole.h"
 
-idSession *session = NULL;
 //idDeclManager *		declManager = NULL;
 //idEventLoop *		eventLoop = NULL;
 
@@ -33,6 +32,11 @@ idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode
 idCommonLocal		commonLocal;
 idCommon *common = &commonLocal;
 
+idImConsole imConsoleLocal;
+idImConsole *ImConsole = &imConsoleLocal;
+bool consoleOpen = false;
+
+idSession *session = NULL;
 
 idSysLocal		sysLocal;
 idSys *sys = &sysLocal;
@@ -78,8 +82,10 @@ void main_loop( void *data ) {
     //ImGuizmo::ViewManipulate( )
     gEditor.DrawUI( );
     ImGui::ShowDemoWindow( ); // your drawing here
+	imConsole->Draw( );
+	gEditor.Render( );
     ImGui::Render( );
-    gEditor.Render();
+    
 
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
 
@@ -150,15 +156,10 @@ int main( int argc, char **argv )
     cmdSystem->Init( );
     common->Init( argc, argv );
 
-
     fileSystem->Init( );
     fileName.Clear( );
     sourcePath.Clear( );
 
-    fileSystem->Shutdown( false );
-    cvarSystem->Shutdown( );
-    cmdSystem->Shutdown( );
-    idLib::ShutDown( );
 
     if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
         printf( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );
@@ -249,10 +250,70 @@ int main( int argc, char **argv )
     ImGui_ImplSDL2_Shutdown( );
     ImGui_Implbgfx_Shutdown( );
 
+	fileSystem->Shutdown( false );
+	cvarSystem->Shutdown( );
+	cmdSystem->Shutdown( );
+	idLib::ShutDown( );
+
+
     ImGui::DestroyContext( );
     bgfx::shutdown( );
 
     SDL_DestroyWindow( window );
     SDL_Quit( );
     return 0;
+}
+
+
+
+idCVar win_outputDebugString( "win_outputDebugString", "0", CVAR_SYSTEM | CVAR_BOOL, "" );
+idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
+idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
+
+
+/*
+==============
+Sys_Printf
+==============
+*/
+
+enum {
+	MAXPRINTMSG = 4096,
+	MAXNUMBUFFEREDLINES = 16
+};
+
+static char bufferedPrintfLines[MAXNUMBUFFEREDLINES][MAXPRINTMSG];
+static int curNumBufferedPrintfLines = 0;
+static CRITICAL_SECTION printfCritSect;
+
+void Sys_Printf( const char *fmt, ... ) {
+	char		msg[MAXPRINTMSG];
+
+	va_list argptr;
+	va_start( argptr, fmt );
+	int len = idStr::vsnPrintf( msg, MAXPRINTMSG - 1, fmt, argptr );
+	va_end( argptr );
+	msg[sizeof( msg ) - 1] = '\0';
+
+	printf( "%s", msg );
+	imConsole->AddLog( "%s", msg );
+
+	if ( win_outputDebugString.GetBool( ) ) {
+		OutputDebugString( msg );
+	}
+
+	//if ( win_outputEditString.GetBool( ) ) {
+	//	if ( Sys_IsMainThread( ) ) {
+	//		Conbuf_AppendText( msg );
+	//	} else {
+	//		EnterCriticalSection( &printfCritSect );
+	//		int idx = curNumBufferedPrintfLines++;
+	//		if ( idx < MAXNUMBUFFEREDLINES ) {
+	//			if ( len >= MAXPRINTMSG )
+	//				len = MAXPRINTMSG - 1;
+	//			memcpy( bufferedPrintfLines[idx], msg, len + 1 );
+	//		}
+	//		LeaveCriticalSection( &printfCritSect );
+	//	}
+	//}
 }

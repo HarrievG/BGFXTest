@@ -86,7 +86,7 @@ public:
 	virtual void		RemoveFlaggedCommands( int flags ) = 0;
 
 						// Command and argument completion using callback for each valid string.
-	virtual void		CommandCompletion( void(*callback)( const char *s ) ) = 0;
+	virtual void		CommandCompletion( void(*callback)( const char *s, void *usr ), void *usr ) = 0;
 	virtual void		ArgCompletion( const char *cmdString, void(*callback)( const char *s ) ) = 0;
 
 						// Adds command text to the command buffer, does not add a final \n

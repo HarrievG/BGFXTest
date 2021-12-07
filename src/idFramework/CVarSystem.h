@@ -241,7 +241,7 @@ public:
 	virtual bool			Command( const idCmdArgs &args ) = 0;
 
 							// Command and argument completion using callback for each valid string.
-	virtual void			CommandCompletion( void(*callback)( const char *s ) ) = 0;
+	virtual void			CommandCompletion( void(*callback)( const char *s, void *user ), void *user ) = 0;
 	virtual void			ArgCompletion( const char *cmdString, void(*callback)( const char *s ) ) = 0;
 
 							// Sets/gets/clears modified flags that tell what kind of CVars have changed.

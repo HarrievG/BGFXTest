@@ -34,6 +34,8 @@ set(src_idFramework
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/KeyInput.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/UsercmdGen.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/Compressor.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/console.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idImGui/idImConsole.h
 
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/File.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/FileSystem.cpp
@@ -55,6 +57,8 @@ set(src_idFramework
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_net.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_shared.cpp
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_syscon.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idImGui/idImConsole.cpp
+
 	)
 
 #add_globbed_headers(src_idFramework "idFramework")
@@ -112,8 +116,8 @@ set(src_idlib
 )
 
 add_globbed_headers(src_idlib "idlib")
-add_library(idFramework STATIC ${src_idlib})
 
+add_library(idFramework STATIC ${src_idlib})
 
 set(Sources 
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/tiny_gltf.h
@@ -166,4 +170,6 @@ target_compile_options(
 #  PRIVATE /D_CRT_SECURE_NO_WARNINGS
   PRIVATE /DNOMINMAX
   PRIVATE /std:c++17
+  PRIVATE /DNO4068
+  /DIDSTR_NO_REDIRECT
 )

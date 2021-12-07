@@ -62,7 +62,7 @@ public:
 	virtual void			RemoveCommand( const char *cmdName );
 	virtual void			RemoveFlaggedCommands( int flags );
 
-	virtual void			CommandCompletion( void(*callback)( const char *s ) );
+	virtual void			CommandCompletion( void(*callback)( const char *s, void *usr ), void *usr );
 	virtual void			ArgCompletion( const char *cmdString, void(*callback)( const char *s ) );
 
 	virtual void			BufferCommandText( cmdExecution_t exec, const char *text );
@@ -434,11 +434,11 @@ void idCmdSystemLocal::RemoveFlaggedCommands( int flags ) {
 idCmdSystemLocal::CommandCompletion
 ============
 */
-void idCmdSystemLocal::CommandCompletion( void(*callback)( const char *s ) ) {
+void idCmdSystemLocal::CommandCompletion( void(*callback)( const char *s, void * usr ), void *usr ) {
 	commandDef_t *cmd;
 
 	for ( cmd = commands; cmd; cmd = cmd->next ) {
-		callback( cmd->name );
+		callback( cmd->name,usr );
 	}
 }
 

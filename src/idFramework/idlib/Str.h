@@ -42,7 +42,7 @@ If you have questions concerning this license or the applicable additional terms
 // these library functions should not be used for cross platform compatibility
 #ifndef IDSTR_NO_REDIRECT
 #define strcmp			idStr::Cmp		// use_idStr_Cmp
-#define strncmp			use_idStr_Cmpn
+#define strncmp			idStr::Cmpn
 
 #if defined( StrCmpN )
 #undef StrCmpN
@@ -76,13 +76,13 @@ If you have questions concerning this license or the applicable additional terms
 #if defined( strnicmp )
 #undef strnicmp
 #endif
-#define strnicmp		use_idStr_Icmpn
-#define _strnicmp		use_idStr_Icmpn
-#define _memicmp		use_idStr_Icmpn
-#define snprintf		use_idStr_snPrintf
-#define _snprintf		use_idStr_snPrintf
-#define vsnprintf		use_idStr_vsnPrintf
-#define _vsnprintf		use_idStr_vsnPrintf
+#define strnicmp		idStr::Icmpn
+#define _strnicmp		idStr::Icmpn
+#define _memicmp		idStr::Icmpn
+#define snprintf		useidStr::snPrintf
+#define _snprintf		useidStr::snPrintf
+#define vsnprintf		idStr::vsnPrintf
+#define _vsnprintf		idStr::vsnPrintf
 #endif
 
 class idVec4;
