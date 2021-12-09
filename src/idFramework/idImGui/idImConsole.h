@@ -9,6 +9,9 @@ public:
 	void						ClearLog( );
 	char						InputBuf[256];
 
+	idImConsole( );
+	~idImConsole( );
+
 	// Portable helpers
 	static int					Stricmp( const char *str1, const char *str2 );
 	static int					Strnicmp( const char *str1, const char *str2, int n );
@@ -22,7 +25,6 @@ private:
 
 	void						imDraw( const char *title, bool *p_open );
 	ImVector<char *>			Items;
-	ImVector<const char *>		Commands;
 	ImVector<char *>			History;
 	int							HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.
 	ImGuiTextFilter				Filter;

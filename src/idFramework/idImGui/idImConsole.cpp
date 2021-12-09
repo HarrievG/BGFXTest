@@ -4,13 +4,17 @@
 #include <type_traits>
 #include <tuple>
 #include "idFramework/CVarSystem.h"
-
+#include "idFramework/common.h"
+#include <idFramework/idlib/containers/StrList.h>
 
 static idImConsole localConsole;
 idImConsole *imConsole = &localConsole;
 
-static void  Strtrim( char *s ) { char *str_end = s + strlen( s ); while ( str_end > s && str_end[-1] == ' ' ) str_end--; *str_end = 0; }
 
+extern idCVar com_timestampPrints;
+
+
+static void  Strtrim( char *s ) { char *str_end = s + strlen( s ); while ( str_end > s && str_end[-1] == ' ' ) str_end--; *str_end = 0; }
 template <typename T>
 struct function_traits
     : public function_traits<decltype( &T::operator() )> { };
@@ -20,45 +24,28 @@ struct function_traits<ReturnType( ClassType:: * )( Args... ) const> {
     template <size_t i>
     using arg_t = std::tuple_element_t<i, std::tuple<Args...>>;
 };
-//
-//
-//struct test {
-//    test( ImGuiInputTextCallbackData *data ) { };
-//    idImConsole *ptr;
-//};
-//test tt( nullptr );
-//tt.ptr = this;
-//test *ptrTT = &tt;
-//
-////idImConsole * replacementChar = this;
-//auto replacementLambda = [&ptrTT] ( ImGuiInputTextCallbackData *data ) {
-//    data->UserData = ( void * ) ptrTT;
-//    return 0;
-//};
-//using ReplacementLambdaType = decltype( tt );
-//if ( ImGui::InputText( "Input", InputBuf, IM_ARRAYSIZE( InputBuf ), ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory,
-//    [] ( ImGuiInputTextCallbackData *data ) {
-//        auto f = *static_cast< ReplacementLambdaType * >( data->UserData );
-//        f.ptr->ClearLog( );
-//        return 0;
-//    }, &replacementLambda )
-//    )
-//idImConsole::idImConsole( )  {
-//    ClearLog( );
-//    memset( InputBuf, 0, sizeof( InputBuf ) );
-//    HistoryPos = -1;
-//    Commands.push_back( "HELP" );
-//    Commands.push_back( "HISTORY" );
-//    Commands.push_back( "CLEAR" );
-//    Commands.push_back( "CLASSIFY" );  // "classify" is here to provide an example of "C"+[tab] completing to "CL" and displaying matches.
-//    AddLog( "Welcome to ImGui!" );
-//}
-//
-//idImConsole::~idImConsole( )     {
-//    ClearLog( );
-//    for ( int i = 0; i < History.Size; i++ )
-//        free( History[i] );
-//}
+
+idImConsole::idImConsole( )  {
+    ClearLog( );
+    memset( InputBuf, 0, sizeof( InputBuf ) );
+    HistoryPos = -1;
+    //Commands.push_back( "HISTORY" );
+    //Commands.push_back( "CLEAR" );
+	//static cache_t cache;
+	//static CacheSetup setup( std::cout, true_callback, &cache );
+
+	//std::ofstream file;
+	//file.open( "cout.txt" );
+	//std::streambuf *sbuf = std::cout.rdbuf( );
+	//std::cout.rdbuf( file.rdbuf( ) );
+	//cout is now pointing to a file
+}
+
+idImConsole::~idImConsole( )     {
+    ClearLog( );
+    for ( int i = 0; i < History.Size; i++ )
+        free( History[i] );
+}
 
 // Portable helpers
 
@@ -75,9 +62,10 @@ void idImConsole::ClearLog( )     {
     ScrollToBottom = true;
 }
 
+//Do not call directly.
+//Use common->Printf instead.
 void idImConsole::AddLog(const char* fmt, ...)
 {
-
     char buf[1024];
     va_list args;
     va_start(args, fmt);
@@ -112,17 +100,17 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
             ImGui::EndPopup();
         }
 
-        ImGui::TextWrapped(
-            "This example implements a console with basic coloring, completion (TAB key) and history (Up/Down keys). A more elaborate "
-            "implementation may want to store entries along with extra data such as timestamp, emitter, etc.");
-        ImGui::TextWrapped("Enter 'HELP' for help.");
+        //ImGui::TextWrapped(
+        //    "This example implements a console with basic coloring, completion (TAB key) and history (Up/Down keys). A more elaborate "
+        //    "implementation may want to store entries along with extra data such as timestamp, emitter, etc.");
+        //ImGui::TextWrapped("Enter 'HELP' for help.");
 
         // TODO: display items starting from the bottom
 
-        if (ImGui::SmallButton("Add Debug Text"))  { AddLog("%d some text", Items.Size); AddLog("some more text"); AddLog("display very important message here!"); }
-        ImGui::SameLine();
-        if (ImGui::SmallButton("Add Debug Error")) { AddLog("[error] something went wrong"); }
-        ImGui::SameLine();
+        //if (ImGui::SmallButton("Add Debug Text"))  { AddLog("%d some text", Items.Size); AddLog("some more text"); AddLog("display very important message here!"); }
+        //ImGui::SameLine();
+        //if (ImGui::SmallButton("Add Debug Error")) { AddLog("[error] something went wrong"); }
+        //ImGui::SameLine();
         if (ImGui::SmallButton("Clear"))           { ClearLog(); }
         ImGui::SameLine();
         bool copy_to_clipboard = ImGui::SmallButton("Copy");
@@ -185,17 +173,56 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
             if (!Filter.PassFilter(item))
                 continue;
 
-            // Normally you would store more information in your item than just a string.
-            // (e.g. make Items[] an array of structure, store color/type etc.)
-            ImVec4 color;
-            bool has_color = false;
-            if (strstr(item, "[error]"))          { color = ImVec4(1.0f, 0.4f, 0.4f, 1.0f); has_color = true; }
-            else if ( strncmp(item, "# ", 2) == 0) { color = ImVec4(1.0f, 0.8f, 0.6f, 1.0f); has_color = true; }
-            if (has_color)
-                ImGui::PushStyleColor(ImGuiCol_Text, color);
-            ImGui::TextUnformatted(item);
-            if (has_color)
-                ImGui::PopStyleColor();
+			auto colconv = [](idVec4 idcol) -> ImVec4
+				{return ImVec4(idcol.x, idcol.y, idcol.z, idcol.w );};
+
+			idVec4 idColor;
+			ImVec4 color;
+			idVec4 setColor = idStr::ColorForIndex( 7 );
+			ImVec4 targetCol = colconv(setColor);
+			const unsigned char *s;
+
+			s = ( const unsigned char * ) item;
+			bool forceColor = false;
+			bool coloring = false;
+			uint idx = 0;
+			idStr itemStr;
+			while (*s) {
+				if (idStr::IsColor( ( const char * ) s ))
+				{
+					//if we had an colour, flush it.
+					if ( coloring )
+					{
+						ImGui::PushStyleColor( ImGuiCol_Text, color );
+						ImGui::TextUnformatted( itemStr );ImGui::SameLine(0, 0);
+						ImGui::PopStyleColor( );
+						itemStr.Clear();
+						coloring = false;
+					}
+					coloring = true;
+					targetCol = colconv( idStr::ColorForIndex( *( s + 1 ) ) );
+					if ( !forceColor ) {
+						if ( *( s + 1 ) == C_COLOR_DEFAULT ) {
+							color = colconv( setColor );
+						} else {
+							color = targetCol ;
+							color.w = setColor[3];
+						}
+					}
+					idx += 2;
+					s += 2;
+					continue;
+				}else
+					itemStr+= item[idx];
+				s++;
+				idx++;
+			}
+			if ( coloring ) 					{
+				ImGui::PushStyleColor( ImGuiCol_Text, color );
+				ImGui::TextUnformatted( itemStr );
+				ImGui::PopStyleColor( );
+			}else if (itemStr.Length())
+				ImGui::TextUnformatted( itemStr );
         }
         if (copy_to_clipboard)
             ImGui::LogFinish();
@@ -235,7 +262,7 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
 }
 
 void idImConsole::ExecCommand( const char *command_line )     {
-	AddLog( "# %s\n", command_line );
+    common->Printf( "^8# %s\n", command_line);
 	// Insert into history. First find match and delete it so it can be pushed to the back. This isn't trying to be smart or optimal.
 	HistoryPos = -1;
 	for ( int i = History.Size - 1; i >= 0; i-- )
@@ -248,15 +275,14 @@ void idImConsole::ExecCommand( const char *command_line )     {
 	// Process command
 	if ( Stricmp( command_line, "CLEAR" ) == 0 ) {
 		ClearLog( );
-	} else if ( Stricmp( command_line, "HELP" ) == 0 ) {
-		AddLog( "Commands:" );
-		for ( int i = 0; i < Commands.Size; i++ )
-			AddLog( "- %s", Commands[i] );
 	} else if ( Stricmp( command_line, "HISTORY" ) == 0 ) {
 		for ( int i = History.Size >= 10 ? History.Size - 10 : 0; i < History.Size; i++ )
 			AddLog( "%3d: %s\n", i, History[i] );
 	} else {
-		AddLog( "Unknown command: '%s'\n", command_line );
+        auto cvar = cvarSystem->Find( command_line );
+        cmdSystem->BufferCommandText( CMD_EXEC_APPEND, command_line );	// valid command
+        cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "\n" );
+        cmdSystem->ExecuteCommandBuffer();
 	}
 }
 
@@ -288,28 +314,24 @@ int idImConsole::TextEditCallback(ImGuiInputTextCallbackData* data)
 			
             // Build a list of candidates
             ImVector<const char*> candidates;
-            for (int i = 0; i < Commands.Size; i++)
-                if (Strnicmp(Commands[i], word_start, (int)(word_end - word_start)) == 0)
-                    candidates.push_back(Commands[i]);
 
 			parms parm = { &candidates,word_start,word_end };
 			cvarSystem->CommandCompletion( [](const char * cmd,void * usr) -> auto {			
-				//((ImVector<const char *>*)usr)->push_back( cmd );
 				parms * lparms = (parms*)usr;
 				if (Strnicmp(cmd, lparms->word_start, (int)( lparms->word_end - lparms->word_start)) == 0)
 					lparms->listptr->push_back( cmd );
 				}, &parm );
+
 			cmdSystem->CommandCompletion( []( const char *cmd, void *usr ) -> auto {
 				parms *lparms = ( parms * ) usr;
 				if ( Strnicmp( cmd, lparms->word_start, ( int ) ( lparms->word_end - lparms->word_start ) ) == 0 )
 					lparms->listptr->push_back( cmd );
-				//( ( ImVector<const char *> * )usr )->push_back( cmd );
-			}, &parm );
+				}, &parm );
 
             if (candidates.Size == 0)
             {
                 // No match
-                AddLog("No match for \"%.*s\"!\n", (int)(word_end - word_start), word_start);
+                AddLog("^3No match for \"%.*s\"!\n", (int)(word_end - word_start), word_start);
             }
             else if (candidates.Size == 1)
             {

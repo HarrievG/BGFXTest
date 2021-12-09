@@ -28,6 +28,10 @@
 
 
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
+idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
+idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
+idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
+
 
 idCommonLocal		commonLocal;
 idCommon *common = &commonLocal;
@@ -151,8 +155,8 @@ int main( int argc, char **argv )
     idLib::sys = sys;
 
     idLib::Init( );
+	idCVar::RegisterStaticVars( );
     cvarSystem->Init( );
-    idCVar::RegisterStaticVars( );
     cmdSystem->Init( );
     common->Init( argc, argv );
 
@@ -160,9 +164,9 @@ int main( int argc, char **argv )
     fileName.Clear( );
     sourcePath.Clear( );
 
-
+	common->Warning("blaat");
     if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
-        printf( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );
+         common->FatalError( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );
         return 1;
     }
 
@@ -173,7 +177,7 @@ int main( int argc, char **argv )
         height, SDL_WINDOW_SHOWN );
 
     if ( window == nullptr ) {
-        printf( "Window could not be created. SDL_Error: %s\n", SDL_GetError( ) );
+        common->FatalError("Window could not be created. SDL_Error: %s\n", SDL_GetError( ) );
         return 1;
     }
  
@@ -181,7 +185,7 @@ int main( int argc, char **argv )
     SDL_SysWMinfo wmi;
     SDL_VERSION( &wmi.version );
     if ( !SDL_GetWindowWMInfo( window, &wmi ) ) {
-        printf(
+        common->FatalError(
             "SDL_SysWMinfo could not be retrieved. SDL_Error: %s\n",
             SDL_GetError( ) );
         return 1;
@@ -264,13 +268,6 @@ int main( int argc, char **argv )
     return 0;
 }
 
-
-
-idCVar win_outputDebugString( "win_outputDebugString", "0", CVAR_SYSTEM | CVAR_BOOL, "" );
-idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
-idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
-
-
 /*
 ==============
 Sys_Printf
@@ -295,9 +292,9 @@ void Sys_Printf( const char *fmt, ... ) {
 	va_end( argptr );
 	msg[sizeof( msg ) - 1] = '\0';
 
-	printf( "%s", msg );
-	imConsole->AddLog( "%s", msg );
-
+	//native console
+	printf( "%s", msg ); 
+	//debugger output
 	if ( win_outputDebugString.GetBool( ) ) {
 		OutputDebugString( msg );
 	}

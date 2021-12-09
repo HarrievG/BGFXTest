@@ -1,3 +1,4 @@
+#pragma once
 /*
 ==============================================================
 
@@ -27,7 +28,7 @@ Sys_Milliseconds
 ================
 */
 unsigned int Sys_Milliseconds( ) {
-	return 1;//return SDL_GetTicks( );
+	return SDL_GetTicks( );
 }
 
 const char *Sys_Cwd( void ) {

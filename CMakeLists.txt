@@ -26,6 +26,7 @@ endfunction()
 set(src_idFramework
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/platform.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/File.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/Common.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/FileSystem.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/CmdSystem.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/CVarSystem.h
@@ -58,6 +59,7 @@ set(src_idFramework
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_shared.cpp
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_syscon.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idImGui/idImConsole.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/stubs/common_stubs.cpp
 
 	)
 
@@ -170,6 +172,6 @@ target_compile_options(
 #  PRIVATE /D_CRT_SECURE_NO_WARNINGS
   PRIVATE /DNOMINMAX
   PRIVATE /std:c++17
-  PRIVATE /DNO4068
+  PRIVATE /wd4068 # unknown pragma
   /DIDSTR_NO_REDIRECT
 )

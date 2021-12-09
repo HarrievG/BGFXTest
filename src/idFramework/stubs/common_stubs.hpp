@@ -1,6 +1,8 @@
+#pragma once
 #include "idFramework/sys/platform.h"
 #include "idFramework/sys/sys_local.h"
 #include "Common.h"
+#include <idFramework/idlib/containers/StrList.h>
 /*
 ==============================================================
 
@@ -40,18 +42,18 @@ public:
 	virtual void			BeginRedirect( char *buffer, int buffersize, void ( *flush )( const char * ) ) { }
 	virtual void			EndRedirect( void ) { }
 	virtual void			SetRefreshOnPrint( bool set ) { }
-	virtual void			Printf( const char *fmt, ... ) { STDIO_PRINT( "", "" ); }
-	virtual void			VPrintf( const char *fmt, va_list arg ) { vprintf( fmt, arg ); }
-	virtual void			DPrintf( const char *fmt, ... ) { /*STDIO_PRINT( "", "" );*/ }
-	virtual void			Warning( const char *fmt, ... ) { STDIO_PRINT( "WARNING: ", "\n" ); }
-	virtual void			DWarning( const char *fmt, ... ) { /*STDIO_PRINT( "WARNING: ", "\n" );*/ }
-	virtual void			PrintWarnings( void ) { }
+	virtual void			Printf( const char *fmt, ... );
+	virtual void			VPrintf( const char *fmt, va_list arg );
+	virtual void			DPrintf( const char *fmt, ... );
+	virtual void			Warning( const char *fmt, ... );
+	virtual void			DWarning( const char *fmt, ... );
+	virtual void			PrintWarnings( void );
 	virtual void			ClearWarnings( const char *reason ) { }
 	virtual void			Error( const char *fmt, ... ) { STDIO_PRINT( "ERROR: ", "\n" ); exit( 0 ); }
 	virtual void			FatalError( const char *fmt, ... ) { STDIO_PRINT( "FATAL ERROR: ", "\n" ); exit( 0 ); }
 	virtual const idLangDict *GetLanguageDict( ) { return NULL; }
-	virtual const char *KeysFromBinding( const char *bind ) { return NULL; }
-	virtual const char *BindingFromKey( const char *key ) { return NULL; }
+	virtual const char *	KeysFromBinding( const char *bind ) { return NULL; }
+	virtual const char *	BindingFromKey( const char *key ) { return NULL; }
 	virtual int				ButtonState( int key ) { return 0; }
 	virtual int				KeyState( int key ) { return 0; }
 	virtual bool			SetCallback( CallbackType cbt, FunctionPointer cb, void *userArg ) { return false; }
@@ -104,4 +106,12 @@ public:
 
 		return added;
 	}
+
+private:
+	bool						com_fullyInitialized;
+	bool						com_refreshOnPrint;		// update the screen every print for dmap
+	int							com_errorEntered;		// 0, ERP_DROP, etc
+	idStr						warningCaption;
+	idStrList					warningList;
+	idStrList					errorList;
 };
