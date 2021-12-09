@@ -279,10 +279,7 @@ void idImConsole::ExecCommand( const char *command_line )     {
 		for ( int i = History.Size >= 10 ? History.Size - 10 : 0; i < History.Size; i++ )
 			AddLog( "%3d: %s\n", i, History[i] );
 	} else {
-        auto cvar = cvarSystem->Find( command_line );
-        cmdSystem->BufferCommandText( CMD_EXEC_APPEND, command_line );	// valid command
-        cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "\n" );
-        cmdSystem->ExecuteCommandBuffer();
+        cmdSystem->BufferCommandText( CMD_EXEC_NOW, command_line );	// valid command
 	}
 }
 

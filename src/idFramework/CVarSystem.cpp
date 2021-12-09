@@ -1186,7 +1186,7 @@ void idCVarSystemLocal::ListByFlags( const idCmdArgs &args, cvarFlags_t flags ) 
 				if ( cvar->GetFlags() & CVAR_SYSTEM ) {
 					string += S_COLOR_WHITE "SYS  ";
 				} else if ( cvar->GetFlags() & CVAR_RENDERER ) {
-					string += S_COLOR_WHITE "RNDR ";
+					string += S_COLOR_WHITE "BGFX ";
 				} else if ( cvar->GetFlags() & CVAR_SOUND ) {
 					string += S_COLOR_WHITE "SND  ";
 				} else if ( cvar->GetFlags() & CVAR_GUI ) {

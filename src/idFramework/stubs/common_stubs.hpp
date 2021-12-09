@@ -21,14 +21,14 @@
 
 class idCommonLocal : public idCommon {
 public:
-	idCommonLocal( void ) { }
+	idCommonLocal( void ) { ClearWarnings( "Intialization" ); }
 
 	virtual void			Init( int argc, char **argv ) {
 		ParseCommandLine( argc, argv );
 		AddStartupCommands( );
 	}
 	virtual void			Init( int argc, const char **argv, const char *cmdline ) { }
-	virtual void			Shutdown( void ) { }
+	virtual void			Shutdown( void );
 	virtual void			Quit( void ) { }
 	virtual bool			IsInitialized( void ) const { return true; }
 	virtual void			Frame( void ) { }
@@ -46,11 +46,12 @@ public:
 	virtual void			VPrintf( const char *fmt, va_list arg );
 	virtual void			DPrintf( const char *fmt, ... );
 	virtual void			Warning( const char *fmt, ... );
+	virtual void			VWarning( const char *fmt, va_list arg );
 	virtual void			DWarning( const char *fmt, ... );
 	virtual void			PrintWarnings( void );
-	virtual void			ClearWarnings( const char *reason ) { }
-	virtual void			Error( const char *fmt, ... ) { STDIO_PRINT( "ERROR: ", "\n" ); exit( 0 ); }
-	virtual void			FatalError( const char *fmt, ... ) { STDIO_PRINT( "FATAL ERROR: ", "\n" ); exit( 0 ); }
+	virtual void			ClearWarnings( const char *reason );
+	virtual void			Error( const char *fmt, ... );
+	virtual void			FatalError( const char *fmt, ... );
 	virtual const idLangDict *GetLanguageDict( ) { return NULL; }
 	virtual const char *	KeysFromBinding( const char *bind ) { return NULL; }
 	virtual const char *	BindingFromKey( const char *key ) { return NULL; }

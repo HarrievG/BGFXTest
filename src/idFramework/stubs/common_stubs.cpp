@@ -3,6 +3,7 @@
 
 #define	MAX_PRINT_MSG_SIZE	4096
 #define MAX_WARNING_LIST	256
+#define MAX_ERROR_LIST		256
 
 
 idCVar com_timestampPrints( "com_timestampPrints", "1", CVAR_SYSTEM, "print time with each console print, 1 = msec, 2 = sec", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
@@ -29,7 +30,7 @@ void idCommonLocal::VPrintf( const char *fmt, va_list args ) {
 		if ( com_timestampPrints.GetInteger( ) == 2 ) {
 			t /= 1000;
 		}
-		sprintf( msg, "[%i]", t );
+		sprintf( msg, "^7[%i]", t );
 		timeLength = strlen( msg );
 	} else {
 		timeLength = 0;
@@ -107,6 +108,12 @@ void idCommonLocal::VPrintf( const char *fmt, va_list args ) {
 }
 
 
+void idCommonLocal::Shutdown( void ) {
+	warningCaption.Clear();
+	warningList.Clear();
+	errorList.Clear();
+}
+
 /*
 ==================
 idCommonLocal::Printf
@@ -147,9 +154,25 @@ void idCommonLocal::DPrintf( const char *fmt, ... ) {
 	bool temp = com_refreshOnPrint;
 	com_refreshOnPrint = false;
 
-	Printf( S_COLOR_RED"%s", msg );
+	Printf( S_COLOR_MAGENTA"%s", msg );
 
 	com_refreshOnPrint = temp;
+}
+
+
+void idCommonLocal::VWarning( const char *fmt, va_list arg )
+{
+	char		msg[MAX_PRINT_MSG_SIZE];
+	idStr::vsnPrintf( msg, sizeof( msg ), fmt, arg );
+
+	msg[sizeof( msg ) - 1] = '\0';
+
+	Printf( S_COLOR_YELLOW "WARNING: " S_COLOR_RED "%s\n", msg );
+
+	if ( warningList.Num( ) < MAX_WARNING_LIST ) {
+		warningList.AddUnique( msg );
+	}
+
 }
 
 /*
@@ -172,7 +195,11 @@ void idCommonLocal::DWarning( const char *fmt, ... ) {
 	va_end( argptr );
 	msg[sizeof( msg ) - 1] = '\0';
 
-	Printf( S_COLOR_YELLOW"WARNING: %s\n", msg );
+	Printf( S_COLOR_YELLOW "WARNING: " S_COLOR_MAGENTA "%s\n", msg );
+
+	if ( warningList.Num( ) < MAX_WARNING_LIST ) {
+		warningList.AddUnique( msg );
+	}
 }
 /*
 ==================
@@ -204,24 +231,60 @@ idCommonLocal::PrintWarnings
 */
 void idCommonLocal::PrintWarnings( void ) {
 	int i;
-
 	if ( !warningList.Num( ) ) {
+		Printf( "^2 0 warnings during %s ...\n", warningCaption.c_str( ) );
 		return;
 	}
 
+	Printf( "^7----- ^3Warnings ^7-----\n" );
 	warningList.Sort( );
-
-	Printf( "----- Warnings -----\n" );
-	Printf( "during %s...\n", warningCaption.c_str( ) );
+	Printf( "^3-[^7during %s^3]-\n", warningCaption.c_str( ) );
 
 	for ( i = 0; i < warningList.Num( ); i++ ) {
-		Printf( S_COLOR_YELLOW "WARNING: " S_COLOR_RED "%s\n", warningList[i].c_str( ) );
+		Printf( S_COLOR_YELLOW "WARNING: " S_COLOR_RED "%s", warningList[i].c_str( ) );
 	}
 	if ( warningList.Num( ) ) {
 		if ( warningList.Num( ) >= MAX_WARNING_LIST ) {
-			Printf( "more than %d warnings\n", MAX_WARNING_LIST );
+			Printf( S_COLOR_RED "^3-[^7more than %d warnings^3]-\n", MAX_WARNING_LIST );
 		} else {
-			Printf( "%d warnings\n", warningList.Num( ) );
+			Printf("^3-[^1%d ^7warnings^3]-\n", warningList.Num( ) );
 		}
 	}
+}
+
+void idCommonLocal::ClearWarnings( const char *reason ) {
+	warningCaption = reason;
+	warningList.Clear( );
+}
+
+void idCommonLocal::Error( const char *fmt, ... ) 
+{
+	va_list		argptr;
+	char		msg[MAX_PRINT_MSG_SIZE];
+
+	va_start( argptr, fmt );
+	idStr::vsnPrintf( msg, sizeof( msg ), fmt, argptr );
+	va_end( argptr );
+	msg[sizeof( msg ) - 1] = 0;
+
+	Printf( S_COLOR_RED "ERROR:: " S_COLOR_YELLOW "%s\n", msg );
+
+	if ( errorList.Num( ) < MAX_ERROR_LIST ) {
+		errorList.AddUnique( msg );
+	}
+}
+
+void idCommonLocal::FatalError( const char *fmt, ... ) 
+{
+	va_list		argptr;
+	char		msg[MAX_PRINT_MSG_SIZE];
+
+	va_start( argptr, fmt );
+	idStr::vsnPrintf( msg, sizeof( msg ), fmt, argptr );
+	va_end( argptr );
+	msg[sizeof( msg ) - 1] = 0;
+
+	Printf( S_COLOR_RED "FATAL ERROR:: " S_COLOR_YELLOW "%s\n", msg );
+
+	exit( 0 ); 
 }

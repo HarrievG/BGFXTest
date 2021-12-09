@@ -32,7 +32,10 @@ idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_B
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
 
-
+namespace bgfx{
+    struct CallbackStub;
+    extern CallbackStub bgfxCallbacksLocal;
+}
 idCommonLocal		commonLocal;
 idCommon *common = &commonLocal;
 
@@ -147,6 +150,8 @@ void main_loop( void *data ) {
 
 int main( int argc, char **argv )
 {
+    static context_t context;
+
     idStr fileName, sourcePath;
 
     idLib::common = common;
@@ -159,12 +164,13 @@ int main( int argc, char **argv )
     cvarSystem->Init( );
     cmdSystem->Init( );
     common->Init( argc, argv );
+    
+    cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
 
     fileSystem->Init( );
     fileName.Clear( );
     sourcePath.Clear( );
 
-	common->Warning("blaat");
     if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
          common->FatalError( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );
         return 1;
@@ -212,6 +218,7 @@ int main( int argc, char **argv )
     bgfx_init.resolution.height = height;
     bgfx_init.resolution.reset = BGFX_RESET_VSYNC;
     bgfx_init.platformData = pd;
+    bgfx_init.callback = (bgfx::CallbackI *)&bgfx::bgfxCallbacksLocal;
     bgfx::init( bgfx_init );
 
     bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
@@ -231,14 +238,15 @@ int main( int argc, char **argv )
 #endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX ?
     // BX_PLATFORM_EMSCRIPTEN
 
-    context_t context;
+    
     context.width = width;
     context.height = height;
     //context.program = program;
     context.window = window;
     //context.vbh = vbh;
     //context.ibh = ibh;
-
+    common->PrintWarnings();
+    common->ClearWarnings("main loop");
 #if BX_PLATFORM_EMSCRIPTEN
     emscripten_set_main_loop_arg( main_loop, &context, -1, 1 );
 #else
@@ -254,6 +262,8 @@ int main( int argc, char **argv )
     ImGui_ImplSDL2_Shutdown( );
     ImGui_Implbgfx_Shutdown( );
 
+    ImConsole->ClearLog();
+    common->Shutdown();
 	fileSystem->Shutdown( false );
 	cvarSystem->Shutdown( );
 	cmdSystem->Shutdown( );
