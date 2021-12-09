@@ -254,7 +254,8 @@ int main( int argc, char **argv )
         main_loop( &context );
     }
 #endif // BX_PLATFORM_EMSCRIPTEN
-
+    common->PrintWarnings( );
+    common->ClearWarnings( "shutdown" );
     //bgfx::destroy( vbh );
     //bgfx::destroy( ibh );
     //bgfx::destroy( program );
@@ -262,16 +263,16 @@ int main( int argc, char **argv )
     ImGui_ImplSDL2_Shutdown( );
     ImGui_Implbgfx_Shutdown( );
 
-    ImConsole->ClearLog();
-    common->Shutdown();
-	fileSystem->Shutdown( false );
-	cvarSystem->Shutdown( );
-	cmdSystem->Shutdown( );
-	idLib::ShutDown( );
-
-
     ImGui::DestroyContext( );
     bgfx::shutdown( );
+    common->PrintWarnings( );
+    ImConsole->ClearLog( );
+
+    common->Shutdown( );
+    fileSystem->Shutdown( false );
+    cvarSystem->Shutdown( );
+    cmdSystem->Shutdown( );
+    idLib::ShutDown( );
 
     SDL_DestroyWindow( window );
     SDL_Quit( );

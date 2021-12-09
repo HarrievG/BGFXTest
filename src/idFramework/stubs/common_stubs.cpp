@@ -107,8 +107,8 @@ void idCommonLocal::VPrintf( const char *fmt, va_list args ) {
 //#endif
 }
 
-
 void idCommonLocal::Shutdown( void ) {
+	com_fullyInitialized = false;
 	warningCaption.Clear();
 	warningList.Clear();
 	errorList.Clear();

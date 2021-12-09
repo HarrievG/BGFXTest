@@ -23,7 +23,15 @@ struct CallbackStub : public CallbackI 	{
 
 	virtual void traceVargs( const char *_filePath, uint16_t _line, const char *_format, va_list _argList ) override {
 		bool warning = false;
-		const static idStr wrnStr( "BGFX WARN" );
+
+		if (!common->IsInitialized())
+		{
+			char msg[4096];
+			idStr::vsnPrintf( msg, 4096, _format, _argList );
+			Sys_Printf( msg );
+			return;
+		}
+		const static idStr wrnStr( "WARN" );
 		if (idStr( _format ).Length() >= wrnStr.Length())
 			warning = idStr( _format,5,9 ).FindText( _format, wrnStr) != -1;
 		

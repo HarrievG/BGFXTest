@@ -26,11 +26,11 @@ public:
 	virtual void			Init( int argc, char **argv ) {
 		ParseCommandLine( argc, argv );
 		AddStartupCommands( );
+		com_fullyInitialized = true;
 	}
-	virtual void			Init( int argc, const char **argv, const char *cmdline ) { }
 	virtual void			Shutdown( void );
 	virtual void			Quit( void ) { }
-	virtual bool			IsInitialized( void ) const { return true; }
+	virtual bool			IsInitialized( void ) const { return com_fullyInitialized; }
 	virtual void			Frame( void ) { }
 	virtual void			GUIFrame( bool execCmd, bool network ) { }
 	virtual void			Async( void ) { }
