@@ -7,6 +7,7 @@
 ==============================================================
 */
 #include "idlib/containers/StrList.h"
+#include "CVarSystem.h"
 
 void			Sys_Mkdir( const char *path ) { }
 ID_TIME_T		Sys_FileTimeStamp( FILE *fp ) { return 0; }
@@ -21,7 +22,7 @@ ID_TIME_T		Sys_FileTimeStamp( FILE *fp ) { return 0; }
 Sys_GetEvent
 ================
 */
-sysEvent_t Sys_GetEvent( ) { return sysEvent_t( ); }
+sysEvent_t Sys_GetEvent( );
 /*
 ================
 Sys_Milliseconds

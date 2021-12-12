@@ -19,19 +19,16 @@
 	printf( post );					\
 	va_end( argptr )
 
+
 class idCommonLocal : public idCommon {
 public:
 	idCommonLocal( void ) { ClearWarnings( "Intialization" ); }
 
-	virtual void			Init( int argc, char **argv ) {
-		ParseCommandLine( argc, argv );
-		AddStartupCommands( );
-		com_fullyInitialized = true;
-	}
+	virtual void			Init( int argc, char **argv );
 	virtual void			Shutdown( void );
 	virtual void			Quit( void ) { }
 	virtual bool			IsInitialized( void ) const { return com_fullyInitialized; }
-	virtual void			Frame( void ) { }
+	virtual void			Frame( void );
 	virtual void			GUIFrame( bool execCmd, bool network ) { }
 	virtual void			Async( void ) { }
 	virtual void			StartupVariable( const char *match, bool once ) { }

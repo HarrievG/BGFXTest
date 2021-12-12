@@ -11,7 +11,6 @@
 
 #include "idFramework/sys/platform.h"
 #include "idFramework/sys/sys_local.h"
-#include "stubs/common_stubs.hpp"
 #include "stubs/sys_stubs.hpp"
 #include "idFramework/Common.h"
 #include "idFramework/Session.h"
@@ -22,8 +21,6 @@
 #include "idFramework/idImGui/idImConsole.h"
 
 //idDeclManager *		declManager = NULL;
-//idEventLoop *		eventLoop = NULL;
-
 //int idEventLoop::JournalLevel( void ) const { return 0; }
 
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
@@ -35,8 +32,6 @@ namespace bgfx{
     struct CallbackStub;
     extern CallbackStub bgfxCallbacksLocal;
 }
-idCommonLocal		commonLocal;
-idCommon *common = &commonLocal;
 
 idImConsole imConsoleLocal;
 idImConsole *ImConsole = &imConsoleLocal;
@@ -73,18 +68,25 @@ struct context_t {
 void main_loop( void *data ) {
     auto context = static_cast< context_t * >( data );
 
-    for ( SDL_Event currentEvent; SDL_PollEvent( &currentEvent ) != 0;) {
-        ImGui_ImplSDL2_ProcessEvent( &currentEvent );
-        if ( currentEvent.type == SDL_QUIT ) {
-            context->quit = true;
-            break;
-        }
-    }
+
+    //moved to events.cpp
+    // TODO 
+    //for ( SDL_Event currentEvent; SDL_PollEvent( &currentEvent ) != 0;) {
+    //    ImGui_ImplSDL2_ProcessEvent( &currentEvent );
+    //    if ( currentEvent.type == SDL_QUIT ) {
+    //        context->quit = true;
+    //        break;
+    //    }
+    //}
 
     ImGui_Implbgfx_NewFrame( );
     ImGui_ImplSDL2_NewFrame( context->window );
+    common->Frame();
 
     ImGui::NewFrame( );
+
+    
+
     //ImGuizmo::ViewManipulate( )
     gEditor.DrawUI( );
     ImGui::ShowDemoWindow( ); // your drawing here
@@ -94,41 +96,47 @@ void main_loop( void *data ) {
     
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
 
-    // simple input code for orbit camera
-    int mouse_x, mouse_y;
-    const int buttons = SDL_GetMouseState( &mouse_x, &mouse_y );
-    if ( ( buttons & SDL_BUTTON( SDL_BUTTON_LEFT ) ) != 0 ) {
-        int delta_x = mouse_x - context->prev_mouse_x;
-        int delta_y = mouse_y - context->prev_mouse_y;
-        context->cam_yaw += float( -delta_x ) * context->rot_scale;
-        context->cam_pitch += float( -delta_y ) * context->rot_scale;
-    }
 
-    context->prev_mouse_x = mouse_x;
-    context->prev_mouse_y = mouse_y;
+    ///
+    // The part below processes user input and drawcommands
+    // the userinput part needs to goto UserCmdGen.cpp
+    // rendering part needs whole renderer interface (but we have BGFX ;) )
+    // 
+    //// simple input code for orbit camera
+    //int mouse_x, mouse_y;
+    //const int buttons = SDL_GetMouseState( &mouse_x, &mouse_y );
+    //if ( ( buttons & SDL_BUTTON( SDL_BUTTON_LEFT ) ) != 0 ) {
+    //    int delta_x = mouse_x - context->prev_mouse_x;
+    //    int delta_y = mouse_y - context->prev_mouse_y;
+    //    context->cam_yaw += float( -delta_x ) * context->rot_scale;
+    //    context->cam_pitch += float( -delta_y ) * context->rot_scale;
+    //}
 
-    float cam_rotation[16];
-    bx::mtxRotateXYZ( cam_rotation, context->cam_pitch, context->cam_yaw, 0.0f );
+    //context->prev_mouse_x = mouse_x;
+    //context->prev_mouse_y = mouse_y;
 
-    float cam_translation[16];
-    bx::mtxTranslate( cam_translation, 0.0f, 0.0f, -5.0f );
+    //float cam_rotation[16];
+    //bx::mtxRotateXYZ( cam_rotation, context->cam_pitch, context->cam_yaw, 0.0f );
 
-    float cam_transform[16];
-    bx::mtxMul( cam_transform, cam_translation, cam_rotation );
+    //float cam_translation[16];
+    //bx::mtxTranslate( cam_translation, 0.0f, 0.0f, -5.0f );
 
-    float view[16];
-    bx::mtxInverse( view, cam_transform );
+    //float cam_transform[16];
+    //bx::mtxMul( cam_transform, cam_translation, cam_rotation );
 
-    float proj[16];
-    bx::mtxProj(
-        proj, 60.0f, float( context->width ) / float( context->height ), 0.1f,
-        100.0f, bgfx::getCaps( )->homogeneousDepth );
+    //float view[16];
+    //bx::mtxInverse( view, cam_transform );
 
-    bgfx::setViewTransform( 0, view, proj );
+    //float proj[16];
+    //bx::mtxProj(
+    //    proj, 60.0f, float( context->width ) / float( context->height ), 0.1f,
+    //    100.0f, bgfx::getCaps( )->homogeneousDepth );
 
-    float model[16];
-    bx::mtxIdentity( model );
-    bgfx::setTransform( model );
+    //bgfx::setViewTransform( 0, view, proj );
+
+    //float model[16];
+    //bx::mtxIdentity( model );
+    //bgfx::setTransform( model );
 
     //bgfx::setVertexBuffer( 0, context->vbh );
     //bgfx::setIndexBuffer( context->ibh );
@@ -160,6 +168,7 @@ int main( int argc, char **argv )
     cmdSystem->Init( );
     common->Init( argc, argv );
     fileSystem->Init( );
+    eventLoop->Init();
     gEditor.Init( );
 
     cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
@@ -261,6 +270,7 @@ int main( int argc, char **argv )
     common->PrintWarnings( );
     ImConsole->ClearLog( );
 
+    eventLoop->Shutdown();
     common->Shutdown( );
     fileSystem->Shutdown( false );
     cvarSystem->Shutdown( );

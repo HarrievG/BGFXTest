@@ -160,7 +160,7 @@ void idEventLoop::ProcessEvent( sysEvent_t ev ) {
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, (char *)ev.evPtr );
 		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "\n" );
 	} else {
-		session->ProcessEvent( &ev );
+		//session->ProcessEvent( &ev );
 	}
 
 	// free any block data
@@ -184,7 +184,7 @@ int idEventLoop::RunEventLoop( bool commandExecution ) {
 			cmdSystem->ExecuteCommandBuffer();
 		}
 
-		//ev = GetEvent();
+		ev = GetEvent();
 
 		// if no more events are available
 		if ( ev.evType == SE_NONE ) {

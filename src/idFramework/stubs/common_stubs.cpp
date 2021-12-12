@@ -1,5 +1,7 @@
 #include "common_stubs.hpp"
 #include "idImGui/idImConsole.h"
+#include "UsercmdGen.h"
+#include "EventLoop.h"
 
 #define	MAX_PRINT_MSG_SIZE	4096
 #define MAX_WARNING_LIST	256
@@ -7,6 +9,41 @@
 
 
 idCVar com_timestampPrints( "com_timestampPrints", "1", CVAR_SYSTEM, "print time with each console print, 1 = msec, 2 = sec", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
+idCVar com_speeds( "com_speeds", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "show engine timings" );
+idCVar com_showFPS( "com_showFPS", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT, "show frames rendered per second" );
+idCommonLocal		commonLocal;
+idCommon *common = &commonLocal;
+// com_speeds times
+int				time_gameFrame;
+int				time_gameDraw;
+int				time_frontend;			// renderSystem frontend time
+int				time_backend;			// renderSystem backend time
+
+int				com_frameTime;			// time for the current frame in milliseconds
+int				com_frameNumber;		// variable frame number
+volatile int	com_ticNumber;			// 60 hz tics
+int				com_editors;			// currently opened editor(s)
+bool			com_editorActive;		//  true if an editor has focus
+
+bool			com_debuggerSupported;	// only set to true when the updateDebugger function is set. see GetAdditionalFunction()
+
+#ifdef UINTPTR_MAX // DG: make sure D3_SIZEOFPTR is consistent with reality
+
+#if ID_SIZEOFPTR == 4
+  #if UINTPTR_MAX != 0xFFFFFFFFUL
+    #error "CMake assumes that we're building for a 32bit architecture, but UINTPTR_MAX doesn't match!"
+  #endif
+#elif ID_SIZEOFPTR == 8
+  #if UINTPTR_MAX != 18446744073709551615ULL
+    #error "CMake assumes that we're building for a 64bit architecture, but UINTPTR_MAX doesn't match!"
+  #endif
+#else
+  // Hello future person with a 128bit(?) CPU, I hope the future doesn't suck too much and that you don't still use CMake.
+  // Also, please adapt this check and send a pull request (or whatever way we have to send patches in the future)
+  #error "ID_SIZEOFPTR should really be 4 (for 32bit targets) or 8 (for 64bit targets), what kind of machine is this?!"
+#endif
+
+#endif // UINTPTR_MAX defined
 /*
 ==================
 idCommonLocal::VPrintf
@@ -107,11 +144,25 @@ void idCommonLocal::VPrintf( const char *fmt, va_list args ) {
 //#endif
 }
 
+inline void idCommonLocal::Init( int argc, char **argv ) {
+	// in case UINTPTR_MAX isn't defined (or wrong), do a runtime check at startup
+	if ( ID_SIZEOFPTR != sizeof( void * ) ) {
+		common->FatalError( "Something went wrong in your build: CMake assumed that sizeof(void*) == %d but in reality it's %d!\n",
+			( int ) ID_SIZEOFPTR, ( int ) sizeof( void * ) );
+	}
+
+	ParseCommandLine( argc, argv );
+	AddStartupCommands( );
+	com_fullyInitialized = true;
+}
+
 void idCommonLocal::Shutdown( void ) {
+
 	com_fullyInitialized = false;
 	warningCaption.Clear();
 	warningList.Clear();
 	errorList.Clear();
+
 }
 
 /*
@@ -288,4 +339,63 @@ void idCommonLocal::FatalError( const char *fmt, ... )
 
 	common->Shutdown();
 	exit( 0 ); 
+}
+
+
+/*
+=================
+idCommonLocal::Frame
+=================
+*/
+void idCommonLocal::Frame( void ) {
+	try {
+
+		// pump all the events
+		Sys_GenerateEvents();
+
+		//if ( com_enableDebuggerServer.IsModified() ) {
+		//	if ( com_enableDebuggerServer.GetBool() ) {
+		//		DebuggerServerInit();
+		//	} else {
+		//		DebuggerServerShutdown();
+		//	}
+		//}
+
+		eventLoop->RunEventLoop();
+
+		com_frameTime = com_ticNumber * USERCMD_MSEC;
+
+
+	//	if ( idAsyncNetwork::IsActive() ) {
+	//		if ( idAsyncNetwork::serverDedicated.GetInteger() != 1 ) {
+	//			session->GuiFrameEvents();
+	//			session->UpdateScreen( false );
+	//		}
+	//	} else {
+	//		session->Frame();
+
+			// normal, in-sequence screen update
+	//		session->UpdateScreen( false );
+	//	}
+
+	//	// report timing information
+		if ( com_speeds.GetBool() ) {
+			static int	lastTime;
+			int		nowTime = Sys_Milliseconds();
+			int		com_frameMsec = nowTime - lastTime;
+			lastTime = nowTime;
+			Printf( "frame:%i all:%3i gfr:%3i rf:%3i bk:%3i\n", com_frameNumber, com_frameMsec, time_gameFrame, time_frontend, time_backend );
+			time_gameFrame = 0;
+			time_gameDraw = 0;
+		}
+
+		com_frameNumber++;
+
+	//	// set idLib frame number for frame based memory dumps
+		idLib::frameNumber = com_frameNumber;
+	}
+
+	catch( idException & ) {
+		return;			// an ERP_DROP was thrown
+	}
 }

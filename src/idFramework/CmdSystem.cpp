@@ -246,7 +246,6 @@ void idCmdSystemLocal::Exec_f( const idCmdArgs &args ) {
 	common->Printf( "execing %s\n", args.Argv(1) );
 
 	cmdSystemLocal.BufferCommandText( CMD_EXEC_INSERT, f );
-	cmdSystemLocal.ExecuteCommandBuffer();
 
 	fileSystem->FreeFile( f );
 }

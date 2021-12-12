@@ -17,6 +17,8 @@ find_package(imguizmo REQUIRED)
 find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 find_package(ZLIB REQUIRED)
 
+add_definitions(-DID_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P})
+
 
 function(add_globbed_headers SRCLIST PATHPREFIX)
 	file(GLOB_RECURSE tmp_hdrs RELATIVE "${CMAKE_SOURCE_DIR}/idFramework/" "${PATHPREFIX}/*.h")
@@ -51,7 +53,7 @@ set(src_idFramework
 
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/cpu.cpp
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/threads.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/events.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/events.cpp
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/sys_local.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_input.cpp
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_main.cpp
