@@ -75,13 +75,19 @@ void gltfSceneEditor::Init( )
 			thisPtr->LoadFile( args.Argv( 1 ) );
 	}, CMD_FL_SYSTEM, "Loads an gltf file", idCmdSystem::ArgCompletion_GltfName );
 
-	cmdSystem->AddCommand( "listGLTFs", []( const idCmdArgs &args )
+	cmdSystem->AddCommand( "gltf_listFiles", []( const idCmdArgs &args )
 		-> auto {
 		common->Printf("%i glTF files\n", thisPtr->GetLoadedFiles().Num());
 		for (int i=0; i<thisPtr->GetLoadedFiles().Num(); i++ )
-			common->Printf( "  %-21s \n", thisPtr->GetLoadedFiles()[i]);
+			common->Printf( "  %-21s \n", thisPtr->GetLoadedFiles()[i].c_str());
 	}, CMD_FL_SYSTEM, "lists all loaded .gltf and .glb files" );
 
+	cmdSystem->AddCommand( "gltf_listModels", []( const idCmdArgs &args )
+		-> auto {
+		common->Printf("%i glTF files\n", thisPtr->GetLoadedFiles().Num());
+		for (int i=0; i<thisPtr->GetLoadedFiles().Num(); i++ )
+			common->Printf( "  %-21s \n", thisPtr->GetLoadedFiles()[i].c_str());
+	}, CMD_FL_RENDERER, "lists all loaded gltf models" );
 }
 void gltfSceneEditor::Render( ) {
 }
