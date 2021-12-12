@@ -26,7 +26,6 @@
 
 //int idEventLoop::JournalLevel( void ) const { return 0; }
 
-
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
@@ -93,9 +92,7 @@ void main_loop( void *data ) {
 	gEditor.Render( );
     ImGui::Render( );
     
-
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
-
 
     // simple input code for orbit camera
     int mouse_x, mouse_y;
@@ -152,8 +149,6 @@ int main( int argc, char **argv )
 {
     static context_t context;
 
-    idStr fileName, sourcePath;
-
     idLib::common = common;
     idLib::cvarSystem = cvarSystem;
     idLib::fileSystem = fileSystem;
@@ -164,12 +159,10 @@ int main( int argc, char **argv )
     cvarSystem->Init( );
     cmdSystem->Init( );
     common->Init( argc, argv );
-    
-    cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
-
     fileSystem->Init( );
-    fileName.Clear( );
-    sourcePath.Clear( );
+    gEditor.Init( );
+
+    cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
 
     if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
          common->FatalError( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );

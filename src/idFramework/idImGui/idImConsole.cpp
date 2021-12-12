@@ -13,22 +13,22 @@ idImConsole *imConsole = &localConsole;
 
 extern idCVar com_timestampPrints;
 
-
+static autoComplete_t	globalAutoComplete;
 static void  Strtrim( char *s ) { char *str_end = s + strlen( s ); while ( str_end > s && str_end[-1] == ' ' ) str_end--; *str_end = 0; }
-template <typename T>
-struct function_traits
-    : public function_traits<decltype( &T::operator() )> { };
 
-template <typename ClassType, typename ReturnType, typename... Args>
-struct function_traits<ReturnType( ClassType:: * )( Args... ) const> {
-    template <size_t i>
-    using arg_t = std::tuple_element_t<i, std::tuple<Args...>>;
+struct parms {
+    ImVector<const char *> *listptr;
+    const char *word_start;
+    const char *word_end;
+    idCmdArgs *args;
+    bool used;
 };
 
 idImConsole::idImConsole( )  {
     ClearLog( );
     memset( InputBuf, 0, sizeof( InputBuf ) );
     HistoryPos = -1;
+
     //Commands.push_back( "HISTORY" );
     //Commands.push_back( "CLEAR" );
 	//static cache_t cache;
@@ -237,7 +237,7 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
 
         // Command-line
         bool reclaim_focus = false;
-        ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory;
+        ImGuiInputTextFlags input_text_flags = ImGuiInputTextFlags_EnterReturnsTrue | ImGuiInputTextFlags_CallbackCompletion | ImGuiInputTextFlags_CallbackHistory | ImGuiInputTextFlags_CallbackEdit;
         if (ImGui::InputText("Input", InputBuf, IM_ARRAYSIZE(InputBuf), input_text_flags,
             []( ImGuiInputTextCallbackData *data ) -> int {
                 idImConsole *console = ( idImConsole * ) data->UserData;
@@ -285,89 +285,135 @@ void idImConsole::ExecCommand( const char *command_line )     {
 
 int idImConsole::TextEditCallback(ImGuiInputTextCallbackData* data)
 {
+    static int lastBuffLenght = -1;
+
+
     //AddLog("cursor: %d, selection: %d-%d", data->CursorPos, data->SelectionStart, data->SelectionEnd);
     switch (data->EventFlag)
     {
     case ImGuiInputTextFlags_CallbackCompletion:
         {
-            // Example of TEXT COMPLETION
+            char completionArgString[MAX_EDIT_LINE];
+            idCmdArgs args;
+            args.TokenizeString( data->Buf, false );
+             
+            autoComplete.valid &= args.Argc() > 0;
+            if ( autoComplete.valid && args.Argc() >= 1 )
+            {
+                //autoComplete.valid &= abs(idStr::Length( args.Argv( args.Argc() - 1 ) ) - autoComplete.length) <= 1;
+                autoComplete.valid &= autoComplete.valid && autoComplete.completionString[autoComplete.length] == '\0';
+                if (args.Argc( ) == 1)
+                    autoComplete.valid &= lastBuffLenght <= data->BufTextLen;
+            }
+            lastBuffLenght = data->BufTextLen;
+
+            if ( !autoComplete.valid ) 
+            {
+                idStr::Copynz( autoComplete.completionString, args.Argv( 0 ), sizeof( autoComplete.completionString ) );
+                idStr::Copynz( completionArgString, args.Args( ), sizeof( completionArgString ) );
+                autoComplete.matchCount = 0;
+                autoComplete.matchIndex = 0;
+                autoComplete.currentMatch[0] = 0;
+            }
+            if ( strlen( autoComplete.completionString ) == 0 ) 
+                return 0;
 
             // Locate beginning of current word
             const char* word_end = data->Buf + data->CursorPos;
             const char* word_start = word_end;
+            int wordCnt = args.Argc() - 1;
             while (word_start > data->Buf)
             {
                 const char c = word_start[-1];
                 if (c == ' ' || c == '\t' || c == ',' || c == ';')
-                    break;
+                        break;
                 word_start--;
             }
 
-			struct parms {
-				ImVector<const char *>* listptr;
-				const char * word_start;
-				const char * word_end;
-			};
-			
-            // Build a list of candidates
-            ImVector<const char*> candidates;
+            ImVector<const char *> candidates;
+            parms parm = { &candidates,word_start,word_end,&args,false };
+            static parms * parmPtr = nullptr;
+            parmPtr = &parm;
+            //arg completion
+            if ( autoComplete.valid )
+            {
+                auto find = []( const char *cmd ) -> auto {
+                    const char *start = cmd;
+                    start += 1 + strlen( parmPtr->args->Argv( 0 ) );
+                    if ( Strnicmp( start, parmPtr->word_start, ( int ) ( parmPtr->word_end - parmPtr->word_start ) ) == 0 )
+                        parmPtr->listptr->push_back( cmd + 1 + strlen( parmPtr->args->Argv( 0 ) ) );
+                    parmPtr->used = true;
+                };
+                cmdSystem->ArgCompletion( args.Args(0,0), find );
+                cvarSystem->ArgCompletion( args.Args(0,0), find );
+                autoComplete.matchCount = candidates.Size;
+            }else if (word_start != word_end)
+            {
+                // Build a list of candidates
+                bool argUsed = false;
+			    cvarSystem->CommandCompletion( [](const char * cmd) -> auto {			
+				    if (Strnicmp(cmd, parmPtr->word_start, (int)( parmPtr->word_end - parmPtr->word_start)) == 0)
+					    parmPtr->listptr->push_back( cmd );
+				    });
 
-			parms parm = { &candidates,word_start,word_end };
-			cvarSystem->CommandCompletion( [](const char * cmd,void * usr) -> auto {			
-				parms * lparms = (parms*)usr;
-				if (Strnicmp(cmd, lparms->word_start, (int)( lparms->word_end - lparms->word_start)) == 0)
-					lparms->listptr->push_back( cmd );
-				}, &parm );
+			    cmdSystem->CommandCompletion( []( const char *cmd ) -> auto {
+				    if ( Strnicmp( cmd, parmPtr->word_start, (int) ( parmPtr->word_end - parmPtr->word_start)) == 0 )
+					    parmPtr->listptr->push_back( cmd );
+				    });
 
-			cmdSystem->CommandCompletion( []( const char *cmd, void *usr ) -> auto {
-				parms *lparms = ( parms * ) usr;
-				if ( Strnicmp( cmd, lparms->word_start, ( int ) ( lparms->word_end - lparms->word_start ) ) == 0 )
-					lparms->listptr->push_back( cmd );
-				}, &parm );
-
+                autoComplete.matchCount = candidates.Size;
+            }
             if (candidates.Size == 0)
             {
                 // No match
                 AddLog("^3No match for \"%.*s\"!\n", (int)(word_end - word_start), word_start);
             }
-            else if (candidates.Size == 1)
+            else if (candidates.Size == 1 )
             {
                 // Single match. Delete the beginning of the word and replace it entirely so we've got nice casing.
                 data->DeleteChars((int)(word_start - data->Buf), (int)(word_end - word_start));
                 data->InsertChars(data->CursorPos, candidates[0]);
                 data->InsertChars(data->CursorPos, " ");
+                autoComplete.length = strlen( data->Buf );
+                autoComplete.valid = true;
             }
             else
             {
                 // Multiple matches. Complete as much as we can..
                 // So inputing "C"+Tab will complete to "CL" then display "CLEAR" and "CLASSIFY" as matches.
                 int match_len = (int)(word_end - word_start);
+                if (match_len)
                 for (;;)
                 {
                     int c = 0;
                     bool all_candidates_matches = true;
                     for (int i = 0; i < candidates.Size && all_candidates_matches; i++)
+                    {
                         if (i == 0)
                             c = toupper(candidates[i][match_len]);
                         else if (c == 0 || c != toupper(candidates[i][match_len]))
                             all_candidates_matches = false;
+                    }
                     if (!all_candidates_matches)
                         break;
                     match_len++;
                 }
-
-                if (match_len > 0)
+                
+                if (match_len > 1 )
                 {
                     data->DeleteChars((int)(word_start - data->Buf), (int)(word_end - word_start));
-                    data->InsertChars(data->CursorPos, candidates[0], candidates[0] + match_len);
+                    data->InsertChars((int)(word_start - data->Buf), candidates[0], candidates[0] + match_len );
                 }
-
+                
                 // List matches
                 AddLog("Possible matches:\n");
                 for (int i = 0; i < candidates.Size; i++)
                     AddLog("- %s\n", candidates[i]);
             }
-
+            idStr::snPrintf( autoComplete.completionString, idStr::Length( data->Buf ) + 1, "%s", data->Buf );
+            autoComplete.length = strlen( autoComplete.completionString );
+                
+            
             break;
         }
     case ImGuiInputTextFlags_CallbackHistory:

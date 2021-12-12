@@ -4,6 +4,18 @@
 #include "imgui.h"
 #include <stdio.h>
 
+const int MAX_EDIT_LINE = 256;
+typedef struct autoComplete_s {
+	bool			valid;
+	int				length;
+	char			completionString[MAX_EDIT_LINE];
+	char			currentMatch[MAX_EDIT_LINE];
+	int				matchCount;
+	int				matchIndex;
+	int				findMatchIndex;
+} autoComplete_t;
+
+
 class idImConsole {
 public:
 	void						ClearLog( );
@@ -21,6 +33,8 @@ public:
 	void						Draw();
 	void						ExecCommand( const char *command_line );
 	int							TextEditCallback( ImGuiInputTextCallbackData *data );
+	void						ClearAutoComplete(char * buffer);
+	int							GetAutoCompleteLength() const ;
 private:
 
 	void						imDraw( const char *title, bool *p_open );
@@ -31,6 +45,7 @@ private:
 	bool						AutoScroll;
 	bool						ScrollToBottom;
 	bool						open;
+	autoComplete_t				autoComplete;
 };
 
 extern idImConsole * imConsole;

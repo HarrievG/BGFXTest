@@ -286,5 +286,6 @@ void idCommonLocal::FatalError( const char *fmt, ... )
 
 	Printf( S_COLOR_RED "FATAL ERROR:: " S_COLOR_YELLOW "%s\n", msg );
 
+	common->Shutdown();
 	exit( 0 ); 
 }

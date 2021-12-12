@@ -62,7 +62,7 @@ public:
 	virtual void			RemoveCommand( const char *cmdName );
 	virtual void			RemoveFlaggedCommands( int flags );
 
-	virtual void			CommandCompletion( void(*callback)( const char *s, void *usr ), void *usr );
+	virtual void			CommandCompletion( void(*callback)( const char *s ) );
 	virtual void			ArgCompletion( const char *cmdString, void(*callback)( const char *s ) );
 
 	virtual void			BufferCommandText( cmdExecution_t exec, const char *text );
@@ -246,6 +246,7 @@ void idCmdSystemLocal::Exec_f( const idCmdArgs &args ) {
 	common->Printf( "execing %s\n", args.Argv(1) );
 
 	cmdSystemLocal.BufferCommandText( CMD_EXEC_INSERT, f );
+	cmdSystemLocal.ExecuteCommandBuffer();
 
 	fileSystem->FreeFile( f );
 }
@@ -434,11 +435,11 @@ void idCmdSystemLocal::RemoveFlaggedCommands( int flags ) {
 idCmdSystemLocal::CommandCompletion
 ============
 */
-void idCmdSystemLocal::CommandCompletion( void(*callback)( const char *s, void * usr ), void *usr ) {
+void idCmdSystemLocal::CommandCompletion( void(*callback)( const char *s ) ) {
 	commandDef_t *cmd;
 
 	for ( cmd = commands; cmd; cmd = cmd->next ) {
-		callback( cmd->name,usr );
+		callback( cmd->name);
 	}
 }
 

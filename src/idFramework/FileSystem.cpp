@@ -3039,7 +3039,6 @@ idFile *idFileSystemLocal::OpenFileReadFlags( const char *relativePath, int sear
 
 			// if fs_copyfiles is set
 			if ( allowCopyFiles && fs_copyfiles.GetInteger() ) {
-
 				idStr copypath;
 				idStr name;
 				copypath = BuildOSPath( fs_savepath.GetString(), dir->gamedir, relativePath );
@@ -3051,18 +3050,21 @@ idFile *idFileSystemLocal::OpenFileReadFlags( const char *relativePath, int sear
 				bool isFromCDPath = !dir->path.Cmp( fs_cdpath.GetString() );
 				bool isFromSavePath = !dir->path.Cmp( fs_savepath.GetString() );
 				bool isFromBasePath = !dir->path.Cmp( fs_basepath.GetString() );
+				idStr targetpath;
 
 				switch ( fs_copyfiles.GetInteger() ) {
 					case 1:
 						// copy from cd path only
 						if ( isFromCDPath ) {
 							CopyFile( netpath, copypath );
+							targetpath = netpath;
 						}
 						break;
 					case 2:
 						// from cd path + timestamps
 						if ( isFromCDPath ) {
 							CopyFile( netpath, copypath );
+							targetpath = netpath;
 						} else if ( isFromSavePath || isFromBasePath ) {
 							idStr sourcepath;
 							sourcepath = BuildOSPath( fs_cdpath.GetString(), dir->gamedir, relativePath );
@@ -3076,6 +3078,7 @@ idFile *idFileSystemLocal::OpenFileReadFlags( const char *relativePath, int sear
 									fclose( f2 );
 									if ( t1 > t2 ) {
 										CopyFile( sourcepath, copypath );
+										targetpath = sourcepath;
 									}
 								}
 							}
@@ -3084,13 +3087,19 @@ idFile *idFileSystemLocal::OpenFileReadFlags( const char *relativePath, int sear
 					case 3:
 						if ( isFromCDPath || isFromBasePath ) {
 							CopyFile( netpath, copypath );
+							targetpath = netpath;
 						}
 						break;
 					case 4:
 						if ( isFromCDPath && !isFromBasePath ) {
 							CopyFile( netpath, copypath );
+							targetpath = netpath;
 						}
 						break;
+
+						if ( fs_debug.GetInteger( ) ) {
+							common->Printf( "idFileSystem::OpenFileRead: copied file %s to %s (found in '%s/%s')\n", copypath, targetpath, dir->path.c_str( ), dir->gamedir.c_str( ) );
+						}
 				}
 			}
 

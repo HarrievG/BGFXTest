@@ -86,7 +86,7 @@ public:
 	virtual void		RemoveFlaggedCommands( int flags ) = 0;
 
 						// Command and argument completion using callback for each valid string.
-	virtual void		CommandCompletion( void(*callback)( const char *s, void *usr ), void *usr ) = 0;
+	virtual void		CommandCompletion( void(*callback)( const char *s)) = 0;
 	virtual void		ArgCompletion( const char *cmdString, void(*callback)( const char *s ) ) = 0;
 
 						// Adds command text to the command buffer, does not add a final \n
@@ -125,6 +125,7 @@ public:
 	static void			ArgCompletion_ConfigName( const idCmdArgs &args, void(*callback)( const char *s ) );
 	static void			ArgCompletion_SaveGame( const idCmdArgs &args, void(*callback)( const char *s ) );
 	static void			ArgCompletion_DemoName( const idCmdArgs &args, void(*callback)( const char *s ) );
+	static void			ArgCompletion_GltfName( const idCmdArgs &args, void( *callback )( const char *s ) );
 };
 
 extern idCmdSystem *	cmdSystem;
@@ -185,6 +186,10 @@ ID_INLINE void idCmdSystem::ArgCompletion_SaveGame( const idCmdArgs &args, void(
 
 ID_INLINE void idCmdSystem::ArgCompletion_DemoName( const idCmdArgs &args, void(*callback)( const char *s ) ) {
 	cmdSystem->ArgCompletion_FolderExtension( args, callback, "demos/", true, ".demo", NULL );
+}
+
+ID_INLINE void idCmdSystem::ArgCompletion_GltfName( const idCmdArgs &args, void( *callback )( const char *s ) ) {
+	cmdSystem->ArgCompletion_FolderExtension( args, callback, "/", true, ".gltf",".glb", NULL );
 }
 
 #endif /* !__CMDSYSTEM_H__ */

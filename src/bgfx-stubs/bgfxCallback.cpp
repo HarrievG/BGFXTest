@@ -9,7 +9,7 @@ struct CallbackStub : public CallbackI 	{
 
 	virtual void fatal( const char *_filePath, uint16_t _line, Fatal::Enum _code, const char *_str ) override {
 		switch( bgfx_verbose.GetInteger() ) {
-			case 0: break;
+			case 0: // always show fatal errors.
 			default:
 			case 1:
 			case 2:
