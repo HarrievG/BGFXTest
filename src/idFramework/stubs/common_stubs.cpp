@@ -11,6 +11,32 @@
 idCVar com_timestampPrints( "com_timestampPrints", "1", CVAR_SYSTEM, "print time with each console print, 1 = msec, 2 = sec", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
 idCVar com_speeds( "com_speeds", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "show engine timings" );
 idCVar com_showFPS( "com_showFPS", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT, "show frames rendered per second" );
+
+//Compilers
+// 2 different approaches:
+// 1:	Create dscene/GLTF scene compiler, in the same spirit as dmap/map compiler. 
+//		Use GLTF scenes, als map files, and allow runAAS and runReach to run on an GLTF Scene.
+// Pro:		Dont have to support all d3's map options like brushes, entities, primitives
+//			Focus on primitives first.
+// Con:		Have to rebuild each map option for scene
+// 2:	Convert an GLTF scene to map
+//		Build an custom editor with imgui to view and edit gltf scenes, then allow save as map. 
+// Pro:		Only have to implement renderer fucntionality that i want, can start with static primitives only
+//			.Proc .CM .AAS only have to be implemented and can be generated with legacy tools
+// Con:		what about entities? brushes? dont want to build a gazillion GLTF extensions..
+//			do maps support limited data sets? 
+//			do i want .map to still exist? entityies, classes and so on? all those properties will not stay in their current form.
+// 
+// 2 sounds like the least amount of work. but, i cant reconcile with it. it has to many features which all have to be checked, and are a risk.
+// 1 sounds like the safest option, the most easy way to create standalone functionality and keep it clean.
+// 1 also allowes to take it step by step for each GLTF property.
+
+// plan.
+// 1. copy tools/dmap 
+// 2. gltf scene viewer.
+// 4a. add tools/dscene 
+// 4b. dscene command and start from dmap main.
+
 idCommonLocal		commonLocal;
 idCommon *common = &commonLocal;
 // com_speeds times
