@@ -18,7 +18,7 @@ find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 find_package(ZLIB REQUIRED)
 
 add_definitions(-DID_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P})
-
+add_compile_definitions(IMGUI_USER_CONFIG="${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imconfig.h")
 
 function(add_globbed_headers SRCLIST PATHPREFIX)
 	file(GLOB_RECURSE tmp_hdrs RELATIVE "${CMAKE_SOURCE_DIR}/idFramework/" "${PATHPREFIX}/*.h")
@@ -125,6 +125,8 @@ add_library(idFramework STATIC ${src_idlib})
 
 set(Sources 
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxCallback.cpp
+	${PROJECT_SOURCE_DIR}/src/gltf-edit/TextEditor.cpp
+    ${PROJECT_SOURCE_DIR}/src/gltf-edit/TextEditor.h
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/tiny_gltf.h
     ${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.h
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.cpp
@@ -132,7 +134,8 @@ set(Sources
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.h
     ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.h
     ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.cpp
-    ${PROJECT_SOURCE_DIR}/src/main.cpp)
+    ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imconfig.h
+	${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 include_directories(src)
 include_directories(src/idFramework)

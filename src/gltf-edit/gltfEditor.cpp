@@ -95,11 +95,20 @@ void gltfSceneEditor::Init( )
 	}, CMD_FL_RENDERER, "lists all loaded gltf models" );
 }
 void gltfSceneEditor::Render( ) {
+
+	//float model[16];
+	//bx::mtxIdentity( model );
+	//bgfx::setTransform( model );
+
+	//bgfx::setVertexBuffer( 0, context->vbh );
+	//bgfx::setIndexBuffer( context->ibh );
+
+	//bgfx::submit( 0, context->program );
 }
 
 void gltfSceneEditor::DrawUI( ) {
 	auto curCtx = ImGui::GetCurrentContext();
-	ImGui::SetNextWindowPos( ImVec2(0,0), ImGuiCond_Once );
+	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
 	if (ImGui::Begin("GLTF SCENE",&windowOpen, ImGuiWindowFlags_MenuBar))
 	{
 		if ( ImGui::BeginMenuBar( ) ) {
@@ -120,6 +129,25 @@ void gltfSceneEditor::DrawUI( ) {
 			}
 			ImGui::EndMenuBar( );
 		}
+
+		ImGui::BeginChild( "left pane", idVec2( 150, 0 ), true );
+		for (auto &asset : GetLoadedAssets())
+		{
+			for (auto& mesh : asset.meshes )
+			{
+				if (ImGui::Selectable( mesh.name.c_str(),  false, ImGuiSelectableFlags_AllowDoubleClick))
+				{}
+			}
+				//common->Printf( "  %-21s : %-21s\n", mesh.name.c_str(),
+				//	mesh.extras_json_string.c_str() );
+		}
+		if ( ImGui::BeginPopupContextWindow( ) ) 	{//add primitive
+			if ( ImGui::MenuItem( "Add Primitive" ) ) {
+
+			}
+			ImGui::EndPopup( );
+		}
+		ImGui::EndChild( );
 	}
 	ImGui::End();
 }
