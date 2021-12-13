@@ -132,6 +132,23 @@ public:
 	void			Swap( idList<type> &other );						// swap the contents of the lists
 	void			DeleteContents( bool clear );						// delete the contents of the list
 
+	template<typename T>
+	struct Iterator {
+		T *p;
+		T &operator*( ) { return *p; }
+		bool operator != ( const Iterator &rhs ) {
+			return p != rhs.p;
+		}
+		void operator ++( ) { ++p; }
+	};
+
+	auto begin( ) const { // const version
+		return Iterator<type>{list};
+	};
+	auto end( ) const { // const version
+		return Iterator<type>{list + Num( )};
+	};
+
 private:
 	int				num;
 	int				size;

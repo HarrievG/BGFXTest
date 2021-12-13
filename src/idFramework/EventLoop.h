@@ -45,6 +45,8 @@ If you have questions concerning this license or the applicable additional terms
 
 const int MAX_PUSHED_EVENTS =	64;
 
+
+typedef void ( *eventCallback )( const sysEvent_t &event );
 class idEventLoop {
 public:
 					idEventLoop( void );
@@ -73,6 +75,7 @@ public:
 	idFile *		com_journalFile;
 	idFile *		com_journalDataFile;
 
+	void			RegisterCallback( eventCallback callback) { callbackList.Append(callback); }
 private:
 					// all events will have this subtracted from their time
 	int				initialTimeOffset;
@@ -81,10 +84,12 @@ private:
 	sysEvent_t		com_pushedEvents[MAX_PUSHED_EVENTS];
 
 	static idCVar	com_journal;
+	static idCVar	com_eventCallbacks;
 
 	sysEvent_t		GetRealEvent( void );
 	void			ProcessEvent( sysEvent_t ev );
 	void			PushEvent( sysEvent_t *event );
+	idList<eventCallback> callbackList;
 };
 
 extern	idEventLoop	*eventLoop;

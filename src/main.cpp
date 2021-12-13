@@ -171,6 +171,10 @@ int main( int argc, char **argv )
     eventLoop->Init();
     gEditor.Init( );
 
+    //eventLoop->RegisterCallback([]( const sysEvent_t &event )
+    //-> auto { 
+    //});
+
     cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
 
     if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {

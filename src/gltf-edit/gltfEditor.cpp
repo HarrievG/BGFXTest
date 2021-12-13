@@ -1,5 +1,6 @@
 #include "gltfEditor.h"
 #define TINYGLTF_IMPLEMENTATION
+#define TINYGLTF_USE_CPP14
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 // no need for it, it should go,  but doenst compile ootb..
@@ -78,15 +79,19 @@ void gltfSceneEditor::Init( )
 	cmdSystem->AddCommand( "gltf_listFiles", []( const idCmdArgs &args )
 		-> auto {
 		common->Printf("%i glTF files\n", thisPtr->GetLoadedFiles().Num());
-		for (int i=0; i<thisPtr->GetLoadedFiles().Num(); i++ )
-			common->Printf( "  %-21s \n", thisPtr->GetLoadedFiles()[i].c_str());
+		for (auto& file : thisPtr->GetLoadedFiles() )
+			common->Printf( "  %-21s \n", file.c_str());
 	}, CMD_FL_SYSTEM, "lists all loaded .gltf and .glb files" );
 
-	cmdSystem->AddCommand( "gltf_listModels", []( const idCmdArgs &args )
+	cmdSystem->AddCommand( "gltf_listAssets", []( const idCmdArgs &args )
 		-> auto {
-		common->Printf("%i glTF files\n", thisPtr->GetLoadedFiles().Num());
-		for (int i=0; i<thisPtr->GetLoadedFiles().Num(); i++ )
-			common->Printf( "  %-21s \n", thisPtr->GetLoadedFiles()[i].c_str());
+		common->Printf("%i glTF assets\n", thisPtr->GetLoadedAssets().Num());
+		for (auto &asset : thisPtr->GetLoadedAssets())
+		{
+			for (auto& key : asset.asset.extras.Keys() )
+				common->Printf( "  %-21s : %-21s\n", key.c_str(),
+					asset.asset.extras.Get(key).Get<std::string>().c_str() );
+		}
 	}, CMD_FL_RENDERER, "lists all loaded gltf models" );
 }
 void gltfSceneEditor::Render( ) {
@@ -133,7 +138,7 @@ bool gltfSceneEditor::LoadFile( const char *binFile )
 	}
 
 	std::string ext = tinygltf::GetFilePathExtension( binFile );
-	tinygltf::Model model;
+	tinygltf::Model &model = loadedAssets.Alloc();
 	std::string err;
 	std::string warn;
 	bool ret = false;

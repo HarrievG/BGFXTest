@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "idFramework/EventLoop.h"
 
 idCVar idEventLoop::com_journal( "com_journal", "0", CVAR_INIT|CVAR_SYSTEM, "1 = record journal, 2 = play back journal", 0, 2, idCmdSystem::ArgCompletion_Integer<0,2> );
+idCVar idEventLoop::com_eventCallbacks ( "com_eventCallbacks", "1", CVAR_INIT | CVAR_SYSTEM, "0 = no callbacks, 1 = use callbacks", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2>);
 
 idEventLoop eventLoopLocal;
 idEventLoop *eventLoop = &eventLoopLocal;
@@ -190,6 +191,11 @@ int idEventLoop::RunEventLoop( bool commandExecution ) {
 		if ( ev.evType == SE_NONE ) {
 			return 0;
 		}
+
+		if ( com_eventCallbacks.GetBool( ) )
+			for ( auto& callback : callbackList )
+				callback( ev );
+
 		ProcessEvent( ev );
 	}
 
