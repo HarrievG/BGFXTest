@@ -129,7 +129,7 @@ void gltfSceneEditor::DrawUI( ) {
 			}
 			ImGui::EndMenuBar( );
 		}
-
+		{ImGui::PushID("SceneView");
 		ImGui::BeginChild( "left pane", idVec2( 150, 0 ), true );
 		for (auto &asset : GetLoadedAssets())
 		{
@@ -148,6 +148,9 @@ void gltfSceneEditor::DrawUI( ) {
 			ImGui::EndPopup( );
 		}
 		ImGui::EndChild( );
+		ImGui::SameLine();
+		//ImGui::Image((void*)(intptr_t)m_RTtextureID, idVec2((float)m_WindowWidth, (float)m_WindowHeight), Vector2(0.0f, 1.0f), Vector2(1.0f, 0.0f));
+		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();
 }

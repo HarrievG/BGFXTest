@@ -47,8 +47,8 @@ set(src_idFramework
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/minizip/ioapi.c
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/minizip/unzip.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/EventLoop.cpp
-    #${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/KeyInput.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/UsercmdGen.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/KeyInput.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/UsercmdGen.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/Compressor.cpp
 
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/cpu.cpp
@@ -62,7 +62,6 @@ set(src_idFramework
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_syscon.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idImGui/idImConsole.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/stubs/common_stubs.cpp
-
 	)
 
 #add_globbed_headers(src_idFramework "idFramework")
@@ -124,6 +123,7 @@ add_globbed_headers(src_idlib "idlib")
 add_library(idFramework STATIC ${src_idlib})
 
 set(Sources 
+	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxRender.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxCallback.cpp
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/TextEditor.cpp
     ${PROJECT_SOURCE_DIR}/src/gltf-edit/TextEditor.h

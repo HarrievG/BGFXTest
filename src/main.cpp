@@ -1,9 +1,5 @@
 #include "SDL.h"
-#include "SDL_syswm.h"
-#include "bgfx-imgui/imgui_impl_bgfx.h"
-#include "bgfx/bgfx.h"
-#include "bgfx/platform.h"
-#include "bx/math.h"
+#include "bgfx-stubs/bgfxRender.h"
 #include "imgui.h"
 #include "sdl-imgui/imgui_impl_sdl.h"
 #include "ImGuizmo.h"
@@ -19,6 +15,7 @@
 #include "idFramework/Licensee.h"
 #include "idlib/containers/StrList.h"
 #include "idFramework/idImGui/idImConsole.h"
+#include "idFramework/KeyInput.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
@@ -27,11 +24,6 @@ idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
-
-namespace bgfx{
-    struct CallbackStub;
-    extern CallbackStub bgfxCallbacksLocal;
-}
 
 idImConsole imConsoleLocal;
 idImConsole *ImConsole = &imConsoleLocal;
@@ -46,47 +38,15 @@ gltfSceneEditor gEditor;
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 900
 
-struct context_t {
-    SDL_Window *window = nullptr;
-    bgfx::ProgramHandle program = BGFX_INVALID_HANDLE;
-    bgfx::VertexBufferHandle vbh = BGFX_INVALID_HANDLE;
-    bgfx::IndexBufferHandle ibh = BGFX_INVALID_HANDLE;
-
-    float cam_pitch = 0.0f;
-    float cam_yaw = 0.0f;
-    float rot_scale = 0.01f;
-
-    int prev_mouse_x = 0;
-    int prev_mouse_y = 0;
-
-    int width = 0;
-    int height = 0;
-
-    bool quit = false;
-};
-
 void main_loop( void *data ) {
-    auto context = static_cast< context_t * >( data );
-
-
-    //moved to events.cpp
-    // TODO 
-    //for ( SDL_Event currentEvent; SDL_PollEvent( &currentEvent ) != 0;) {
-    //    ImGui_ImplSDL2_ProcessEvent( &currentEvent );
-    //    if ( currentEvent.type == SDL_QUIT ) {
-    //        context->quit = true;
-    //        break;
-    //    }
-    //}
+    auto context = static_cast< bgfxContext_t * >( data );
 
     ImGui_Implbgfx_NewFrame( );
     ImGui_ImplSDL2_NewFrame( context->window );
     common->Frame();
-
     ImGui::NewFrame( );
 
-    
-
+ 
     //ImGuizmo::ViewManipulate( )
     gEditor.DrawUI( );
     ImGui::ShowDemoWindow( ); // your drawing here
@@ -95,53 +55,7 @@ void main_loop( void *data ) {
     ImGui::Render( );
     
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
-
-
-    ///
-    // The part below processes user input and drawcommands
-    // the userinput part needs to goto UserCmdGen.cpp
-    // rendering part needs whole renderer interface (but we have BGFX ;) )
-    // 
-    //// simple input code for orbit camera
-    //int mouse_x, mouse_y;
-    //const int buttons = SDL_GetMouseState( &mouse_x, &mouse_y );
-    //if ( ( buttons & SDL_BUTTON( SDL_BUTTON_LEFT ) ) != 0 ) {
-    //    int delta_x = mouse_x - context->prev_mouse_x;
-    //    int delta_y = mouse_y - context->prev_mouse_y;
-    //    context->cam_yaw += float( -delta_x ) * context->rot_scale;
-    //    context->cam_pitch += float( -delta_y ) * context->rot_scale;
-    //}
-
-    //context->prev_mouse_x = mouse_x;
-    //context->prev_mouse_y = mouse_y;
-
-    //float cam_rotation[16];
-    //bx::mtxRotateXYZ( cam_rotation, context->cam_pitch, context->cam_yaw, 0.0f );
-
-    //float cam_translation[16];
-    //bx::mtxTranslate( cam_translation, 0.0f, 0.0f, -5.0f );
-
-    //float cam_transform[16];
-    //bx::mtxMul( cam_transform, cam_translation, cam_rotation );
-
-    //float view[16];
-    //bx::mtxInverse( view, cam_transform );
-
-    //float proj[16];
-    //bx::mtxProj(
-    //    proj, 60.0f, float( context->width ) / float( context->height ), 0.1f,
-    //    100.0f, bgfx::getCaps( )->homogeneousDepth );
-
-    //bgfx::setViewTransform( 0, view, proj );
-
-    //float model[16];
-    //bx::mtxIdentity( model );
-    //bgfx::setTransform( model );
-
-    //bgfx::setVertexBuffer( 0, context->vbh );
-    //bgfx::setIndexBuffer( context->ibh );
-
-    //bgfx::submit( 0, context->program );
+    bgfxRender( context );
 
     bgfx::touch( 0 );//not really drawing so Uniforms and draw state will be applied 
     bgfx::frame( );
@@ -155,7 +69,7 @@ void main_loop( void *data ) {
 
 int main( int argc, char **argv )
 {
-    static context_t context;
+    static bgfxContext_t context;
 
     idLib::common = common;
     idLib::cvarSystem = cvarSystem;
@@ -173,6 +87,25 @@ int main( int argc, char **argv )
 
     //eventLoop->RegisterCallback([]( const sysEvent_t &event )
     //-> auto { 
+    //    if (event.evType == SE_MOUSE )
+    //    {
+    //        int mouse_x, mouse_y;
+    //        mouse_x = event.evValue;
+    //        mouse_y = event.evValue2;
+
+    //        int action,val;
+    //        Sys_ReturnMouseInputEvent(0,action,val );
+
+    //        if ( action == K_MOUSE1) {
+    //            int delta_x = mouse_x - context.prev_mouse_x;
+    //            int delta_y = mouse_y - context.prev_mouse_y;
+    //            context.cam_yaw    += float( -delta_x ) * context.rot_scale;
+    //            context.cam_pitch  += float( -delta_y ) * context.rot_scale;
+    //        }
+
+    //        context.prev_mouse_x = mouse_x;
+    //        context.prev_mouse_y = mouse_y; 
+    //    }
     //});
 
     cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
@@ -234,6 +167,7 @@ int main( int argc, char **argv )
     ImGui::CreateContext( );
     ImGuiIO &io = ImGui::GetIO( );
     ImGui_Implbgfx_Init( 255 );
+
 #if BX_PLATFORM_WINDOWS
     ImGui_ImplSDL2_InitForD3D( window );
 #elif BX_PLATFORM_OSX
@@ -243,13 +177,11 @@ int main( int argc, char **argv )
 #endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX ?
     // BX_PLATFORM_EMSCRIPTEN
 
-    
     context.width = width;
     context.height = height;
-    //context.program = program;
     context.window = window;
-    //context.vbh = vbh;
-    //context.ibh = ibh;
+    bgfxInitShaders( &context );
+
     common->PrintWarnings();
     common->ClearWarnings("main loop");
 #if BX_PLATFORM_EMSCRIPTEN
@@ -259,21 +191,21 @@ int main( int argc, char **argv )
         main_loop( &context );
     }
 #endif // BX_PLATFORM_EMSCRIPTEN
+
+
     common->PrintWarnings( );
     common->ClearWarnings( "shutdown" );
-    //bgfx::destroy( vbh );
-    //bgfx::destroy( ibh );
-    //bgfx::destroy( program );
 
     ImGui_ImplSDL2_Shutdown( );
     ImGui_Implbgfx_Shutdown( );
 
     ImGui::DestroyContext( );
-    bgfx::shutdown( );
+    bgfxShutdown( &context );
+
     common->PrintWarnings( );
     ImConsole->ClearLog( );
 
-    eventLoop->Shutdown();
+    eventLoop->Shutdown( );
     common->Shutdown( );
     fileSystem->Shutdown( false );
     cvarSystem->Shutdown( );

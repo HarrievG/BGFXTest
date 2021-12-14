@@ -31,10 +31,10 @@ If you have questions concerning this license or the applicable additional terms
 #include "idlib/Lib.h"
 #include "idFramework/CVarSystem.h"
 #include "idFramework/KeyInput.h"
-#include "idFramework/async/AsyncNetwork.h"
+//#include "idFramework/async/AsyncNetwork.h"
 
 #include "idFramework/UsercmdGen.h"
-
+#include "idFramework/Common.h"
 /*
 ================
 usercmd_t::ByteSwap
@@ -531,11 +531,11 @@ Moves the local angle positions
 void idUsercmdGenLocal::AdjustAngles( void ) {
 	float	speed;
 
-	if ( toggled_run.on ^ ( in_alwaysRun.GetBool() && idAsyncNetwork::IsActive() ) ) {
-		speed = idMath::M_MS2SEC * USERCMD_MSEC * in_angleSpeedKey.GetFloat();
-	} else {
+	//if ( toggled_run.on ^ ( in_alwaysRun.GetBool() && idAsyncNetwork::IsActive() ) ) {
+	//	speed = idMath::M_MS2SEC * USERCMD_MSEC * in_angleSpeedKey.GetFloat();
+	//} else {
 		speed = idMath::M_MS2SEC * USERCMD_MSEC;
-	}
+	//}
 
 	if ( !ButtonState( UB_STRAFE ) ) {
 		viewangles[YAW] -= speed * in_yawSpeed.GetFloat() * ButtonState( UB_RIGHT );
@@ -680,11 +680,11 @@ idUsercmdGenLocal::JoystickMove
 void idUsercmdGenLocal::JoystickMove( void ) {
 	float	anglespeed;
 
-	if ( toggled_run.on ^ ( in_alwaysRun.GetBool() && idAsyncNetwork::IsActive() ) ) {
-		anglespeed = idMath::M_MS2SEC * USERCMD_MSEC * in_angleSpeedKey.GetFloat();
-	} else {
+	//if ( toggled_run.on ^ ( in_alwaysRun.GetBool() && idAsyncNetwork::IsActive() ) ) {
+	//	anglespeed = idMath::M_MS2SEC * USERCMD_MSEC * in_angleSpeedKey.GetFloat();
+	//} else {
 		anglespeed = idMath::M_MS2SEC * USERCMD_MSEC;
-	}
+//	}
 
 	if ( !ButtonState( UB_STRAFE ) ) {
 		viewangles[YAW] += anglespeed * in_yawSpeed.GetFloat() * joystickAxis[AXIS_SIDE];
@@ -719,10 +719,10 @@ void idUsercmdGenLocal::CmdButtons( void ) {
 		cmd.buttons |= BUTTON_ATTACK;
 	}
 
-	// check the run button
-	if ( toggled_run.on ^ ( in_alwaysRun.GetBool() && idAsyncNetwork::IsActive() ) ) {
-		cmd.buttons |= BUTTON_RUN;
-	}
+	//// check the run button
+	//if ( toggled_run.on ^ ( in_alwaysRun.GetBool() && idAsyncNetwork::IsActive() ) ) {
+	//	cmd.buttons |= BUTTON_RUN;
+	//}
 
 	// check the zoom button
 	if ( toggled_zoom.on ) {
@@ -752,7 +752,7 @@ void idUsercmdGenLocal::InitCurrent( void ) {
 	memset( &cmd, 0, sizeof( cmd ) );
 	cmd.flags = flags;
 	cmd.impulse = impulse;
-	cmd.buttons |= ( in_alwaysRun.GetBool() && idAsyncNetwork::IsActive() ) ? BUTTON_RUN : 0;
+	cmd.buttons |= /*( in_alwaysRun.GetBool() && idAsyncNetwork::IsActive() ) ? BUTTON_RUN :*/ 0;
 	cmd.buttons |= in_freeLook.GetBool() ? BUTTON_MLOOK : 0;
 }
 
@@ -772,7 +772,7 @@ void idUsercmdGenLocal::MakeCurrent( void ) {
 	if ( !Inhibited() ) {
 		// update toggled key states
 		toggled_crouch.SetKeyState( ButtonState( UB_DOWN ), in_toggleCrouch.GetBool() );
-		toggled_run.SetKeyState( ButtonState( UB_SPEED ), in_toggleRun.GetBool() && idAsyncNetwork::IsActive() );
+		//toggled_run.SetKeyState( ButtonState( UB_SPEED ), in_toggleRun.GetBool() && idAsyncNetwork::IsActive() );
 		toggled_zoom.SetKeyState( ButtonState( UB_ZOOM ), in_toggleZoom.GetBool() );
 
 		// keyboard angle adjustment
