@@ -7,6 +7,10 @@
 #include "SDL.h"
 #include "SDL_syswm.h"
 #include "idFramework/sys/platform.h"
+#include "idFramework/idlib/bv/Box.h"
+#include "idFramework/idlib/bv/Bounds.h"
+#include "idFramework/idlib/containers/List.h" 
+#include "common.h"
 
 struct bgfxContext_t {
     SDL_Window *window = nullptr;
@@ -40,6 +44,78 @@ namespace bgfx {
 }
 
 
+struct bgfxMesh     {
+    // Different handle for each "stream" of vertex attributes
+    // 0 - Position
+    // 1 - Normal
+    // 2 - Tangent
+    // 3 - TexCoord0
+    bgfx::VertexBufferHandle vertexHandles[4] = {
+        BGFX_INVALID_HANDLE,
+        BGFX_INVALID_HANDLE,
+        BGFX_INVALID_HANDLE,
+        BGFX_INVALID_HANDLE,
+    };
+    bgfx::IndexBufferHandle indexHandle = BGFX_INVALID_HANDLE;
+    uint8_t numVertexHandles = 0;
+
+    static const uint8_t maxVertexHandles = 4;
+
+    void addVertexHandle( const bgfx::VertexBufferHandle vbh )
+    {
+        if ( numVertexHandles < maxVertexHandles ) {
+            vertexHandles[numVertexHandles++] = vbh;
+        } else {
+            common->FatalError( "Cannot add additional vertex handle to this mesh." );
+        }
+    }
+
+    void setBuffers( ) const         {
+        bgfx::setIndexBuffer( indexHandle );
+        for ( uint8_t j = 0; j < numVertexHandles; ++j ) {
+            bgfx::setVertexBuffer( j, vertexHandles[j] );
+        }
+    }
+};
+
+// Struct containing material information according to the GLTF spec
+// Note: Doesn't fully support the spec :)
+struct PBRMaterial
+{
+    // Uniform Data
+    idVec4 baseColorFactor = idVec4( 1.0f, 1.0f, 1.0f, 1.0f );
+    idVec4 emissiveFactor = idVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+    float alphaCutoff = 1.0f;
+    float metallicFactor = 1.0f;
+    float roughnessFactor = 1.0f;
+    bgfx::TextureHandle baseColorTexture = BGFX_INVALID_HANDLE;
+    bgfx::TextureHandle metallicRoughnessTexture = BGFX_INVALID_HANDLE;
+    bgfx::TextureHandle normalTexture = BGFX_INVALID_HANDLE;
+    bgfx::TextureHandle emissiveTexture = BGFX_INVALID_HANDLE;
+    bgfx::TextureHandle occlusionTexture = BGFX_INVALID_HANDLE;
+};
+
+struct MeshGroup
+{
+    idList<PBRMaterial> materials;
+    idList<bgfxMesh> meshes;
+    idList<idMat4> transforms;
+    idList<idBounds> boundingBoxes;
+};
+
+struct bgfxModel
+{
+    idList<bgfx::TextureHandle> textures;
+
+    MeshGroup opaqueMeshes;
+    MeshGroup maskedMeshes;
+    MeshGroup transparentMeshes;
+
+    idBounds boundingBox = {};
+};
+
 void bgfxShutdown( bgfxContext_t *context);
 void bgfxInitShaders( bgfxContext_t *context );
 void bgfxRender( bgfxContext_t* context );
+
+bgfxModel loadGltfModel( const idStr &fileName );

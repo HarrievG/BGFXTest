@@ -130,6 +130,7 @@ set(Sources
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/tiny_gltf.h
     ${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.h
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.cpp
+	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfModel.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.h
     ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.h
