@@ -32,15 +32,6 @@ const GltfToBgfxAttributeMaps GLTF_TO_BGFX_ATTRIBUTE_MAPS{
         // Cannot handle TINYGLTF_PARAMETER_TYPE_UNSIGNED_SHORT or any of the others
     },
 };
-
-
-enum struct TransparencyMode
-{
-    OPAQUE_,
-    MASKED,
-    BLENDED,
-};
-
 typedef std::vector<std::pair<PBRMaterial, TransparencyMode>> MaterialsList;
 //
 //// Returns a transformation matrix for a given GLTF node

@@ -78,6 +78,12 @@ struct bgfxMesh     {
     }
 };
 
+enum struct TransparencyMode {
+    OPAQUE_,
+    MASKED,
+    BLENDED,
+};
+
 // Struct containing material information according to the GLTF spec
 // Note: Doesn't fully support the spec :)
 struct PBRMaterial
@@ -94,6 +100,12 @@ struct PBRMaterial
     bgfx::TextureHandle emissiveTexture = BGFX_INVALID_HANDLE;
     bgfx::TextureHandle occlusionTexture = BGFX_INVALID_HANDLE;
 };
+
+struct bgfxMaterial {
+    PBRMaterial material;
+    int TransparencyMode;
+};
+typedef idList<bgfxMaterial> materialList;  
 
 struct MeshGroup
 {

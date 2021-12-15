@@ -275,7 +275,7 @@ namespace bae
         Model output_model{};
 
         tinygltf::TinyGLTF loader;
-        loader.SetImageLoader(loadImageDataCallback, nullptr);
+        //loader.SetImageLoader(loadImageDataCallback, nullptr);
         std::string err, warn;
         tinygltf::Model gltf_model;
         bool res = loader.LoadASCIIFromFile(&gltf_model, &err, &warn, assetPath + fileName);

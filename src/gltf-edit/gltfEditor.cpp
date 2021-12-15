@@ -64,7 +64,6 @@ gltfSceneEditor::gltfSceneEditor( )
 
 	gGLFTLoader.SetFsCallbacks(callbacks);
 }
-
 void gltfSceneEditor::Init( ) 
 {
 	static auto *thisPtr = this;
@@ -93,6 +92,25 @@ void gltfSceneEditor::Init( )
 					asset.asset.extras.Get(key).Get<std::string>().c_str() );
 		}
 	}, CMD_FL_RENDERER, "lists all loaded gltf models" );
+
+	cmdSystem->AddCommand( "gltf_listTextures", []( const idCmdArgs &args )
+		-> auto {
+		common->Printf("textures (^2green ^7= data loaded)\n");
+		for (auto &asset : thisPtr->GetLoadedAssets())
+		{
+			for (auto& img : asset.images)
+				common->Printf( "  %-21s : %s%-21s\n", img.name.length() ? "img.name.length" : "<No Name>",
+					img.image.empty()? "^1" : "^2", img.uri.c_str());
+		}
+	}, CMD_FL_RENDERER, "list (loaded) textures" );
+	
+	cmdSystem->AddCommand( "gltf_containertest", []( const idCmdArgs &args )
+		-> auto {
+		if ( args.Argc( ) != 2 )
+			common->Printf( "use: gltf_ContainerTest <modelName>" );
+		else
+			thisPtr->GetRenderModel(args.Argv(1));
+	}, CMD_FL_RENDERER, "test model cache" );
 }
 void gltfSceneEditor::Render( ) {
 
@@ -105,7 +123,6 @@ void gltfSceneEditor::Render( ) {
 
 	//bgfx::submit( 0, context->program );
 }
-
 void gltfSceneEditor::DrawUI( ) {
 	auto curCtx = ImGui::GetCurrentContext();
 	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
@@ -158,7 +175,6 @@ bool gltfSceneEditor::IsFileLoaded(const char *file )
 {
 	return loadedFiles.FindIndex( idStr(file) ) != -1;
 }
-
 bool gltfSceneEditor::LoadFile( const char *binFile ) 
 {
 	if ( IsFileLoaded(binFile) )
@@ -196,4 +212,19 @@ bool gltfSceneEditor::LoadFile( const char *binFile )
 	loadedFiles.Append(	binFile );
 	common->Printf( "^2Loading %s Done",binFile );
 	return true;
+}
+
+bgfxModel * gltfSceneEditor::GetRenderModel( const idStr &name )
+{
+	//return cached model
+	int idx = modelNames.FindIndex(name);
+	if ( idx != -1)
+	{
+		common->DWarning("%s is already cached" ,name.c_str());
+		return & renderModels[idx];
+	}
+	//create new 
+	int newIdx = modelNames.AddUnique(name);
+	bgfxModel& out = renderModels.Alloc();
+	return &out;
 }
