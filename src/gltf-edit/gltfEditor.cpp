@@ -99,7 +99,7 @@ void gltfSceneEditor::Init( )
 		for (auto &asset : thisPtr->GetLoadedAssets())
 		{
 			for (auto& img : asset.images)
-				common->Printf( "  %-21s : %s%-21s\n", img.name.length() ? "img.name.length" : "<No Name>",
+				common->Printf( "  %-21s : %s%-21s\n", img.name.length() ? img.name.c_str() : "<No Name>",
 					img.image.empty()? "^1" : "^2", img.uri.c_str());
 		}
 	}, CMD_FL_RENDERER, "list (loaded) textures" );
