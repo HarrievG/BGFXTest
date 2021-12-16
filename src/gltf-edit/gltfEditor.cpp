@@ -13,6 +13,8 @@
 #include "FileSystem.h"
 #include "CVarSystem.h"
 
+#include "bgfx/bgfx.h"
+#include "bimg/bimg.h"
 
 tinygltf::TinyGLTF gGLFTLoader;
 
@@ -103,6 +105,18 @@ void gltfSceneEditor::Init( )
 					img.image.empty()? "^1" : "^2", img.uri.c_str());
 		}
 	}, CMD_FL_RENDERER, "list (loaded) textures" );
+
+	cmdSystem->AddCommand( "gltf_listMeshes", []( const idCmdArgs &args )
+		-> auto {
+		int totalMehshes = 0;
+		for (auto &asset : thisPtr->GetLoadedAssets())
+		{
+			totalMehshes += asset.meshes.size();
+			for ( auto &mesh : asset.meshes )
+				common->Printf( "  %-21s \n", mesh.name.c_str());
+		}
+		common->Printf( "%i glTF meshes total\n", totalMehshes );
+	}, CMD_FL_RENDERER, "list loaded gltf meshes" );
 	
 	cmdSystem->AddCommand( "gltf_containertest", []( const idCmdArgs &args )
 		-> auto {
@@ -166,7 +180,9 @@ void gltfSceneEditor::DrawUI( ) {
 		}
 		ImGui::EndChild( );
 		ImGui::SameLine();
-		//ImGui::Image((void*)(intptr_t)m_RTtextureID, idVec2((float)m_WindowWidth, (float)m_WindowHeight), Vector2(0.0f, 1.0f), Vector2(1.0f, 0.0f));
+		auto handle = renderModels.begin();
+		if (handle.p)
+			ImGui::Image((void*)(intptr_t)handle.p->textures[0].idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
 		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();
@@ -226,5 +242,28 @@ bgfxModel * gltfSceneEditor::GetRenderModel( const idStr &name )
 	//create new 
 	int newIdx = modelNames.AddUnique(name);
 	bgfxModel& out = renderModels.Alloc();
+	for (auto &asset : GetLoadedAssets())
+	{
+		for (auto& img : asset.images)
+		{
+			if (!img.image.empty( ))
+			{
+				auto &handle = out.textures.Alloc();
+				uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
+				handle = bgfx::createTexture2D(img.width,img.height,false,1, bgfx::TextureFormat::RGB8, tex_flags,bgfx::copy(img.image.data(), img.width * img.height * 4));
+			}
+		}
+	}
+
+
+
+
+
+
+
+
+
+
+
 	return &out;
 }
