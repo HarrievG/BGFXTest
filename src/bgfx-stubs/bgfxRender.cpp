@@ -63,6 +63,8 @@ void bgfxInitShaders( bgfxContext_t *context ) {
     context->vbh = vbh;
     context->ibh = ibh;
 
+    context->colorUniformHandle = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
+
     static bool cmdSystemSet = false;
     if (!cmdSystemSet) {
 
@@ -101,6 +103,6 @@ void bgfxRender( bgfxContext_t *context ){
 
     bgfx::setVertexBuffer( 0, context->vbh );
     bgfx::setIndexBuffer( context->ibh );
-
+    bgfx::setTexture(0,context->colorUniformHandle,context->colorTextureHandle);
     bgfx::submit( 0, context->program );
 }

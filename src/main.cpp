@@ -48,10 +48,10 @@ void main_loop( void *data ) {
 
  
     //ImGuizmo::ViewManipulate( )
-    gEditor.DrawUI( );
+    gEditor.DrawUI(*context );
     ImGui::ShowDemoWindow( ); // your drawing here
 	imConsole->Draw( );
-	gEditor.Render( );
+	gEditor.Render( *context);
     ImGui::Render( );
     
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );

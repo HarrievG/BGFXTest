@@ -16,8 +16,8 @@ class gltfSceneEditor {
 public:
 	gltfSceneEditor();
 	void Init( );
-	void Render( );
-	void DrawUI( );
+	void Render(const bgfxContext_t& context );
+	void DrawUI( const bgfxContext_t &context );
 	bool LoadFile( const char * file );
 	bool IsFileLoaded(const char * file );
 	idStrList& GetLoadedFiles( ) {return loadedFiles; }

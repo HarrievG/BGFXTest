@@ -126,7 +126,7 @@ void gltfSceneEditor::Init( )
 			thisPtr->GetRenderModel(args.Argv(1));
 	}, CMD_FL_RENDERER, "test model cache" );
 }
-void gltfSceneEditor::Render( ) {
+void gltfSceneEditor::Render( const bgfxContext_t &context ) {
 
 	//float model[16];
 	//bx::mtxIdentity( model );
@@ -137,7 +137,7 @@ void gltfSceneEditor::Render( ) {
 
 	//bgfx::submit( 0, context->program );
 }
-void gltfSceneEditor::DrawUI( ) {
+void gltfSceneEditor::DrawUI( const bgfxContext_t &context ) {
 	auto curCtx = ImGui::GetCurrentContext();
 	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
 	if (ImGui::Begin("GLTF SCENE",&windowOpen, ImGuiWindowFlags_MenuBar))
@@ -182,8 +182,8 @@ void gltfSceneEditor::DrawUI( ) {
 		ImGui::SameLine();
 		auto handle = renderModels.begin();
 		if (handle.p)
-			ImGui::Image((void*)(intptr_t)handle.p->textures[0].handle.idx, 
-				handle.p->textures[0].dim/2/*, idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f)*/);
+			ImGui::Image((void*)(intptr_t)handle.p->textures[0].handle.idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
+			//ImGui::Image((void*)(intptr_t)context.colorTextureHandle.idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
 		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();

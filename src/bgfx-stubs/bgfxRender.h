@@ -18,6 +18,8 @@ struct bgfxContext_t {
     bgfx::VertexBufferHandle vbh = BGFX_INVALID_HANDLE;
     bgfx::IndexBufferHandle ibh = BGFX_INVALID_HANDLE;
 
+    bgfx::UniformHandle colorUniformHandle;
+    bgfx::TextureHandle colorTextureHandle;
     float cam_pitch = 0.0f;
     float cam_yaw = 0.0f;
     float rot_scale = 0.01f;
