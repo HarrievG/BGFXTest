@@ -115,9 +115,14 @@ struct MeshGroup
     idList<idBounds> boundingBoxes;
 };
 
+struct bgfxTextureHandle {
+    bgfx::TextureHandle handle;
+    idVec2 dim;
+};
+
 struct bgfxModel
 {
-    idList<bgfx::TextureHandle> textures;
+    idList<bgfxTextureHandle> textures;
 
     MeshGroup opaqueMeshes;
     MeshGroup maskedMeshes;

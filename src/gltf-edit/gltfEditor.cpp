@@ -182,7 +182,8 @@ void gltfSceneEditor::DrawUI( ) {
 		ImGui::SameLine();
 		auto handle = renderModels.begin();
 		if (handle.p)
-			ImGui::Image((void*)(intptr_t)handle.p->textures[0].idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
+			ImGui::Image((void*)(intptr_t)handle.p->textures[0].handle.idx, 
+				handle.p->textures[0].dim/2/*, idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f)*/);
 		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();
@@ -248,9 +249,10 @@ bgfxModel * gltfSceneEditor::GetRenderModel( const idStr &name )
 		{
 			if (!img.image.empty( ))
 			{
-				auto &handle = out.textures.Alloc();
+				auto &texture = out.textures.Alloc();
+				texture.dim = idVec2(img.width,img.height );
 				uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
-				handle = bgfx::createTexture2D(img.width,img.height,false,1, bgfx::TextureFormat::RGB8, tex_flags,bgfx::copy(img.image.data(), img.width * img.height * 4));
+				texture.handle = bgfx::createTexture2D(img.width,img.height,false,1, bgfx::TextureFormat::RGBA8, tex_flags,bgfx::copy(img.image.data(), img.width * img.height * 4));
 			}
 		}
 	}

@@ -333,11 +333,11 @@ bgfxModel loadGltfModel(const idStr &fileName)
             0.5f,                     // alphaCutoff
             1.0f,                     // metallicFactor
             1.0f,                     // roughnessFactor
-            output_model.textures[0], // baseColorTexture as dummy_white
-            output_model.textures[1], // metallicRoughnessTexture as dummy_metallicRoughness;
-            output_model.textures[2], // normalTexture as dummy_normal_map;
-            output_model.textures[0], // emissiveTexture as dummy_white;
-            output_model.textures[0], // occlusionTexture as dummy_white;
+            output_model.textures[0].handle, // baseColorTexture as dummy_white
+            output_model.textures[1].handle, // metallicRoughnessTexture as dummy_metallicRoughness;
+            output_model.textures[2].handle, // normalTexture as dummy_normal_map;
+            output_model.textures[0].handle, // emissiveTexture as dummy_white;
+            output_model.textures[0].handle, // occlusionTexture as dummy_white;
         };
         TransparencyMode transparency_mode = TransparencyMode::OPAQUE_;
 
@@ -345,7 +345,7 @@ bgfxModel loadGltfModel(const idStr &fileName)
         auto p_keyValue = material.values.find("baseColorTexture");
         if (p_keyValue != valuesEnd)
         {
-            materialData.baseColorTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT];
+            materialData.baseColorTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT].handle;
         };
 
         p_keyValue = material.values.find("baseColorFactor");
@@ -363,7 +363,7 @@ bgfxModel loadGltfModel(const idStr &fileName)
         p_keyValue = material.values.find("metallicRoughnessTexture");
         if (p_keyValue != valuesEnd)
         {
-            materialData.metallicRoughnessTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT];
+            materialData.metallicRoughnessTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT].handle;
         }
 
         p_keyValue = material.values.find("metallicFactor");
@@ -378,13 +378,13 @@ bgfxModel loadGltfModel(const idStr &fileName)
         p_keyValue = material.additionalValues.find("normalTexture");
         if (p_keyValue != valuesEnd)
         {
-            materialData.normalTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT];
+            materialData.normalTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT].handle;
         }
 
         p_keyValue = material.additionalValues.find("emissiveTexture");
         if (p_keyValue != valuesEnd)
         {
-            materialData.emissiveTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT];
+            materialData.emissiveTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT].handle;
 
             if (material.additionalValues.find("emissiveFactor") != valuesEnd)
             {
@@ -400,13 +400,13 @@ bgfxModel loadGltfModel(const idStr &fileName)
         p_keyValue = material.additionalValues.find("occlusionTexture");
         if (p_keyValue != valuesEnd)
         {
-            materialData.occlusionTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT];
+            materialData.occlusionTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT].handle;
         }
 
         p_keyValue = material.additionalValues.find("metallicRoughnessTexture");
         if (p_keyValue != valuesEnd)
         {
-            materialData.metallicRoughnessTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT];
+            materialData.metallicRoughnessTexture = output_model.textures[p_keyValue->second.TextureIndex() + DUMMY_TEXTURE_COUNT].handle;
         }
 
         p_keyValue = material.additionalValues.find("alphaMode");
