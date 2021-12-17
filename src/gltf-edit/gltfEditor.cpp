@@ -183,7 +183,8 @@ void gltfSceneEditor::DrawUI( const bgfxContext_t &context ) {
 		auto handle = renderModels.begin();
 		if (handle.p)
 			ImGui::Image((void*)(intptr_t)handle.p->textures[0].handle.idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
-			//ImGui::Image((void*)(intptr_t)context.colorTextureHandle.idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
+		if ( bgfx::isValid( context.rb ) )
+			ImGui::Image((void*)(intptr_t) context.rb.idx, idVec2((float)context.width/4, (float)context.height/4), idVec2(0.0f, 0.0f), idVec2(1.0f, 1.0f));
 		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();

@@ -16,6 +16,7 @@ static const uint16_t cube_tri_list[] = {
     0, 1, 2, 1, 3, 2, 4, 6, 5, 5, 6, 7, 0, 2, 4, 4, 2, 6,
     1, 5, 3, 5, 7, 3, 0, 4, 1, 4, 5, 1, 2, 3, 6, 6, 3, 7,
 };
+
  //"shaders/v_simple.bin"
 static bgfx::ShaderHandle createShader( const char * shaderFile, const char *name ) {
     int fSize = 0;
@@ -64,6 +65,11 @@ void bgfxInitShaders( bgfxContext_t *context ) {
     context->ibh = ibh;
 
     context->colorUniformHandle = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
+    context->fbh.idx = bgfx::kInvalidHandle;
+    context->Bgra8 = 0;
+    if ( ( BGFX_CAPS_TEXTURE_BLIT | BGFX_CAPS_TEXTURE_READ_BACK ) == ( bgfx::getCaps( )->supported & ( BGFX_CAPS_TEXTURE_BLIT | BGFX_CAPS_TEXTURE_READ_BACK ) ) ) {
+        context->rb = bgfx::createTexture2D( context->width, context->height, false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_BLIT_DST );
+    }
 
     static bool cmdSystemSet = false;
     if (!cmdSystemSet) {
@@ -78,6 +84,54 @@ void bgfxInitShaders( bgfxContext_t *context ) {
 }
 
 void bgfxRender( bgfxContext_t *context ){
+
+    if ( !bgfx::isValid( context->fbh ))
+/*        || m_oldWidth != m_width
+        || m_oldHeight != m_height
+        || m_oldReset != m_reset )*/ {
+        // Recreate variable size render targets when resolution changes.
+        //m_oldWidth = m_width;
+        //m_oldHeight = m_height;
+        //m_oldReset = m_reset;
+
+        if ( bgfx::isValid( context->fbh ) ) {
+            bgfx::destroy( context->fbh );
+        }
+
+        context->fbTextureHandle[0] = bgfx::createTexture2D(
+            uint16_t( context->width )
+            , uint16_t( context->height )
+            , false
+            , 1
+            , bgfx::TextureFormat::BGRA8
+            , BGFX_TEXTURE_RT | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP
+        );
+
+        const uint64_t textureFlags = BGFX_TEXTURE_RT_WRITE_ONLY | BGFX_TEXTURE_RT ;
+
+        bgfx::TextureFormat::Enum depthFormat =
+            bgfx::isTextureValid( 0, false, 1, bgfx::TextureFormat::D16, textureFlags ) ? bgfx::TextureFormat::D16
+            : bgfx::isTextureValid( 0, false, 1, bgfx::TextureFormat::D24S8, textureFlags ) ? bgfx::TextureFormat::D24S8
+            : bgfx::TextureFormat::D32
+            ;
+
+        context->fbTextureHandle[1] = bgfx::createTexture2D(
+            uint16_t( context->width )
+            , uint16_t( context->height )
+            , false
+            , 1
+            , depthFormat
+            , textureFlags
+        );
+
+        context->fbh = bgfx::createFrameBuffer( BX_COUNTOF( context->fbTextureHandle), context->fbTextureHandle, true );
+        bgfx::ViewId rttView = 0;
+        bgfx::setViewName( rttView, "backBuffer" );
+        //bgfx::setViewClear( rttView, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0xff0000ff, 0, 0 );
+        bgfx::setViewRect( rttView, 0, 0, bgfx::BackbufferRatio::Equal );
+        bgfx::setViewFrameBuffer( rttView, context->fbh );
+    }
+
     float cam_rotation[16];
     bx::mtxRotateXYZ( cam_rotation, context->cam_pitch, context->cam_yaw, 0.0f );
 
@@ -103,6 +157,8 @@ void bgfxRender( bgfxContext_t *context ){
 
     bgfx::setVertexBuffer( 0, context->vbh );
     bgfx::setIndexBuffer( context->ibh );
-    bgfx::setTexture(0,context->colorUniformHandle,context->colorTextureHandle);
     bgfx::submit( 0, context->program );
+
+    if ( bgfx::isValid( context->rb ) )
+        bgfx::blit( 1, context->rb, 0, 0, context->fbTextureHandle[0] );
 }

@@ -40,7 +40,7 @@ gltfSceneEditor gEditor;
 
 void main_loop( void *data ) {
     auto context = static_cast< bgfxContext_t * >( data );
-
+    bgfx::touch( 0 );//not really drawing so Uniforms and draw state will be applied 
     ImGui_Implbgfx_NewFrame( );
     ImGui_ImplSDL2_NewFrame( context->window );
     common->Frame();
@@ -57,7 +57,8 @@ void main_loop( void *data ) {
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
     bgfxRender( context );
 
-    bgfx::touch( 0 );//not really drawing so Uniforms and draw state will be applied 
+
+
     bgfx::frame( );
 
 #if BX_PLATFORM_EMSCRIPTEN

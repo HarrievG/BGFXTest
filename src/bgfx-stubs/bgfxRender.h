@@ -11,6 +11,7 @@
 #include "idFramework/idlib/bv/Bounds.h"
 #include "idFramework/idlib/containers/List.h" 
 #include "common.h"
+#include <bx/rng.h>
 
 struct bgfxContext_t {
     SDL_Window *window = nullptr;
@@ -19,7 +20,11 @@ struct bgfxContext_t {
     bgfx::IndexBufferHandle ibh = BGFX_INVALID_HANDLE;
 
     bgfx::UniformHandle colorUniformHandle;
-    bgfx::TextureHandle colorTextureHandle;
+    bgfx::TextureHandle fbTextureHandle[2];
+    bgfx::TextureHandle rb;
+    bgfx::FrameBufferHandle fbh;
+    uint32_t Bgra8;
+
     float cam_pitch = 0.0f;
     float cam_yaw = 0.0f;
     float rot_scale = 0.01f;
@@ -29,6 +34,8 @@ struct bgfxContext_t {
 
     int width = 0;
     int height = 0;
+
+    bx::RngMwc rng;
 
     bool quit = false;
 };
