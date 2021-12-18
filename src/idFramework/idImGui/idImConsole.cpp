@@ -10,7 +10,6 @@
 static idImConsole localConsole;
 idImConsole *imConsole = &localConsole;
 
-
 extern idCVar com_timestampPrints;
 
 static autoComplete_t	globalAutoComplete;

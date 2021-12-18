@@ -16,6 +16,7 @@
 #include "idlib/containers/StrList.h"
 #include "idFramework/idImGui/idImConsole.h"
 #include "idFramework/KeyInput.h"
+#include "idFramework/idImGui/idImConsole.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
@@ -25,16 +26,11 @@ idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_B
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
 
-idImConsole imConsoleLocal;
-idImConsole *ImConsole = &imConsoleLocal;
-bool consoleOpen = false;
-
 idSession *session = NULL;
 
 idSysLocal		sysLocal;
 idSys *sys = &sysLocal;
 
-gltfSceneEditor gEditor;
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 900
 
@@ -48,10 +44,10 @@ void main_loop( void *data ) {
 
  
     //ImGuizmo::ViewManipulate( )
-    gEditor.DrawUI(*context );
+   sceneEditor->DrawUI(*context );
     ImGui::ShowDemoWindow( ); // your drawing here
 	imConsole->Draw( );
-	gEditor.Render( *context);
+    sceneEditor->Render( *context);
     ImGui::Render( );
     
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
@@ -83,7 +79,7 @@ int main( int argc, char **argv )
     common->Init( argc, argv );
     fileSystem->Init( );
     eventLoop->Init();
-    gEditor.Init( );
+    sceneEditor->Init( );
 
     //eventLoop->RegisterCallback([]( const sysEvent_t &event )
     //-> auto { 
@@ -204,7 +200,7 @@ int main( int argc, char **argv )
     bgfxShutdown( &context );
 
     common->PrintWarnings( );
-    ImConsole->ClearLog( );
+    imConsole->ClearLog( );
 
     eventLoop->Shutdown( );
     common->Shutdown( );

@@ -18,6 +18,12 @@
 
 tinygltf::TinyGLTF gGLFTLoader;
 
+static gltfSceneEditor localSceneEditor;
+gltfSceneEditor *sceneEditor = &localSceneEditor;
+
+static gltfAssetExplorer localAssetExplorer;
+gltfAssetExplorer *assetExplorer = &localAssetExplorer;
+
 gltfSceneEditor::gltfSceneEditor( )
 	: windowOpen(false)
 {
@@ -125,6 +131,11 @@ void gltfSceneEditor::Init( )
 		else
 			thisPtr->GetRenderModel(args.Argv(1));
 	}, CMD_FL_RENDERER, "test model cache" );
+
+	cmdSystem->AddCommand( "gltf_ShowExplorer", []( const idCmdArgs &args )
+		-> auto {
+		assetExplorer->Show(!assetExplorer->isVisible());
+	}, CMD_FL_TOOL, "Shows / Hides the Asset explorer window" );
 }
 void gltfSceneEditor::Render( const bgfxContext_t &context ) {
 
@@ -181,8 +192,9 @@ void gltfSceneEditor::DrawUI( const bgfxContext_t &context ) {
 		ImGui::EndChild( );
 		ImGui::SameLine();
 		auto handle = renderModels.begin();
-		if (handle.p)
+		if (handle.p && handle.p->textures.Num())
 			ImGui::Image((void*)(intptr_t)handle.p->textures[0].handle.idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
+
 		if ( bgfx::isValid( context.rb ) )
 			ImGui::Image((void*)(intptr_t) context.rb.idx, idVec2((float)context.width/4, (float)context.height/4), idVec2(0.0f, 0.0f), idVec2(1.0f, 1.0f));
 		}ImGui::PopID(/*SceneView*/);
@@ -258,15 +270,74 @@ bgfxModel * gltfSceneEditor::GetRenderModel( const idStr &name )
 		}
 	}
 
-
-
-
-
-
-
-
-
-
-
 	return &out;
+}
+
+
+gltfAssetExplorer::gltfAssetExplorer( )  
+{
+	guiVisible = false;
+} 
+gltfAssetExplorer::~gltfAssetExplorer( ) 
+{
+}
+
+bool gltfAssetExplorer::Show(bool visible )
+{
+	if (guiVisible != visible )
+	{
+		guiVisible = visible;
+		return true;
+	}
+	return false;
+}
+bool gltfAssetExplorer::Render( bgfxContext_t *context ) 
+{
+	return false;
+}
+
+bool gltfAssetExplorer::imDraw( bgfxContext_t *context ) {
+
+	auto curCtx = ImGui::GetCurrentContext();
+	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
+	if (ImGui::Begin("Asset Explorer",&guiVisible, ImGuiWindowFlags_MenuBar))
+	{
+		if ( ImGui::BeginMenuBar( ) ) {
+			if ( ImGui::BeginMenu( "File" ) ) {
+				if ( ImGui::MenuItem( "Close" ) )
+					guiVisible = false;
+
+				ImGui::EndMenu( );
+			}
+			
+			ImGui::EndMenuBar( );
+		}
+		{ImGui::PushID("SceneView");
+		ImGui::BeginChild( "left pane", idVec2( 150, 0 ), true );
+		for (auto &file : sceneEditor->GetLoadedFiles())
+		{
+			if (ImGui::Selectable( file.c_str(),  false, ImGuiSelectableFlags_AllowDoubleClick))
+			{}
+		}
+		if ( ImGui::BeginPopupContextWindow( ) ) 	{//add primitive
+			if ( ImGui::MenuItem( "Load" ) ) {
+
+			}
+			if ( ImGui::MenuItem( "Unload" ) ) {
+
+			}
+			ImGui::EndPopup( );
+		}
+		ImGui::EndChild( );
+		ImGui::SameLine();
+		auto handle = sceneEditor->renderModels.begin();
+		if (handle.p && handle.p->textures.Num())
+			ImGui::Image((void*)(intptr_t)handle.p->textures[0].handle.idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
+
+		if ( bgfx::isValid( context->rb ) )
+			ImGui::Image((void*)(intptr_t) context->rb.idx, idVec2((float)context->width/4, (float)context->height/4), idVec2(0.0f, 0.0f), idVec2(1.0f, 1.0f));
+		}ImGui::PopID(/*SceneView*/);
+	}
+	ImGui::End();
+	return false;
 }

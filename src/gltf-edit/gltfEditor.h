@@ -13,6 +13,7 @@ typedef tinygltf::Model *gltfAssetPtr;
 typedef idList<bgfxModel> bgfxModelList;
 
 class gltfSceneEditor {
+	friend class gltfAssetExplorer;
 public:
 	gltfSceneEditor();
 	void Init( );
@@ -31,3 +32,23 @@ private:
 	idStrList modelNames;
 	idHashIndex modelNameMap;		
 };
+extern gltfSceneEditor * sceneEditor;
+
+class gltfAssetExplorer : public imDrawable,bgfxRenderable
+{
+public:
+	gltfAssetExplorer( );
+	virtual ~gltfAssetExplorer( );
+
+	// Inherited via bgfxRenderable
+	virtual bool Render( bgfxContext_t *context ) override;
+
+	// Inherited via imDrawable
+	virtual bool imDraw( bgfxContext_t *context ) override;
+	virtual bool Show(bool visible ) override ;
+	virtual bool isVisible( ) override { return guiVisible;};
+private:
+	bool guiVisible;
+};
+
+extern gltfAssetExplorer * assetExplorer;

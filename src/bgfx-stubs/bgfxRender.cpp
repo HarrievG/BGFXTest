@@ -180,3 +180,5 @@ void bgfxRender( bgfxContext_t *context ){
     if ( bgfx::isValid( context->rb ) )
         bgfx::blit( 2, context->rb, 0, 0, context->fbTextureHandle[0] );
 }
+
+void bgfxAdd( bgfxRenderable *renderable ) { }

@@ -140,8 +140,26 @@ struct bgfxModel
     idBounds boundingBox = {};
 };
 
+class bgfxRenderable
+{
+public:
+    virtual ~bgfxRenderable() {};
+    virtual bool Render(bgfxContext_t * context) = 0;
+};
+
+class imDrawable 
+{
+public:
+    virtual ~imDrawable(){};
+    virtual bool imDraw( bgfxContext_t *context ) = 0;
+    virtual bool Show(bool visible) = 0;
+    virtual bool isVisible( ) = 0;
+};
+
 void bgfxShutdown( bgfxContext_t *context);
 void bgfxInitShaders( bgfxContext_t *context );
 void bgfxRender( bgfxContext_t* context );
+void bgfxAdd(imDrawable * drawable );
+void bgfxAdd(bgfxRenderable * renderable );
 
 bgfxModel loadGltfModel( const idStr &fileName );
