@@ -2,6 +2,7 @@
 #include "idImGui/idImConsole.h"
 #include "UsercmdGen.h"
 #include "EventLoop.h"
+#include <idFramework/KeyInput.h>
 
 #define	MAX_PRINT_MSG_SIZE	4096
 #define MAX_WARNING_LIST	256
@@ -11,7 +12,9 @@
 idCVar com_timestampPrints( "com_timestampPrints", "1", CVAR_SYSTEM, "print time with each console print, 1 = msec, 2 = sec", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
 idCVar com_speeds( "com_speeds", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "show engine timings" );
 idCVar com_showFPS( "com_showFPS", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT, "show frames rendered per second" );
-
+idCVar com_timescale( "timescale", "1", CVAR_SYSTEM | CVAR_FLOAT, "scales the time", 0.1f, 10.0f );
+idCVar com_preciseTic( "com_preciseTic", "1", CVAR_BOOL | CVAR_SYSTEM, "run one game tick every async thread update" );
+idCVar com_asyncInput( "com_asyncInput", "0", CVAR_BOOL | CVAR_SYSTEM, "sample input from the async thread" );
 //Compilers
 // 2 different approaches:
 // 1:	Create dscene/GLTF scene compiler, in the same spirit as dmap/map compiler. 
@@ -179,11 +182,37 @@ inline void idCommonLocal::Init( int argc, char **argv ) {
 
 	ParseCommandLine( argc, argv );
 	AddStartupCommands( );
+	
+	// init the user command input code
+	usercmdGen->Init();
+
+	idKeyInput::Init( );
+	
 	com_fullyInitialized = true;
+	static auto * thisPtr = this;
+	async_timer = SDL_AddTimer( USERCMD_MSEC, []( unsigned int interval, void * usr)
+		-> unsigned int {
+		thisPtr->Async( );
+		Sys_TriggerEvent( TRIGGER_EVENT_ONE );
+
+		// calculate the next interval to get as close to 60fps as possible
+		unsigned int now = SDL_GetTicks( );
+		unsigned int tick = com_ticNumber * USERCMD_MSEC;
+
+		if ( now >= tick )
+			return 1;
+
+		return tick - now;
+	}, NULL );
+
+	if ( !async_timer )
+		common->FatalError( "Error while starting the async timer: %s", SDL_GetError( ) );
 }
 
 void idCommonLocal::Shutdown( void ) {
 
+	usercmdGen->Shutdown();
+	idKeyInput::Shutdown();
 	com_fullyInitialized = false;
 	warningCaption.Clear();
 	warningList.Clear();
@@ -423,5 +452,112 @@ void idCommonLocal::Frame( void ) {
 
 	catch( idException & ) {
 		return;			// an ERP_DROP was thrown
+	}
+}
+
+
+
+
+/*
+=================
+idCommonLocal::SingleAsyncTic
+
+The system will asyncronously call this function 60 times a second to
+handle the time-critical functions that we don't want limited to
+the frame rate:
+
+sound mixing
+user input generation (conditioned by com_asyncInput)
+packet server operation
+packet client operation
+
+We are not using thread safe libraries, so any functionality put here must
+be VERY VERY careful about what it calls.
+=================
+*/
+
+typedef struct {
+	int				milliseconds;			// should always be incremeting by 60hz
+	int				deltaMsec;				// should always be 16
+	int				timeConsumed;			// msec spent in Com_AsyncThread()
+	int				clientPacketsReceived;
+	int				serverPacketsReceived;
+	int				mostRecentServerPacketSequence;
+} asyncStats_t;
+
+static const int MAX_ASYNC_STATS = 1024;
+asyncStats_t	com_asyncStats[MAX_ASYNC_STATS];		// indexed by com_ticNumber
+int prevAsyncMsec;
+int	lastTicMsec;
+void idCommonLocal::SingleAsyncTic( void ) {
+	// main thread code can prevent this from happening while modifying
+	// critical data structures
+	Sys_EnterCriticalSection();
+
+	asyncStats_t *stat = &com_asyncStats[com_ticNumber & (MAX_ASYNC_STATS-1)];
+	memset( stat, 0, sizeof( *stat ) );
+	stat->milliseconds = Sys_Milliseconds();
+	stat->deltaMsec = stat->milliseconds - com_asyncStats[(com_ticNumber - 1) & (MAX_ASYNC_STATS-1)].milliseconds;
+
+	if ( usercmdGen && com_asyncInput.GetBool() ) {
+		usercmdGen->UsercmdInterrupt();
+	}
+
+	//switch ( com_asyncSound.GetInteger() ) {
+	//	case 1:
+	//		soundSystem->AsyncUpdate( stat->milliseconds );
+	//		break;
+	//	case 3:
+	//		soundSystem->AsyncUpdateWrite( stat->milliseconds );
+	//		break;
+	//}
+
+	// we update com_ticNumber after all the background tasks
+	// have completed their work for this tic
+	com_ticNumber++;
+
+	stat->timeConsumed = Sys_Milliseconds() - stat->milliseconds;
+
+	Sys_LeaveCriticalSection();
+}
+
+/*
+=================
+idCommonLocal::Async
+=================
+*/
+void idCommonLocal::Async( void ) {
+	int	msec = Sys_Milliseconds();
+	if ( !lastTicMsec ) {
+		lastTicMsec = msec - USERCMD_MSEC;
+	}
+
+	if ( !com_preciseTic.GetBool() ) {
+		// just run a single tic, even if the exact msec isn't precise
+		SingleAsyncTic();
+		return;
+	}
+
+	int ticMsec = USERCMD_MSEC;
+
+	// the number of msec per tic can be varies with the timescale cvar
+	float timescale = com_timescale.GetFloat();
+	if ( timescale != 1.0f ) {
+		ticMsec /= timescale;
+		if ( ticMsec < 1 ) {
+			ticMsec = 1;
+		}
+	}
+
+	// don't skip too many
+	if ( timescale == 1.0f ) {
+		if ( lastTicMsec + 10 * USERCMD_MSEC < msec ) {
+			lastTicMsec = msec - 10*USERCMD_MSEC;
+		}
+	}
+
+	while ( lastTicMsec + ticMsec <= msec ) {
+		SingleAsyncTic();
+		lastTicMsec += ticMsec;
 	}
 }

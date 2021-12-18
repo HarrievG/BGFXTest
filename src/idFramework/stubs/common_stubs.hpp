@@ -3,6 +3,7 @@
 #include "idFramework/sys/sys_local.h"
 #include "Common.h"
 #include <idFramework/idlib/containers/StrList.h>
+#include <SDL.h>
 /*
 ==============================================================
 
@@ -30,7 +31,7 @@ public:
 	virtual bool			IsInitialized( void ) const { return com_fullyInitialized; }
 	virtual void			Frame( void );
 	virtual void			GUIFrame( bool execCmd, bool network ) { }
-	virtual void			Async( void ) { }
+	virtual void			Async( void );
 	virtual void			StartupVariable( const char *match, bool once ) { }
 	virtual void			InitTool( const toolFlag_t tool, const idDict *dict ) { }
 	virtual void			ActivateTool( bool active ) { }
@@ -106,10 +107,12 @@ public:
 	}
 
 private:
+	void						SingleAsyncTic( void );
 	bool						com_fullyInitialized;
 	bool						com_refreshOnPrint;		// update the screen every print for dmap
 	int							com_errorEntered;		// 0, ERP_DROP, etc
 	idStr						warningCaption;
 	idStrList					warningList;
 	idStrList					errorList;
+	SDL_TimerID					async_timer;
 };

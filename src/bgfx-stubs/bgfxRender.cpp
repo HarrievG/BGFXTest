@@ -125,7 +125,7 @@ void bgfxRender( bgfxContext_t *context ){
         );
 
         context->fbh = bgfx::createFrameBuffer( BX_COUNTOF( context->fbTextureHandle), context->fbTextureHandle, true );
-        bgfx::ViewId rttView = 0;
+        bgfx::ViewId rttView = 1;
         bgfx::setViewName( rttView, "backBuffer" );
         //bgfx::setViewClear( rttView, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0xff0000ff, 0, 0 );
         bgfx::setViewRect( rttView, 0, 0, bgfx::BackbufferRatio::Equal );
@@ -150,15 +150,33 @@ void bgfxRender( bgfxContext_t *context ){
         100.0f, bgfx::getCaps( )->homogeneousDepth );
 
     bgfx::setViewTransform( 0, view, proj );
+    bgfx::setViewTransform( 1, view, proj );
 
-    float model[16];
-    bx::mtxIdentity( model );
-    bgfx::setTransform( model );
+    float modelTransform[16];
+    float modelRotation[16];
+    float modelTranslation[16];
+    float modelScale[16];
+    float tmp[16];
+    bx::mtxIdentity( modelTranslation );
+    bx::mtxRotateXYZ( modelRotation, abs( ( 0.001f * com_frameTime ) ), abs( ( 0.001f * com_frameTime ) ), 0.0f );
+    bx::mtxScale( modelScale, 0.8f + idMath::ClampFloat( 0.2f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
 
+    bx::mtxMul( tmp, modelScale, modelRotation );
+    bx::mtxMul( modelTransform, tmp, modelTranslation );
+    bx::mtxIdentity( tmp);
+
+    bgfx::setTransform( tmp );
+    
     bgfx::setVertexBuffer( 0, context->vbh );
     bgfx::setIndexBuffer( context->ibh );
     bgfx::submit( 0, context->program );
 
+    bgfx::setTransform( modelTransform );
+    bgfx::setVertexBuffer( 0, context->vbh );
+    bgfx::setIndexBuffer( context->ibh );
+    bgfx::submit( 1, context->program );
+    
+
     if ( bgfx::isValid( context->rb ) )
-        bgfx::blit( 1, context->rb, 0, 0, context->fbTextureHandle[0] );
+        bgfx::blit( 2, context->rb, 0, 0, context->fbTextureHandle[0] );
 }
