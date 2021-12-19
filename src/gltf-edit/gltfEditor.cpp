@@ -77,6 +77,7 @@ gltfSceneEditor::gltfSceneEditor( )
 void gltfSceneEditor::Init( ) 
 {
 	static auto *thisPtr = this;
+#pragma region SystemCommands
 	cmdSystem->AddCommand( "gltf_loadFile", []( const idCmdArgs &args ) 
 		-> auto {
 		if ( args.Argc( ) != 2 )
@@ -95,35 +96,43 @@ void gltfSceneEditor::Init( )
 	cmdSystem->AddCommand( "gltf_listAssets", []( const idCmdArgs &args )
 		-> auto {
 		common->Printf("%i glTF assets\n", thisPtr->GetLoadedAssets().Num());
+		int cnt = 0;
 		for (auto &asset : thisPtr->GetLoadedAssets())
 		{
-			for (auto& key : asset.asset.extras.Keys() )
-				common->Printf( "  %-21s : %-21s\n", key.c_str(),
-					asset.asset.extras.Get(key).Get<std::string>().c_str() );
+			common->Printf(" - %s",thisPtr->GetLoadedFiles()[cnt++].c_str());
+			if (!asset.asset.extras.Keys().size())
+				common->Printf("  %-21s","<No MetaData>" );
+			else
+				for (auto& key : asset.asset.extras.Keys() )
+				{
+					common->Printf( "  %-21s : %-21s\n", key.c_str(),
+						asset.asset.extras.Get(key).Get<std::string>().c_str() );
+				}
 		}
 	}, CMD_FL_RENDERER, "lists all loaded gltf models" );
 
 	cmdSystem->AddCommand( "gltf_listTextures", []( const idCmdArgs &args )
 		-> auto {
-		common->Printf("textures (^2green ^7= data loaded)\n");
+		common->Printf(" - Textures (^2green ^7= data loaded)\n");
 		for (auto &asset : thisPtr->GetLoadedAssets())
 		{
 			for (auto& img : asset.images)
-				common->Printf( "  %-21s : %s%-21s\n", img.name.length() ? img.name.c_str() : "<No Name>",
+				common->Printf( "  %-21s : %s%-21s\n", img.name.length() ? img.name.c_str() : "<No Image Name>",
 					img.image.empty()? "^1" : "^2", img.uri.c_str());
 		}
 	}, CMD_FL_RENDERER, "list (loaded) textures" );
 
 	cmdSystem->AddCommand( "gltf_listMeshes", []( const idCmdArgs &args )
 		-> auto {
-		int totalMehshes = 0;
+		common->Printf(" - Meshes" );
+		int totalMeshes = 0;
 		for (auto &asset : thisPtr->GetLoadedAssets())
 		{
-			totalMehshes += asset.meshes.size();
+			totalMeshes += asset.meshes.size();
 			for ( auto &mesh : asset.meshes )
-				common->Printf( "  %-21s \n", mesh.name.c_str());
+				common->Printf( "  %-21s \n", mesh.name.length() ? mesh.name.c_str() : "<No Mesh Name>");
 		}
-		common->Printf( "%i glTF meshes total\n", totalMehshes );
+		common->Printf( "%i glTF meshes total\n", totalMeshes );
 	}, CMD_FL_RENDERER, "list loaded gltf meshes" );
 	
 	cmdSystem->AddCommand( "gltf_containertest", []( const idCmdArgs &args )
@@ -139,11 +148,26 @@ void gltfSceneEditor::Init( )
 		assetExplorer->Show(!assetExplorer->isVisible());
 	}, CMD_FL_TOOL, "Shows / Hides the Asset explorer window" );
 
+	cmdSystem->AddCommand( "gltf_listScenes", []( const idCmdArgs &args )
+		-> auto {
+		common->Printf( " - Scenes" );
+		int totalScenes = 0;
+		for (auto &asset : thisPtr->GetLoadedAssets())
+		{
+			totalScenes += asset.scenes.size();
+			for ( auto &scene : asset.scenes )
+				common->Printf( "  %-21s \n", scene.name.length() ? scene.name.c_str() : "<No Scene name>");
+		}
+		common->Printf( "%i glTF scenes total\n", totalScenes );
+	}, CMD_FL_TOOL, "" );
+#pragma endregion
+
 	bgfxRegisterCallback([](bgfxContext_t * context ) 
 		-> auto {
 		thisPtr->imDraw(context);
 		thisPtr->Render(context);
 	} );
+
 }
 bool gltfSceneEditor::Render( bgfxContext_t *context ) {
 
@@ -170,11 +194,12 @@ bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 				ImGui::EndMenu( );
 			}
 			if ( ImGui::BeginMenu( "Windows" ) ) {
-				if ( ImGui::MenuItem( "Function Editor" ) ) {
-				}//m_FuncEditor->ShowWindow( true );
+				if ( ImGui::MenuItem( "GltfExplorer Editor" ) ) {
+					assetExplorer->Show(true);
+				}
 
-				if ( ImGui::MenuItem( "Material Editor" ) ) {
-				}//m_MaterialEditor->ShowWindow( true );
+				//if ( ImGui::MenuItem( "Material Editor" ) ) {
+				//}//m_MaterialEditor->ShowWindow( true );
 
 				ImGui::EndMenu( );
 			}
