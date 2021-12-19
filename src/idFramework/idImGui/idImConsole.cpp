@@ -166,11 +166,23 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
         ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(4, 1)); // Tighten spacing
         if (copy_to_clipboard)
             ImGui::LogToClipboard();
+        
         for (int i = 0; i < Items.Size; i++)
         {
-            const char* item = Items[i];
-            if (!Filter.PassFilter(item))
-                continue;
+            const char *item = Items[i];
+            if ( Filter.PassFilter( item ) )
+                VisibleItems.push_back(item);
+        }
+
+        ImGuiListClipper clipper;
+        clipper.Begin( VisibleItems.Size);
+        while ( clipper.Step( ) )
+            for ( int i = clipper.DisplayStart; i < clipper.DisplayEnd; i++ ){
+        //for (int i = 0; i < Items.Size; i++)
+        //{
+            const char* item = VisibleItems[i];
+            //if (!Filter.PassFilter(item))
+             //   continue;
 
 			auto colconv = [](idVec4 idcol) -> ImVec4
 				{return ImVec4(idcol.x, idcol.y, idcol.z, idcol.w );};
@@ -258,6 +270,7 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
 
         ImGui::End();
     }
+    VisibleItems.clear();
 }
 
 void idImConsole::ExecCommand( const char *command_line )     {
@@ -286,7 +299,6 @@ void idImConsole::ExecCommand( const char *command_line )     {
 int idImConsole::TextEditCallback(ImGuiInputTextCallbackData* data)
 {
     static int lastBuffLenght = -1;
-
 
     //AddLog("cursor: %d, selection: %d-%d", data->CursorPos, data->SelectionStart, data->SelectionEnd);
     switch (data->EventFlag)
@@ -418,7 +430,6 @@ int idImConsole::TextEditCallback(ImGuiInputTextCallbackData* data)
         }
     case ImGuiInputTextFlags_CallbackHistory:
         {
-            // Example of HISTORY
             const int prev_history_pos = HistoryPos;
             if (data->EventKey == ImGuiKey_UpArrow)
             {

@@ -17,6 +17,7 @@ static const uint16_t cube_tri_list[] = {
     1, 5, 3, 5, 7, 3, 0, 4, 1, 4, 5, 1, 2, 3, 6, 6, 3, 7,
 };
 
+idList<bgfxCallback> bgfxCallbackList;
  //"shaders/v_simple.bin"
 static bgfx::ShaderHandle createShader( const char * shaderFile, const char *name ) {
     int fSize = 0;
@@ -38,6 +39,8 @@ void bgfxShutdown( bgfxContext_t *context ) {
     bgfx::destroy( context->ibh );
     bgfx::destroy( context->program );
     
+    bgfxCallbackList.Clear( );
+
     bgfx::shutdown( );
 }
 
@@ -176,9 +179,16 @@ void bgfxRender( bgfxContext_t *context ){
     bgfx::setIndexBuffer( context->ibh );
     bgfx::submit( 1, context->program );
     
+    for ( auto &item : bgfxCallbackList )
+        item( context );
 
     if ( bgfx::isValid( context->rb ) )
         bgfx::blit( 2, context->rb, 0, 0, context->fbTextureHandle[0] );
+
+
 }
 
-void bgfxAdd( bgfxRenderable *renderable ) { }
+void bgfxRegisterCallback( bgfxCallback callback )
+{ 
+    bgfxCallbackList.Append( callback );
+}

@@ -33,11 +33,10 @@ public:
 	void						Draw();
 	void						ExecCommand( const char *command_line );
 	int							TextEditCallback( ImGuiInputTextCallbackData *data );
-	void						ClearAutoComplete(char * buffer);
-	int							GetAutoCompleteLength() const ;
 private:
 
 	void						imDraw( const char *title, bool *p_open );
+	ImVector<const char *>			VisibleItems;
 	ImVector<char *>			Items;
 	ImVector<char *>			History;
 	int							HistoryPos;    // -1: new line, 0..History.Size-1 browsing history.

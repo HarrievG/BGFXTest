@@ -52,7 +52,6 @@ namespace bgfx {
     extern CallbackStub bgfxCallbacksLocal;
 }
 
-
 struct bgfxMesh     {
     // Different handle for each "stream" of vertex attributes
     // 0 - Position
@@ -70,8 +69,7 @@ struct bgfxMesh     {
 
     static const uint8_t maxVertexHandles = 4;
 
-    void addVertexHandle( const bgfx::VertexBufferHandle vbh )
-    {
+    void addVertexHandle( const bgfx::VertexBufferHandle vbh ) {
         if ( numVertexHandles < maxVertexHandles ) {
             vertexHandles[numVertexHandles++] = vbh;
         } else {
@@ -79,7 +77,7 @@ struct bgfxMesh     {
         }
     }
 
-    void setBuffers( ) const         {
+    void setBuffers( ) const {
         bgfx::setIndexBuffer( indexHandle );
         for ( uint8_t j = 0; j < numVertexHandles; ++j ) {
             bgfx::setVertexBuffer( j, vertexHandles[j] );
@@ -156,10 +154,10 @@ public:
     virtual bool isVisible( ) = 0;
 };
 
+typedef void ( *bgfxCallback )( bgfxContext_t *context );
 void bgfxShutdown( bgfxContext_t *context);
 void bgfxInitShaders( bgfxContext_t *context );
 void bgfxRender( bgfxContext_t* context );
-void bgfxAdd(imDrawable * drawable );
-void bgfxAdd(bgfxRenderable * renderable );
+void bgfxRegisterCallback( bgfxCallback callback );
 
 bgfxModel loadGltfModel( const idStr &fileName );

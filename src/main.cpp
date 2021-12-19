@@ -44,16 +44,14 @@ void main_loop( void *data ) {
 
  
     //ImGuizmo::ViewManipulate( )
-   sceneEditor->DrawUI(*context );
     ImGui::ShowDemoWindow( ); // your drawing here
 	imConsole->Draw( );
-    sceneEditor->Render( *context);
-    ImGui::Render( );
     
-    ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
     bgfxRender( context );
-    bgfx::touch( 0 );
-    bgfx::touch( 1 );
+
+    ImGui::Render( );
+
+    ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
     bgfx::frame( );
     
 #if BX_PLATFORM_EMSCRIPTEN

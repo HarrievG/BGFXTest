@@ -210,7 +210,7 @@ inline void idCommonLocal::Init( int argc, char **argv ) {
 }
 
 void idCommonLocal::Shutdown( void ) {
-
+	SDL_RemoveTimer( async_timer );
 	usercmdGen->Shutdown();
 	idKeyInput::Shutdown();
 	com_fullyInitialized = false;

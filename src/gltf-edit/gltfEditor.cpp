@@ -6,13 +6,13 @@
 // no need for it, it should go,  but doenst compile ootb..
 //#define TINYGLTF_NO_FS
 #include "tiny_gltf.h"
-#include "imgui.h"
+////////////////////////
 
+#include "imgui.h"
 #include "CVarSystem.h"
 #include "Common.h"
 #include "FileSystem.h"
 #include "CVarSystem.h"
-
 #include "bgfx/bgfx.h"
 #include "bimg/bimg.h"
 
@@ -71,6 +71,8 @@ gltfSceneEditor::gltfSceneEditor( )
 	};
 
 	gGLFTLoader.SetFsCallbacks(callbacks);
+
+
 }
 void gltfSceneEditor::Init( ) 
 {
@@ -136,8 +138,14 @@ void gltfSceneEditor::Init( )
 		-> auto {
 		assetExplorer->Show(!assetExplorer->isVisible());
 	}, CMD_FL_TOOL, "Shows / Hides the Asset explorer window" );
+
+	bgfxRegisterCallback([](bgfxContext_t * context ) 
+		-> auto {
+		thisPtr->imDraw(context);
+		thisPtr->Render(context);
+	} );
 }
-void gltfSceneEditor::Render( const bgfxContext_t &context ) {
+bool gltfSceneEditor::Render( bgfxContext_t *context ) {
 
 	//float model[16];
 	//bx::mtxIdentity( model );
@@ -147,8 +155,9 @@ void gltfSceneEditor::Render( const bgfxContext_t &context ) {
 	//bgfx::setIndexBuffer( context->ibh );
 
 	//bgfx::submit( 0, context->program );
+	return false;
 }
-void gltfSceneEditor::DrawUI( const bgfxContext_t &context ) {
+bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 	auto curCtx = ImGui::GetCurrentContext();
 	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
 	if (ImGui::Begin("GLTF SCENE",&windowOpen, ImGuiWindowFlags_MenuBar))
@@ -195,11 +204,12 @@ void gltfSceneEditor::DrawUI( const bgfxContext_t &context ) {
 		if (handle.p && handle.p->textures.Num())
 			ImGui::Image((void*)(intptr_t)handle.p->textures[0].handle.idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
 
-		if ( bgfx::isValid( context.rb ) )
-			ImGui::Image((void*)(intptr_t) context.rb.idx, idVec2((float)context.width/4, (float)context.height/4), idVec2(0.0f, 0.0f), idVec2(1.0f, 1.0f));
+		if ( bgfx::isValid( context->rb ) )
+			ImGui::Image((void*)(intptr_t) context->rb.idx, idVec2((float)context->width/4, (float)context->height/4), idVec2(0.0f, 0.0f), idVec2(1.0f, 1.0f));
 		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();
+	return true;
 }
 bool gltfSceneEditor::IsFileLoaded(const char *file )
 {
@@ -243,7 +253,13 @@ bool gltfSceneEditor::LoadFile( const char *binFile )
 	common->Printf( "^2Loading %s Done",binFile );
 	return true;
 }
-
+bool gltfSceneEditor::Show( bool visible ) {
+	if ( windowOpen != visible ) 	{
+		windowOpen = visible;
+		return true;
+	}
+	return false;
+}
 bgfxModel * gltfSceneEditor::GetRenderModel( const idStr &name )
 {
 	//return cached model
@@ -277,11 +293,16 @@ bgfxModel * gltfSceneEditor::GetRenderModel( const idStr &name )
 gltfAssetExplorer::gltfAssetExplorer( )  
 {
 	guiVisible = false;
+	static auto * thisPtr = this;
+	bgfxRegisterCallback([](bgfxContext_t * context ) 
+		-> auto {
+		thisPtr->imDraw(context);
+		thisPtr->Render(context);
+	} );
 } 
 gltfAssetExplorer::~gltfAssetExplorer( ) 
 {
 }
-
 bool gltfAssetExplorer::Show(bool visible )
 {
 	if (guiVisible != visible )
@@ -295,8 +316,9 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 {
 	return false;
 }
-
 bool gltfAssetExplorer::imDraw( bgfxContext_t *context ) {
+	if (!guiVisible)
+		return guiVisible;
 
 	auto curCtx = ImGui::GetCurrentContext();
 	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
