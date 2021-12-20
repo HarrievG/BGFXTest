@@ -417,19 +417,19 @@ void gltfAssetExplorer::DrawImAssetTree( )
 	const auto &currentAsset = assets.begin();
 	static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 	int assetCnt = 0;
-	for (auto asset : assets )
+	for (auto & asset : assets )
 	{
-		if (selectedFileHash != idStr::Hash(sceneEditor->GetLoadedFiles()[assetCnt]) )
+		if (selectedFileHash != idStr::Hash(sceneEditor->GetLoadedFiles()[++assetCnt - 1]) )
 			continue;
 		//idStr assetStr = 
-		int assetID = idStr::Hash( (idStr("Asset%i") + ++assetCnt).c_str());
+		int assetID = idStr::Hash( (idStr("Asset%i") + assetCnt).c_str());
 		if (asset.meshes.size() )
 		{
 			int meshCnt=0;
 			bool drawMeshes = ImGui::TreeNodeEx((void*)(intptr_t)(assetID), base_flags, "Meshes ( %i )",asset.meshes.size());
 			if (drawMeshes )
 			{
-				for (auto mesh : asset.meshes )
+				for (auto & mesh : asset.meshes )
 				{
 					int meshID =  idStr::Hash((idStr("Meshes" ) + ++meshCnt).c_str());
 					if (ImGui::TreeNodeEx((void*)(intptr_t)(meshID), base_flags,mesh.name.empty() ? "<Unnamed Mesh>" : mesh.name.c_str()))
@@ -439,8 +439,8 @@ void gltfAssetExplorer::DrawImAssetTree( )
 					}
 					
 				}
+				ImGui::TreePop();
 			}
-			ImGui::TreePop();
 		}
 	}
 	
