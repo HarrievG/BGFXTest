@@ -47,8 +47,12 @@ public:
 	virtual bool imDraw( bgfxContext_t *context ) override;
 	virtual bool Show(bool visible ) override ;
 	virtual bool isVisible( ) override { return guiVisible;};
+
+	void DrawImAssetTree();
 private:
 	bool guiVisible;
+
+	int selectedFileHash;
 };
 
 extern gltfAssetExplorer * assetExplorer;

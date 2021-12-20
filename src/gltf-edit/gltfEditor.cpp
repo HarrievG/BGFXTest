@@ -318,6 +318,7 @@ bgfxModel * gltfSceneEditor::GetRenderModel( const idStr &name )
 gltfAssetExplorer::gltfAssetExplorer( )  
 {
 	guiVisible = false;
+	selectedFileHash = 0;
 	static auto * thisPtr = this;
 	bgfxRegisterCallback([](bgfxContext_t * context ) 
 		-> auto {
@@ -341,10 +342,16 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 {
 	return false;
 }
-bool gltfAssetExplorer::imDraw( bgfxContext_t *context ) {
+bool gltfAssetExplorer::imDraw( bgfxContext_t *context ) 
+{
 	if (!guiVisible)
 		return guiVisible;
 
+	const auto & fileList = sceneEditor->GetLoadedFiles();
+	//pre-select first item.
+	if ( selectedFileHash==0 && fileList.Num())
+		selectedFileHash = idStr::Hash(fileList.begin().p->c_str());
+	
 	auto curCtx = ImGui::GetCurrentContext();
 	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
 	if (ImGui::Begin("Asset Explorer",&guiVisible, ImGuiWindowFlags_MenuBar))
@@ -363,10 +370,25 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context ) {
 		ImGui::BeginChild( "left pane", idVec2( 150, 0 ), true );
 		for (auto &file : sceneEditor->GetLoadedFiles())
 		{
-			if (ImGui::Selectable( file.c_str(),  false, ImGuiSelectableFlags_AllowDoubleClick))
-			{}
+			int currentFileHash = idStr::Hash(file);
+			ImGui::PushID( currentFileHash );
+			ImGui::PushStyleColor( ImGuiCol_Button, IM_COL32( 255, 0, 0, 100 ) );
+			if ( ImGui::SmallButton( "X" ) )
+				common->Printf("Unload me %s", file.c_str() );
+			ImGui::SameLine();
+			bool selected = selectedFileHash == currentFileHash;
+			if (ImGui::Selectable( file.c_str(), selected,ImGuiSelectableFlags_AllowDoubleClick))
+			{
+				selectedFileHash = currentFileHash;
+				common->Printf("Selected : %s",file.c_str() );
+			}
+			if( selected )
+				DrawImAssetTree( );
+			ImGui::PopStyleColor( );
+			ImGui::PopID();//file item
 		}
-		if ( ImGui::BeginPopupContextWindow( ) ) 	{//add primitive
+		if ( ImGui::BeginPopupContextWindow( ) ) 	
+		{//add primitive
 			if ( ImGui::MenuItem( "Load" ) ) {
 
 			}
@@ -387,4 +409,39 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context ) {
 	}
 	ImGui::End();
 	return false;
+}
+void gltfAssetExplorer::DrawImAssetTree( )
+{
+	auto &assets = sceneEditor->GetLoadedAssets( );
+
+	const auto &currentAsset = assets.begin();
+	static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+	int assetCnt = 0;
+	for (auto asset : assets )
+	{
+		if (selectedFileHash != idStr::Hash(sceneEditor->GetLoadedFiles()[assetCnt]) )
+			continue;
+		//idStr assetStr = 
+		int assetID = idStr::Hash( (idStr("Asset%i") + ++assetCnt).c_str());
+		if (asset.meshes.size() )
+		{
+			int meshCnt=0;
+			bool drawMeshes = ImGui::TreeNodeEx((void*)(intptr_t)(assetID), base_flags, "Meshes ( %i )",asset.meshes.size());
+			if (drawMeshes )
+			{
+				for (auto mesh : asset.meshes )
+				{
+					int meshID =  idStr::Hash((idStr("Meshes" ) + ++meshCnt).c_str());
+					if (ImGui::TreeNodeEx((void*)(intptr_t)(meshID), base_flags,mesh.name.empty() ? "<Unnamed Mesh>" : mesh.name.c_str()))
+					{
+						int apap = 1;
+						ImGui::TreePop();
+					}
+					
+				}
+			}
+			ImGui::TreePop();
+		}
+	}
+	
 }
