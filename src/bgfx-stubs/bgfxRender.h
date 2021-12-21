@@ -110,9 +110,8 @@ struct PBRMaterial
 
 struct bgfxMaterial {
     PBRMaterial material;
-    int TransparencyMode;
+    TransparencyMode TransparencyMode;
 };
-typedef idList<bgfxMaterial> materialList;  
 
 struct MeshGroup
 {

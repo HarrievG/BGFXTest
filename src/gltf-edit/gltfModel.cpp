@@ -4,6 +4,7 @@
 #include "idFramework/idlib/containers/HashTable.h"
 #include "tiny_gltf.h"
 #include "Common.h"
+#include "stb_image.h"
 
 using namespace tinygltf;
 struct GltfToBgfxAttributeMaps
@@ -233,6 +234,7 @@ typedef std::vector<std::pair<PBRMaterial, TransparencyMode>> MaterialsList;
 //    }
 //}
 
+
 bgfxModel loadGltfModel(const idStr &fileName)
 {
     bgfxModel output_model{};
@@ -268,7 +270,7 @@ bgfxModel loadGltfModel(const idStr &fileName)
     for (const auto& dummyFile : dummyFiles)
     {
         common->FatalError(" impl missing" );
-       // bgfx::TextureHandle handle = loadTexture(dummyFile.c_str());
+        //bgfx::TextureHandle handle = loadTexture(dummyFile.c_str());
       //  output_model.textures.push_back(handle);
     }
     // TEXTURES

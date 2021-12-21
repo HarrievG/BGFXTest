@@ -5,12 +5,15 @@
 
 namespace tinygltf {
 	class Model;
+	class Image;
 };
+
 typedef idList<tinygltf::Model> gltfAssetList;
 typedef idList<tinygltf::Model *> gltfAssetPtrList;
 typedef tinygltf::Model *gltfAssetPtr;
 
 typedef idList<bgfxModel> bgfxModelList;
+typedef idList<bgfxMaterial> bgfxMaterialList;
 
 class gltfSceneEditor : public imDrawable, bgfxRenderable {
 	friend class gltfAssetExplorer;
@@ -23,18 +26,25 @@ public:
 	virtual bool isVisible( ) override { return windowOpen; };
 
 	bool LoadFile( const char *file );
-	bool IsFileLoaded( const char *file );
+	int IsFileLoaded( const char *file );
 
 	idStrList& GetLoadedFiles( ) {return loadedFiles; }
 	gltfAssetList& GetLoadedAssets( ) { return loadedAssets; }
-	bgfxModel* GetRenderModel(const idStr & name );
+	//return BgfxModel if loaded 
+	// meshName : the gltf Mesh to return as rendermodel
+	// assetName : if emtpy, searches all loaded gltf asset files,
+	//				otherwise only in given assetfile.
+	bgfxModel* GetRenderModel(const idStr & meshName, const idStr & assetName );
 private:
 	bool windowOpen;
 	idStrList loadedFiles;
 	gltfAssetList loadedAssets;
-	bgfxModelList renderModels;
+	//HVG_TODO -> Use hash index
+	bgfxModelList renderModels; 
 	idStrList modelNames;
-	idHashIndex modelNameMap;		
+	//
+	bgfxMaterialList materialList;
+	idHashIndex materialIndices;
 };
 extern gltfSceneEditor * sceneEditor;
 

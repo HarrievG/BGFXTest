@@ -1,0 +1,28 @@
+{
+  "asset": {
+    "extras": {
+      "author": "Harry van Ginneken",
+      "license": "CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)",
+      "title": "dummy assets"
+    },
+    "version": "1.0"
+  },
+  "images": [
+    {
+        "mimeType" : "image/png",
+        "name" : "Dummy_White",
+        "uri" : "textures/dummy_white.png"
+    },
+    {
+        "mimeType" : "image/png",
+        "name" : "Dummy_Normal_Map",
+        "uri" : "textures/dummy_normal_map.png"
+    },
+    {
+        "mimeType" : "image/png",
+        "name" : "Dummy_MetallicRoughness",
+        "uri" : "textures/dummy_metallicRoughness.png"
+    }
+  ]
+}
+
