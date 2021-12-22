@@ -15,6 +15,7 @@
 #include "CVarSystem.h"
 #include "bgfx/bgfx.h"
 #include "bimg/bimg.h"
+#include "gltfParser.h"
 
 tinygltf::TinyGLTF gGLFTLoader;
 
@@ -23,6 +24,8 @@ gltfSceneEditor *sceneEditor = &localSceneEditor;
 
 static gltfAssetExplorer localAssetExplorer;
 gltfAssetExplorer *assetExplorer = &localAssetExplorer;
+
+static GLTF_Parser gltfParser;
 
 gltfSceneEditor::gltfSceneEditor( )
 	: windowOpen(false)
@@ -79,6 +82,7 @@ gltfSceneEditor::gltfSceneEditor( )
 }
 void gltfSceneEditor::Init( ) 
 {
+	gltfParser.Init();
 	assetExplorer->Init();
 	static auto *thisPtr = this;
 #pragma region SystemCommands
