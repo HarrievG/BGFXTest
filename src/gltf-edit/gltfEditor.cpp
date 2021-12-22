@@ -79,6 +79,7 @@ gltfSceneEditor::gltfSceneEditor( )
 }
 void gltfSceneEditor::Init( ) 
 {
+	assetExplorer->Init();
 	static auto *thisPtr = this;
 #pragma region SystemCommands
 	cmdSystem->AddCommand( "gltf_loadFile", []( const idCmdArgs &args ) 
@@ -475,15 +476,19 @@ gltfAssetExplorer::gltfAssetExplorer( )
 {
 	guiVisible = false;
 	selectedFileHash = 0;
+
+} 
+gltfAssetExplorer::~gltfAssetExplorer( ) 
+{
+}
+void gltfAssetExplorer::Init()
+{
 	static auto * thisPtr = this;
 	bgfxRegisterCallback([](bgfxContext_t * context ) 
 		-> auto {
 		thisPtr->imDraw(context);
 		thisPtr->Render(context);
 	} );
-} 
-gltfAssetExplorer::~gltfAssetExplorer( ) 
-{
 }
 bool gltfAssetExplorer::Show(bool visible )
 {

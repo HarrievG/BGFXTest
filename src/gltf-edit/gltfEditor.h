@@ -52,6 +52,7 @@ class gltfAssetExplorer : public imDrawable,bgfxRenderable
 {
 public:
 	gltfAssetExplorer( );
+	void Init( );
 	virtual ~gltfAssetExplorer( );
 	virtual bool Render( bgfxContext_t *context ) override;
 	virtual bool imDraw( bgfxContext_t *context ) override;
