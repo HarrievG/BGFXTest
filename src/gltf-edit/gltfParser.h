@@ -17,6 +17,34 @@ enum gltfProperty {
 	BUFFERS
 };
 
+class gltfPropertyArray;
+class gltfPropertyItem 
+{
+public:
+	gltfPropertyItem( ) : array(nullptr){ }
+	gltfPropertyItem( gltfPropertyArray * Array ) : array( Array ) { }
+	gltfPropertyArray * array;
+	idStr item; 
+};
+
+class gltfPropertyArray
+{
+public:
+	gltfPropertyArray( idParser & Parser ) : parser(Parser),dirty(true){}
+	struct Iterator {
+		gltfPropertyArray * array;
+		gltfPropertyItem *p;
+		gltfPropertyItem &operator*( ) {return *p;}
+		bool operator != ( const Iterator &rhs ) { return p != rhs.p; }
+		void operator ++( );
+	};
+	auto begin( );
+	auto end( );
+	bool dirty;
+	idParser & parser;
+	idList<gltfPropertyItem> properties;
+};
+
 class GLTF_Parser 
 {
 public:
@@ -41,6 +69,6 @@ public:
 	void Init();
 	bool Load(idStr filename );
 private:
-	idLexer	parser;
+	idParser	parser;
 	idToken	token;
 };

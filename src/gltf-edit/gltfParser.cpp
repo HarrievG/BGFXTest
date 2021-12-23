@@ -1,5 +1,46 @@
 #include "gltfParser.h"
 
+
+void gltfPropertyArray::Iterator::operator ++( ) {
+	if ( array->dirty )
+	{
+		auto next = array->properties.Alloc( );
+		array->parser.ParseBracedSection( next.item );
+		array->dirty = array->parser.PeekTokenString( "," );
+		if ( array->dirty )
+			array->parser.ExpectTokenString( "," );
+	}else
+		++p;
+}
+
+auto gltfPropertyArray::begin( )  { 
+	if ( dirty )
+	{
+		if ( !parser.PeekTokenString( "{" ) ) 	{
+			if ( !parser.ExpectTokenString( "[" ) && parser.PeekTokenString( "{" ) )
+				common->FatalError( "Malformed gltf array" );
+		}else
+			common->FatalError( "Malformed gltf array" );
+
+		auto & start = properties.Alloc( );
+		start.array = this;
+		parser.ParseBracedSection( start.item );
+		dirty = parser.PeekTokenString( "," );
+		if ( dirty )
+		{
+			parser.ExpectTokenString( "," );
+			auto next = properties.Alloc( );
+			return Iterator{ this , &next };
+		}else
+			return Iterator{ this , &start };
+	}
+	return Iterator{ this ,properties.begin( ).p};
+}
+
+auto gltfPropertyArray::end( )  { 
+	return Iterator{ this ,properties.end( ).p };
+}
+
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS )
 {
@@ -21,20 +62,9 @@ void GLTF_Parser::Parse_SCENE( idToken &token )
 void GLTF_Parser::Parse_SCENES( idToken &token )
 {
 	parser.ExpectTokenString( ":" );
-	if ( PropertyIsAOS( ) )
-	{
-		bool iterating = true;
-		do 
-		{
-			idStr section;
-			parser.ParseBracedSection( section );
-			common->Printf( section.c_str( ) );
-			iterating = parser.PeekTokenString( "," );
-			if (iterating )
-				parser.ExpectTokenString( "," );
-		} while ( iterating );
-	}
-
+	gltfPropertyArray array = gltfPropertyArray(parser);
+	for (auto & prop : array )
+		common->Printf("%s", prop.item.c_str() );
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_NODES( idToken &token ) { }
@@ -149,27 +179,6 @@ bool GLTF_Parser::Load(idStr filename )
 		common->Printf( token.c_str( ) );
 		ParseProp( token );
 		parser.ExpectTokenString( "," );
-		continue; 
-		bool isArray = false;
-
-		if (!parser.PeekTokenString( "{" ))
-		{
-			isArray = true;
-			if (!parser.ExpectTokenString( "[" ) && parser.PeekTokenString( "{" ))
-				common->FatalError("Malformed gltf" );
-		}
-		while (isArray)
-		{
-
-		}
-		idStr section;
-		parser.ParseBracedSection( section );
-		common->Printf(section.c_str());
-		if (isArray)
-			parser.ExpectTokenString( "]" );
-		
-
-
 	}
 }
 
