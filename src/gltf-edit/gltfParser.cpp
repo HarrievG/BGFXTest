@@ -1,4 +1,9 @@
 #include "gltfParser.h"
+#include <FileSystem.h>
+
+
+static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
+static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 
 void gltfPropertyArray::Iterator::operator ++( ) {
 	if ( array->iterating )
@@ -150,7 +155,23 @@ void GLTF_Parser::Parse_BUFFERS( idToken &token )
 		common->Printf( "%s", prop.item.c_str( ) );
 	parser.ExpectTokenString( "]" );
 }
-
+void GLTF_Parser::Parse_ANIMATIONS( idToken &token )
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_SKINS( idToken &token ) {
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s \n", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_EXTENSIONS_USED( idToken &token )
+{
+	//token array -> "str","str"
+}
 gltfProperty GLTF_Parser::ParseProp( idToken & token )
 {
 	parser.ExpectTokenString( ":" );
@@ -193,11 +214,21 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 		case BUFFERS:
 			Parse_BUFFERS( token );
 			break;
+		case ANIMATIONS:
+			Parse_ANIMATIONS( token );
+			break;
+		case SKINS:
+			Parse_SKINS( token );
+			break;
+		case EXTENSIONS_USED:
+			Parse_EXTENSIONS_USED( token );
+			break;
 		default:
 			common->FatalError("UnImplemented GLTF property : %s",token.c_str());
 	}
 	return prop;
 }
+
 gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 {
 		if ( !idStr::Icmp( token.c_str( ), "asset"       ) )
@@ -224,6 +255,12 @@ gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 		return gltfProperty::SAMPLERS;
 	else if ( !idStr::Icmp( token.c_str( ), "buffers"     ) )
 		return gltfProperty::BUFFERS;
+	else if ( !idStr::Icmp( token.c_str( ), "animations"  ) )
+		return gltfProperty::ANIMATIONS;
+	else if ( !idStr::Icmp( token.c_str( ), "skins" ) )
+		return gltfProperty::SKINS;
+	else if ( !idStr::Icmp( token.c_str( ), "extensionsused" ) )
+		return gltfProperty::EXTENSIONS_USED;
 
 	return gltfProperty::INVALID;
 }
@@ -237,22 +274,72 @@ bool GLTF_Parser::PropertyIsAOS()
 	}
 	return false;
 }
-bool GLTF_Parser::Load(idStr filename )
+
+bool GLTF_Parser::loadGLB(idStr filename )
 {
-	if ( !parser.LoadFile( filename ) ) {
+	idFile * file = fileSystem->OpenFileRead( filename );
+
+	if ( file->Length() < 20 ) {
+		common->FatalError("Too short data size for glTF Binary." );
+		return false;
+	}
+	idStr gltfMagic("glTF");
+	unsigned char fileMagic[5];
+	
+	file->Read((void*)&fileMagic,4 );
+	fileMagic[4]=0;
+	if (gltfMagic.Icmp( (const char*)&fileMagic ) == 0)
+	{
+		common->Printf("reading %s",filename.c_str() );
+	} else {
+		common->Error( "invalid magic" );
 		return false;
 	}
 
+	unsigned int version;	// 4 bytes
+	unsigned int length;	// 4 bytes
+
+
+	file->ReadUnsignedInt( version );
+	file->ReadUnsignedInt( length );
+	length -= 12; // header size
+
+	unsigned int chunk_type;	// 4 bytes
+	unsigned int chunk_length;	// 4 bytes
+	const char * data;
+
+	while ( length ) {
+		length -= file->ReadUnsignedInt( chunk_length );
+		length -= file->ReadUnsignedInt( chunk_type );
+		data = new char[chunk_length];
+		if (file->Read((void*)data, chunk_length ) != chunk_length)
+			common->FatalError("Could not read full chunk (%i bytes) in file %s",chunk_length, filename );
+
+		if (chunk_type == gltfChunk_Type_JSON)
+		{
+			//common->Printf("%s",data);
+			currentFile = filename;
+			parser.LoadMemory(data,chunk_length,"gltfJson",0);
+			Parse();
+		}else{
+			common->Printf("BINCHUNK %i", chunk_length );
+		}
+	}
+
+	return false;
+}
+
+bool GLTF_Parser::Parse()
+{
 	bool parsing = true;
-	parser.ExpectTokenString("{");
-	while ( parsing && parser.ExpectAnyToken(&token))
-	{
-		if (token.type != TT_STRING )
-			common->FatalError("Expected an \"string\" " );
+	parser.ExpectTokenString( "{" );
+	while ( parsing && parser.ExpectAnyToken( &token ) ) {
+		if ( token.type != TT_STRING )
+			common->FatalError( "Expected an \"string\" " );
 
 		common->Printf( token.c_str( ) );
 		ParseProp( token );
-
+		common->Printf("\n" );
 		parsing = parser.PeekTokenString( "," );
 		if ( parsing )
 			parser.ExpectTokenString( "," );
@@ -260,14 +347,35 @@ bool GLTF_Parser::Load(idStr filename )
 			parser.ExpectTokenString( "}" );
 	}
 	//parser should be at end.
-	parser.ReadToken(&token);
-	if (parser.EndOfFile())
-		common->Printf("%s ^2loaded",filename.c_str());
+	parser.ReadToken( &token );
+	if ( parser.EndOfFile( ) )
+		common->Printf( "%s ^2loaded", currentFile.c_str( ) );
 	else
-		common->FatalError( "%s not fully loaded.", filename );
+		common->FatalError( "%s not fully loaded.", currentFile );
+	
+	return true;
+}
+	
+bool GLTF_Parser::Load(idStr filename )
+{
+	//next line still has to be fixed.
+	//gfx is not updated on command
+	common->SetRefreshOnPrint( true );
+
+	currentFile = filename;
+ 	if ( filename.CheckExtension( ".glb" ) ) {
+		if ( !loadGLB( filename ) )
+			return false;
+	}
+	else {
+		if ( !parser.LoadFile( filename ) )
+			return false;
+		Parse();
+	}
 
 	parser.Reset();
 	parser.FreeSource();
+	common->SetRefreshOnPrint( false );
 	return true;
 }
 

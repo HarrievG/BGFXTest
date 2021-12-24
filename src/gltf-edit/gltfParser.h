@@ -14,7 +14,10 @@ enum gltfProperty {
 	ACCESSORS,
 	BUFFERVIEWS,
 	SAMPLERS,
-	BUFFERS
+	BUFFERS,
+	ANIMATIONS,
+	SKINS,
+	EXTENSIONS_USED
 };
 
 class gltfPropertyArray;
@@ -39,7 +42,7 @@ public:
 			return p != rhs.p; 
 		}
 		void operator ++( );
-	};
+	};	
 	auto begin( );
 	auto end( );
 	bool iterating;
@@ -65,15 +68,20 @@ public:
 	void Parse_BUFFERVIEWS( idToken &token ) ;
 	void Parse_SAMPLERS( idToken &token ) ;
 	void Parse_BUFFERS( idToken &token ) ;
-
+	void Parse_ANIMATIONS( idToken & token );
+	void Parse_SKINS( idToken & token );
+	void Parse_EXTENSIONS_USED( idToken &token );
 	bool PropertyIsAOS( );
 	gltfProperty ParseProp( idToken &token );
 	gltfProperty ResolveProp( idToken &token );
 
 	GLTF_Parser();
 	void Init();
+	bool Parse();
 	bool Load(idStr filename );
+	bool loadGLB(idStr filename );
 private:
 	idLexer	parser;
 	idToken	token;
+	idStr currentFile;
 };
