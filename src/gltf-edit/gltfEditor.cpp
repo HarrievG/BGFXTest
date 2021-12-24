@@ -25,8 +25,13 @@ gltfSceneEditor *sceneEditor = &localSceneEditor;
 static gltfAssetExplorer localAssetExplorer;
 gltfAssetExplorer *assetExplorer = &localAssetExplorer;
 
-static GLTF_Parser gltfParser;
+static GLTF_Parser * gltfParser;
 
+
+void gltfSceneEditor::Shutdown( )
+{
+	delete gltfParser;
+}
 gltfSceneEditor::gltfSceneEditor( )
 	: windowOpen(false)
 {
@@ -82,7 +87,8 @@ gltfSceneEditor::gltfSceneEditor( )
 }
 void gltfSceneEditor::Init( ) 
 {
-	gltfParser.Init();
+	gltfParser = new GLTF_Parser();
+	gltfParser->Init();
 	assetExplorer->Init();
 	static auto *thisPtr = this;
 #pragma region SystemCommands

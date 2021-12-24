@@ -22,7 +22,6 @@ class gltfPropertyItem
 {
 public:
 	gltfPropertyItem( ) : array(nullptr){ }
-	gltfPropertyItem( gltfPropertyArray * Array ) : array( Array ) { }
 	gltfPropertyArray * array;
 	idStr item; 
 };
@@ -30,19 +29,25 @@ public:
 class gltfPropertyArray
 {
 public:
-	gltfPropertyArray( idParser & Parser ) : parser(Parser),dirty(true){}
+	gltfPropertyArray( idLexer *Parser );
+	~gltfPropertyArray( );
 	struct Iterator {
 		gltfPropertyArray * array;
 		gltfPropertyItem *p;
 		gltfPropertyItem &operator*( ) {return *p;}
-		bool operator != ( const Iterator &rhs ) { return p != rhs.p; }
+		bool operator != ( Iterator &rhs ) { 
+			return p != rhs.p; 
+		}
 		void operator ++( );
 	};
 	auto begin( );
 	auto end( );
+	bool iterating;
 	bool dirty;
-	idParser & parser;
-	idList<gltfPropertyItem> properties;
+	int index;
+	idLexer * parser;
+	idList<gltfPropertyItem*> properties;
+	gltfPropertyItem * endPtr;
 };
 
 class GLTF_Parser 
@@ -69,6 +74,6 @@ public:
 	void Init();
 	bool Load(idStr filename );
 private:
-	idParser	parser;
+	idLexer	parser;
 	idToken	token;
 };

@@ -200,6 +200,7 @@ int main( int argc, char **argv )
     common->PrintWarnings( );
     imConsole->ClearLog( );
 
+    sceneEditor->Shutdown( );
     eventLoop->Shutdown( );
     common->Shutdown( );
     fileSystem->Shutdown( false );

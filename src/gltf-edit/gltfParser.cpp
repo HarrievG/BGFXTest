@@ -1,84 +1,159 @@
 #include "gltfParser.h"
 
-
 void gltfPropertyArray::Iterator::operator ++( ) {
-	if ( array->dirty )
+	if ( array->iterating )
 	{
-		auto next = array->properties.Alloc( );
-		array->parser.ParseBracedSection( next.item );
-		array->dirty = array->parser.PeekTokenString( "," );
-		if ( array->dirty )
-			array->parser.ExpectTokenString( "," );
+		p = array->properties[array->properties.Num( ) - 1];
+		p->array = array;
+		array->parser->ParseBracedSection( p->item );
+		array->iterating = array->parser->PeekTokenString( "," );
+		if ( array->iterating ) {
+			array->properties.AssureSizeAlloc( array->properties.Num( ) + 1, idListNewElement<gltfPropertyItem> );
+			array->parser->ExpectTokenString( "," );
+		} 
 	}else
-		++p;
-}
-
-auto gltfPropertyArray::begin( )  { 
-	if ( dirty )
 	{
-		if ( !parser.PeekTokenString( "{" ) ) 	{
-			if ( !parser.ExpectTokenString( "[" ) && parser.PeekTokenString( "{" ) )
+		if ( array->dirty ){
+			p = array->endPtr;
+			array->dirty = false;
+		}
+		else if ( array->index + 1 < array->properties.Num() )
+			p = array->properties[++array->index];
+		else
+			p = array->endPtr;
+	}
+}
+gltfPropertyArray::~gltfPropertyArray()
+{
+	delete endPtr;
+	properties.DeleteContents(true);
+}
+gltfPropertyArray::gltfPropertyArray( idLexer *Parser ) 
+	: parser( Parser ), iterating( true ), dirty( true ), index( 0 )
+{
+	properties.AssureSizeAlloc(1024, idListNewElement<gltfPropertyItem> );
+	properties.SetNum(0);
+	endPtr = new gltfPropertyItem();
+	endPtr->array = this;
+}
+auto gltfPropertyArray::begin( )  {
+	if ( iterating )
+	{
+		if ( !parser->PeekTokenString( "{" ) ) 	{
+			if ( !parser->ExpectTokenString( "[" ) && parser->PeekTokenString( "{" ) )
 				common->FatalError( "Malformed gltf array" );
 		}else
 			common->FatalError( "Malformed gltf array" );
 
-		auto & start = properties.Alloc( );
-		start.array = this;
-		parser.ParseBracedSection( start.item );
-		dirty = parser.PeekTokenString( "," );
-		if ( dirty )
+		properties.AssureSizeAlloc( properties.Num() + 1,idListNewElement<gltfPropertyItem> );
+		gltfPropertyItem *start = properties[0];
+		start->array = this; 
+		parser->ParseBracedSection( start->item );
+		iterating = parser->PeekTokenString( "," );
+		if ( iterating )
 		{
-			parser.ExpectTokenString( "," );
-			auto next = properties.Alloc( );
-			return Iterator{ this , &next };
-		}else
-			return Iterator{ this , &start };
-	}
-	return Iterator{ this ,properties.begin( ).p};
-}
+			properties.AssureSizeAlloc( properties.Num() + 1,idListNewElement<gltfPropertyItem> );
+			parser->ExpectTokenString( "," );
+		} 
 
+		return Iterator{ this , start };
+	}
+	index = 0;
+	return Iterator{ this ,properties[index]};
+}
 auto gltfPropertyArray::end( )  { 
-	return Iterator{ this ,properties.end( ).p };
+	return Iterator{ this , endPtr};
 }
 
 GLTF_Parser::GLTF_Parser()
-	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS )
-{
-
-}
+	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) { }
 
 void GLTF_Parser::Parse_ASSET( idToken &token )
 {
-	parser.ExpectTokenString( ":" );
 	idStr section;
 	parser.ParseBracedSection( section );
 	common->Printf( section.c_str( ) );
 }
 void GLTF_Parser::Parse_SCENE( idToken &token )
 {
-	parser.ExpectTokenString( ":" );
 	common->Printf( " ^1 SCENE ^6 : ^8 %i",parser.ParseInt());
 }
 void GLTF_Parser::Parse_SCENES( idToken &token )
 {
-	parser.ExpectTokenString( ":" );
-	gltfPropertyArray array = gltfPropertyArray(parser);
+	gltfPropertyArray array = gltfPropertyArray(&parser);
 	for (auto & prop : array )
 		common->Printf("%s", prop.item.c_str() );
 	parser.ExpectTokenString( "]" );
 }
-void GLTF_Parser::Parse_NODES( idToken &token ) { }
-void GLTF_Parser::Parse_MATERIALS( idToken &token ) { }
-void GLTF_Parser::Parse_MESHES( idToken &token ) { }
-void GLTF_Parser::Parse_TEXTURES( idToken &token ) { }
-void GLTF_Parser::Parse_IMAGES( idToken &token ) { }
-void GLTF_Parser::Parse_ACCESSORS( idToken &token ) { }
-void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token ) { }
-void GLTF_Parser::Parse_SAMPLERS( idToken &token ) { }
-void GLTF_Parser::Parse_BUFFERS( idToken &token ) { }
+void GLTF_Parser::Parse_NODES( idToken &token ) 
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_MATERIALS( idToken &token ) 
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_MESHES( idToken &token ) 
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_TEXTURES( idToken &token )
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_IMAGES( idToken &token )
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_ACCESSORS( idToken &token ) 
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto & prop : array )
+	{
+		common->Printf( "%s", prop.item.c_str( ) );
+	}
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token ) 
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_SAMPLERS( idToken &token ) 
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
+void GLTF_Parser::Parse_BUFFERS( idToken &token )
+{
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser.ExpectTokenString( "]" );
+}
 
 gltfProperty GLTF_Parser::ParseProp( idToken & token )
 {
+	parser.ExpectTokenString( ":" );
 	gltfProperty prop = ResolveProp( token );
 	switch ( prop )
 	{
@@ -152,8 +227,6 @@ gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 
 	return gltfProperty::INVALID;
 }
-
-
 bool GLTF_Parser::PropertyIsAOS()
 {
 	if (!parser.PeekTokenString( "{" ))
@@ -164,22 +237,38 @@ bool GLTF_Parser::PropertyIsAOS()
 	}
 	return false;
 }
-
 bool GLTF_Parser::Load(idStr filename )
 {
 	if ( !parser.LoadFile( filename ) ) {
 		return false;
 	}
 
+	bool parsing = true;
 	parser.ExpectTokenString("{");
-	while (parser.ExpectAnyToken(&token))
+	while ( parsing && parser.ExpectAnyToken(&token))
 	{
 		if (token.type != TT_STRING )
 			common->FatalError("Expected an \"string\" " );
+
 		common->Printf( token.c_str( ) );
 		ParseProp( token );
-		parser.ExpectTokenString( "," );
+
+		parsing = parser.PeekTokenString( "," );
+		if ( parsing )
+			parser.ExpectTokenString( "," );
+		else
+			parser.ExpectTokenString( "}" );
 	}
+	//parser should be at end.
+	parser.ReadToken(&token);
+	if (parser.EndOfFile())
+		common->Printf("%s ^2loaded",filename.c_str());
+	else
+		common->FatalError( "%s not fully loaded.", filename );
+
+	parser.Reset();
+	parser.FreeSource();
+	return true;
 }
 
 void GLTF_Parser::Init( ) {

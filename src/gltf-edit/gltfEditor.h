@@ -20,6 +20,7 @@ class gltfSceneEditor : public imDrawable, bgfxRenderable {
 public:
 	gltfSceneEditor();
 	void Init( );
+	void Shutdown( );
 	virtual bool Render( bgfxContext_t *context ) override;
 	virtual bool imDraw( bgfxContext_t *context ) override;
 	virtual bool Show( bool visible ) override;
