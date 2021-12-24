@@ -170,7 +170,23 @@ void GLTF_Parser::Parse_SKINS( idToken &token ) {
 }
 void GLTF_Parser::Parse_EXTENSIONS_USED( idToken &token )
 {
-	//token array -> "str","str"
+	parser.ExpectTokenString( "[" );
+	idStrList exts;
+	idToken item;
+	bool parsing = true;
+	while (parsing && parser.ExpectAnyToken(&item))
+	{
+		if ( item.type != TT_STRING )
+			common->FatalError( "malformed extensions_used array" );
+		idStr &extension = exts.Alloc( );
+		extension = item.c_str( );
+		parsing = parser.PeekTokenString(",");
+		if ( parsing )
+			parser.ExpectTokenString(",");
+	}
+	parser.ExpectTokenString( "]" );
+	for (auto & out : exts )
+		common->Printf("%s",out.c_str() );
 }
 gltfProperty GLTF_Parser::ParseProp( idToken & token )
 {
@@ -318,7 +334,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 		if (chunk_type == gltfChunk_Type_JSON)
 		{
 			//common->Printf("%s",data);
-			currentFile = filename;
+			currentFile = filename + " [JSON CHUNK]";
 			parser.LoadMemory(data,chunk_length,"gltfJson",0);
 			Parse();
 		}else{
