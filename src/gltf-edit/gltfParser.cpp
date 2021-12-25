@@ -312,37 +312,48 @@ bool GLTF_Parser::loadGLB(idStr filename )
 		return false;
 	}
 
-	unsigned int version;	// 4 bytes
-	unsigned int length;	// 4 bytes
+	unsigned int version = 0;	// 4 bytes
+	unsigned int length = 0;	// 4 bytes
 
-
+	//HVG_TODO
+	//handle 0 bin chunk -> size is chunk[0].size  + 20;
 	file->ReadUnsignedInt( version );
 	file->ReadUnsignedInt( length );
 	length -= 12; // header size
 
 	unsigned int chunk_type;	// 4 bytes
 	unsigned int chunk_length;	// 4 bytes
-	const char * data;
+	const char * data = nullptr;
 
+	int chunkCount = 0;
 	while ( length ) {
 		length -= file->ReadUnsignedInt( chunk_length );
 		length -= file->ReadUnsignedInt( chunk_type );
+
 		data = new char[chunk_length];
-		if (file->Read((void*)data, chunk_length ) != chunk_length)
+		int read = file->Read((void*)data, chunk_length );
+		if (read != chunk_length)
 			common->FatalError("Could not read full chunk (%i bytes) in file %s",chunk_length, filename );
+		
+		length -= read;
 
 		if (chunk_type == gltfChunk_Type_JSON)
 		{
-			//common->Printf("%s",data);
 			currentFile = filename + " [JSON CHUNK]";
 			parser.LoadMemory(data,chunk_length,"gltfJson",0);
 			Parse();
-		}else{
-			common->Printf("BINCHUNK %i", chunk_length );
+		}else if ( !chunkCount )
+			common->FatalError("first chunk was not a json chunk");
+		else {
+			common->Printf("BINCHUNK i", chunk_length );
 		}
+		delete[] data;
+		data = nullptr;
+		if (chunkCount++ && length )
+			common->FatalError("corrupt glb file." );
 	}
 
-	return false;
+	return true;
 }
 
 bool GLTF_Parser::Parse()
