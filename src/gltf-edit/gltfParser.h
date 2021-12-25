@@ -1,5 +1,6 @@
 #pragma once
 #include "idFramework/Common.h"
+#include "idFramework/idlib/containers/StrList.h"
 
 enum gltfProperty {
 	INVALID, 
@@ -19,6 +20,28 @@ enum gltfProperty {
 	SKINS,
 	EXTENSIONS_USED
 };
+
+class gltfImage {
+public:
+	gltfImage( ) : bufferView(-1){}
+	idStr		uri;
+	idStr		mimeType;
+	int			bufferView;
+	idStr		name;
+	idStrList	extensions;
+	idStr		extras;
+};
+
+
+class gltfCache {
+public:
+	gltfCache( ) { }
+	void clear(){
+		images.DeleteContents( true );
+	}
+	idList<gltfImage*> images;
+};
+extern gltfCache * gltfAssetCache;
 
 class gltfPropertyArray;
 class gltfPropertyItem 

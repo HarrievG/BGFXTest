@@ -5,6 +5,13 @@
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 
+static gltfCache localCache;
+gltfCache * gltfAssetCache = &localCache;
+
+//void gltfCache::clear()
+//{
+//	images.DeleteContents(true);
+//}
 void gltfPropertyArray::Iterator::operator ++( ) {
 	if ( array->iterating )
 	{
@@ -47,8 +54,7 @@ auto gltfPropertyArray::begin( )  {
 		if ( !parser->PeekTokenString( "{" ) ) 	{
 			if ( !parser->ExpectTokenString( "[" ) && parser->PeekTokenString( "{" ) )
 				common->FatalError( "Malformed gltf array" );
-		}else
-			common->FatalError( "Malformed gltf array" );
+		}
 
 		properties.AssureSizeAlloc( properties.Num() + 1,idListNewElement<gltfPropertyItem> );
 		gltfPropertyItem *start = properties[0];
@@ -121,9 +127,29 @@ void GLTF_Parser::Parse_TEXTURES( idToken &token )
 void GLTF_Parser::Parse_IMAGES( idToken &token )
 {
 	gltfPropertyArray array = gltfPropertyArray( &parser );
-	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	idList<gltfImage>;
+	for ( auto &prop : array ) 	{
+	}//common->Printf( "%s", prop.item.c_str( ) );
 	parser.ExpectTokenString( "]" );
+
+	int cachedCnt = gltfAssetCache->images.Num( );
+	gltfAssetCache->images.AssureSizeAlloc( array.properties.Num() + cachedCnt, idListNewElement<gltfImage> );
+	int imageCount = 0;
+	for ( auto &prop : array ) 
+	{
+
+		gltfImage * image = gltfAssetCache->images[imageCount++];
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory(prop.item.c_str(),prop.item.Size(),"gltfImage",0);
+		//gltfPropertyArray attribs = gltfPropertyArray( &lexer );
+		//for (auto & attrib : prop )
+		//{
+		//	if(!attrib.item.Icmp("uri"))
+		//		image->uri = "asd;";
+		//}
+	}
+	
+
 }
 void GLTF_Parser::Parse_ACCESSORS( idToken &token ) 
 {
@@ -329,6 +355,9 @@ bool GLTF_Parser::loadGLB(idStr filename )
 	while ( length ) {
 		length -= file->ReadUnsignedInt( chunk_length );
 		length -= file->ReadUnsignedInt( chunk_type );
+		
+		if (data != nullptr )
+			delete[] data;
 
 		data = new char[chunk_length];
 		int read = file->Read((void*)data, chunk_length );
@@ -347,11 +376,13 @@ bool GLTF_Parser::loadGLB(idStr filename )
 		else {
 			common->Printf("BINCHUNK i", chunk_length );
 		}
-		delete[] data;
-		data = nullptr;
+
 		if (chunkCount++ && length )
 			common->FatalError("corrupt glb file." );
 	}
+
+	//lets start making stuff
+	//1. textures.
 
 	return true;
 }
