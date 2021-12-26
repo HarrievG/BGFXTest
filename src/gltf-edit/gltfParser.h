@@ -24,12 +24,12 @@ enum gltfProperty {
 class gltfImage {
 public:
 	gltfImage( ) : bufferView(-1){}
-	idStr		uri;
-	idStr		mimeType;
-	int			bufferView;
-	idStr		name;
-	idStrList	extensions;
-	idStr		extras;
+	idStr	uri;
+	idStr	mimeType;
+	int		bufferView;
+	idStr	name;
+	idStr	extensions;
+	idStr	extras;
 };
 
 
