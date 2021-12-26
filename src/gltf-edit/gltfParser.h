@@ -1,6 +1,7 @@
 #pragma once
 #include "idFramework/Common.h"
 #include "idFramework/idlib/containers/StrList.h"
+#include <functional>
 
 enum gltfProperty {
 	INVALID, 
@@ -43,6 +44,32 @@ public:
 };
 extern gltfCache * gltfAssetCache;
 
+class gltfItem
+{
+public:
+	template<typename T>
+	gltfItem(idStr name, T * type ) : item( nullptr ) { item = static_cast< void * >( new T ); }
+	template <typename T>
+	void Set(T * item ) { item = static_cast<void*>(item); }
+	template <typename T>
+	T* Get( ) { return static_cast< T * >( item ); }
+	idStr name;
+	void * item;
+};
+
+class gltfItemArray
+{
+public:
+	gltfItemArray( ) { };
+	void AddItemDef( gltfItem * item ) {items.Alloc() = item; }
+	bool iterating;
+	bool dirty;
+	int index;
+	idLexer * parser;
+	idList<gltfItem*> items;
+};
+
+
 class gltfPropertyArray;
 class gltfPropertyItem 
 {
@@ -79,6 +106,13 @@ public:
 class GLTF_Parser 
 {
 public:
+
+	
+	template<typename T,typename ... A>
+	int GetAttribs(idList<T> & idList, A ... attribs  )
+	{
+
+	}
 	void Parse_ASSET( idToken &token ) ;
 	void Parse_SCENE( idToken &token ) ;
 	void Parse_SCENES( idToken &token ) ;
@@ -104,6 +138,14 @@ public:
 	bool Load(idStr filename );
 	bool loadGLB(idStr filename );
 private:
+
+	template<typename T, typename ... A>
+	int internalGetAttribs( idList<T> *idList, std::tuple<idStr,A...> &tuple ) 
+	{
+
+	}
+	template<typename T, typename ... A>
+	int internalGetAttribs( idList<T> *idList, std::tuple<> &tuple ) 	{ }
 	idLexer	parser;
 	idToken	token;
 	idStr currentFile;
