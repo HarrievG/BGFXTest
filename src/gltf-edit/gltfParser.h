@@ -48,7 +48,7 @@ class gltfItem
 {
 public:
 	template<typename T>
-	gltfItem(idStr name, T * type ) : item( nullptr ) { item = static_cast< void * >( new T ); }
+	gltfItem(idStr name, T * type ) : item( nullptr ) { item = static_cast< void * >( new T ); type = static_cast< T * >( item );}
 	template <typename T>
 	void Set(T * item ) { item = static_cast<void*>(item); }
 	template <typename T>
@@ -60,7 +60,7 @@ public:
 class gltfItemArray
 {
 public:
-	gltfItemArray( ) { };
+	gltfItemArray( idLexer * Parser) : parser(Parser){ };
 	void AddItemDef( gltfItem * item ) {items.Alloc() = item; }
 	bool iterating;
 	bool dirty;

@@ -137,10 +137,16 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 	int imageCount = 0;
 	for ( auto &prop : array ) 
 	{
-		gltfImage * image = gltfAssetCache->images[imageCount++];
+		gltfImage *image = gltfAssetCache->images[imageCount++];
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory(prop.item.c_str(),prop.item.Size(),"gltfImage",0);
-		lexer.ExpectTokenString("{");
+		lexer.ExpectTokenString( "{" );
+
+		gltfItemArray list(&lexer);
+		idStr* uri = &image->uri;
+		auto UriItem = gltfItem("uri",uri);
+		list.AddItemDef( &UriItem );
+
 		bool parsing = true;
 		while (parsing && lexer.ExpectAnyToken( &token ))
 		{
