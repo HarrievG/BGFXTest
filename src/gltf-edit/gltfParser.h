@@ -53,6 +53,7 @@ public:
 	void Set(T * item ) { item = static_cast<void*>(item); }
 	template <typename T>
 	T* Get( ) { return static_cast< T * >( item ); }
+private:
 	idStr name;
 	void * item;
 };
@@ -60,12 +61,15 @@ public:
 class gltfItemArray
 {
 public:
-	gltfItemArray( idLexer * Parser) : parser(Parser){ };
+	gltfItemArray( idLexer & Lexer) : lexer(Lexer){ };
 	void AddItemDef( gltfItem * item ) {items.Alloc() = item; }
-	bool iterating;
-	bool dirty;
-	int index;
-	idLexer * parser;
+	void Parse( );
+private:
+	void internalGet( idToken & token, idStr * item ){ *item = token; }
+	void internalGet( idToken &token, int *item ) { *item = token.GetIntValue(); }
+	template<typename T, typename ... A>
+	int internalGet( idList<T> *idList, std::tuple<> &tuple ) { }
+	idLexer & lexer;
 	idList<gltfItem*> items;
 };
 
@@ -106,8 +110,6 @@ public:
 class GLTF_Parser 
 {
 public:
-
-	
 	template<typename T,typename ... A>
 	int GetAttribs(idList<T> & idList, A ... attribs  )
 	{
