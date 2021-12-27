@@ -50,37 +50,42 @@ public:
 	virtual idStr &Name( ) = 0;
 };
 
-class gltfItem : public parsable
+template<class T>
+class parseType {
+public:
+	void Set(T * type ) { item = type; }
+	T* item;
+};
+
+class gltfItem : public parsable, public parseType<idStr>
 {
 public:
-	gltfItem(idStr Name, idStr * type ) : name(Name),item( type ) {}
+	gltfItem( idStr Name) : name( Name ){ }
 	virtual void parse( idToken &token ) { *item = token; };
 	virtual idStr &Name( ) {return name;}
 private:
 	idStr name;
-	idStr *item;
 };
 
-class gltfItemInt : public parsable
+class gltfItemInt : public parsable, public parseType<int>
 {
 public:
-	gltfItemInt( idStr Name, int * type ) : name( Name ), item( type ) { }
+	gltfItemInt( idStr Name ) : name( Name ){ }
 	virtual void parse( idToken &token ) { *item = token.GetIntValue(); };
 	virtual idStr &Name( ) { return name; }
 private:
 	idStr name;
-	int *item;
 };
 
 class gltfItemArray
 {
 public:
-	gltfItemArray( idLexer & Lexer) : lexer(Lexer){ };
-	void AddItemDef( parsable * item ) {/*items.Alloc() = item; */P.Alloc() = item;}
-	void Parse( );
+	~gltfItemArray( ) { items.DeleteContents(true); }
+	gltfItemArray( ){ };
+	void AddItemDef( parsable *item ) { items.Alloc( ) = item;}
+	void Parse(idLexer * lexer );
 private:
-	idLexer & lexer;
-	idList<parsable*> P;
+	idList<parsable*> items;
 };
 
 class gltfPropertyArray;
