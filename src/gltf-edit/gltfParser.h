@@ -44,35 +44,44 @@ public:
 };
 extern gltfCache * gltfAssetCache;
 
-class gltfItem
+struct parsable {
+public:
+	virtual void parse(idToken & token )=0;
+	virtual idStr &Name( ) = 0;
+};
+
+class gltfItem : public parsable
 {
 public:
-	template<typename T>
-	gltfItem(idStr name, T * type ) : item( nullptr ) { item = static_cast< void * >( new T ); type = static_cast< T * >( item );}
-	template <typename T>
-	void Set(T * item ) { item = static_cast<void*>(item); }
-	template <typename T>
-	T* Get( ) { return static_cast< T * >( item ); }
+	gltfItem(idStr Name, idStr * type ) : name(Name),item( type ) {}
+	virtual void parse( idToken &token ) { *item = token; };
+	virtual idStr &Name( ) {return name;}
 private:
 	idStr name;
-	void * item;
+	idStr *item;
+};
+
+class gltfItemInt : public parsable
+{
+public:
+	gltfItemInt( idStr Name, int * type ) : name( Name ), item( type ) { }
+	virtual void parse( idToken &token ) { *item = token.GetIntValue(); };
+	virtual idStr &Name( ) { return name; }
+private:
+	idStr name;
+	int *item;
 };
 
 class gltfItemArray
 {
 public:
 	gltfItemArray( idLexer & Lexer) : lexer(Lexer){ };
-	void AddItemDef( gltfItem * item ) {items.Alloc() = item; }
+	void AddItemDef( parsable * item ) {/*items.Alloc() = item; */P.Alloc() = item;}
 	void Parse( );
 private:
-	void internalGet( idToken & token, idStr * item ){ *item = token; }
-	void internalGet( idToken &token, int *item ) { *item = token.GetIntValue(); }
-	template<typename T, typename ... A>
-	int internalGet( idList<T> *idList, std::tuple<> &tuple ) { }
 	idLexer & lexer;
-	idList<gltfItem*> items;
+	idList<parsable*> P;
 };
-
 
 class gltfPropertyArray;
 class gltfPropertyItem 
@@ -110,11 +119,6 @@ public:
 class GLTF_Parser 
 {
 public:
-	template<typename T,typename ... A>
-	int GetAttribs(idList<T> & idList, A ... attribs  )
-	{
-
-	}
 	void Parse_ASSET( idToken &token ) ;
 	void Parse_SCENE( idToken &token ) ;
 	void Parse_SCENES( idToken &token ) ;
@@ -140,14 +144,6 @@ public:
 	bool Load(idStr filename );
 	bool loadGLB(idStr filename );
 private:
-
-	template<typename T, typename ... A>
-	int internalGetAttribs( idList<T> *idList, std::tuple<idStr,A...> &tuple ) 
-	{
-
-	}
-	template<typename T, typename ... A>
-	int internalGetAttribs( idList<T> *idList, std::tuple<> &tuple ) 	{ }
 	idLexer	parser;
 	idToken	token;
 	idStr currentFile;

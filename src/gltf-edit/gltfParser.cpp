@@ -77,6 +77,27 @@ auto gltfPropertyArray::end( )  {
 	return Iterator{ this , endPtr};
 }
 
+void gltfItemArray::Parse( ) {
+	idToken token;
+	bool parsing = true;
+	lexer.ExpectTokenString( "{" );
+	while ( parsing && lexer.ExpectAnyToken( &token ) ) 	{
+		lexer.ExpectTokenString( ":" );
+		for ( auto item : P ) 		{
+			if ( item->Name( ) == token ) 			{
+				lexer.ExpectAnyToken( &token );
+				item->parse( token );
+				break;
+			}
+
+		}
+		parsing = lexer.PeekTokenString( "," );
+		if ( parsing )
+			lexer.ExpectTokenString( "," );
+	}
+	lexer.ExpectTokenString( "}" );
+}
+
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) { }
 
@@ -136,51 +157,25 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 	int cachedCnt = gltfAssetCache->images.Num( );
 	gltfAssetCache->images.AssureSizeAlloc( array.properties.Num() + cachedCnt, idListNewElement<gltfImage> );
 	int imageCount = 0;
+
 	for ( auto &prop : array ) 
 	{
 		gltfImage *image = gltfAssetCache->images[imageCount++];
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory(prop.item.c_str(),prop.item.Size(),"gltfImage",0);
 
+		common->Warning("LEAKING LEAKING LEAKING" );
+		//move out of loop, there is only need to reassign the data ptrs.
+		//destroy parsables
 		gltfItemArray list(lexer);
-		list.AddItemDef( new gltfItem( "uri", &image->uri ) );
-		list.AddItemDef( new gltfItem( "mimeType", &image->mimeType ) );
-		list.AddItemDef( new gltfItem( "bufferView", &image->bufferView ) );
-		list.AddItemDef( new gltfItem( "name", &image->bufferView ) );
-		list.AddItemDef( new gltfItem( "extensions", &image->extensions )) ;
-		list.AddItemDef( new gltfItem( "extras", &image->extras ) );
+		list.AddItemDef( (parsable*)new gltfItem( "uri",&image->uri ) );
+		list.AddItemDef( (parsable*)new gltfItem( "mimeType",& image->mimeType ) );
+		list.AddItemDef( (parsable*)new gltfItemInt( "bufferView", &image->bufferView ) );
+		list.AddItemDef( (parsable*)new gltfItem( "name", &image->name ) );
+		list.AddItemDef( (parsable*)new gltfItem( "extensions", &image->extensions )) ;
+		list.AddItemDef( (parsable*)new gltfItem( "extras",& image->extras ) );
 		list.Parse();
-
-		lexer.ExpectTokenString( "{" );
-		bool parsing = true;
-		while (parsing && lexer.ExpectAnyToken( &token ))
-		{
-			if ( token.type != TT_STRING )
-				lexer.Error( "%s", "malformed gltf" );
-			lexer.ExpectTokenString( ":" );
-			idToken value;
-			lexer.ExpectAnyToken(&value);
-				 if ( !token.Icmp( "uri" ) )
-					image->uri = value;
-			else if ( !token.Icmp( "mimeType" ) )
-					 image->mimeType = value;
-			else if ( !token.Icmp( "bufferView" ) )
-					 image->bufferView = value.GetIntValue();
-			else if ( !token.Icmp( "name" ) )
-					 image->name = value;
-			else if ( !token.Icmp( "extensions" ) )
-					 image->extensions = value;
-			else if ( !token.Icmp( "extras" ) )
-					 image->extras = value;
-			parsing = lexer.PeekTokenString(",");
-			if (parsing)
-				lexer.ExpectTokenString(",");
-			else
-				lexer.ExpectTokenString( "}" );
-		}
 	}
-	
-
 }
 void GLTF_Parser::Parse_ACCESSORS( idToken &token ) 
 {
@@ -245,6 +240,7 @@ void GLTF_Parser::Parse_EXTENSIONS_USED( idToken &token )
 	for (auto & out : exts )
 		common->Printf("%s",out.c_str() );
 }
+
 gltfProperty GLTF_Parser::ParseProp( idToken & token )
 {
 	parser.ExpectTokenString( ":" );
@@ -301,7 +297,6 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 	}
 	return prop;
 }
-
 gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 {
 		if ( !idStr::Icmp( token.c_str( ), "asset"       ) )
@@ -337,6 +332,7 @@ gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 
 	return gltfProperty::INVALID;
 }
+
 bool GLTF_Parser::PropertyIsAOS()
 {
 	if (!parser.PeekTokenString( "{" ))
@@ -478,13 +474,4 @@ void GLTF_Parser::Init( ) {
 			thisPtr->Load( args.Argv( 1 ) );
 	}, CMD_FL_SYSTEM, "Loads an gltf file", idCmdSystem::ArgCompletion_GltfName );
 
-}
-
-void gltfItemArray::Parse( )
-{
-	idToken token;
-	bool parsing = true;
-	while ( parsing && lexer.ExpectAnyToken( &token ) ) {
-		lexer.ExpectTokenString( "{" );
-	}
 }
