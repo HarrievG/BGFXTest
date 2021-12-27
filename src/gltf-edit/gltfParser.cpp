@@ -429,6 +429,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 			common->FatalError("first chunk was not a json chunk");
 		else {
 			common->Printf("BINCHUNK i", chunk_length );
+			//store data.
 		}
 
 		if (chunkCount++ && length )
@@ -501,4 +502,13 @@ void GLTF_Parser::Init( ) {
 			thisPtr->Load( args.Argv( 1 ) );
 	}, CMD_FL_SYSTEM, "Loads an gltf file", idCmdSystem::ArgCompletion_GltfName );
 
+}
+
+gltfData::gltfData( int size ) {
+	data = new byte[size];
+}
+
+
+gltfData::~gltfData() {
+	delete[] data;
 }

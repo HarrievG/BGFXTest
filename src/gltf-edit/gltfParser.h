@@ -34,6 +34,14 @@ public:
 	idStr	extras;
 };
 
+class gltfData
+{
+public:
+	gltfData( int size );
+	~gltfData();
+private:
+	unsigned char * data;
+};
 
 class gltfCache {
 public:
@@ -42,6 +50,7 @@ public:
 		images.DeleteContents( true );
 	}
 	idList<gltfImage*> images;
+	idList<gltfData*> data;
 };
 extern gltfCache * gltfAssetCache;
 
