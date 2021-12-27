@@ -497,7 +497,6 @@ idMat4 ConvertFromIdSpace( const idMat4 &idmat ) {
 	return mat;
 }
 
-
 /*
 ==========================
 myGlMultMatrix

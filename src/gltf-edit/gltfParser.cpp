@@ -13,6 +13,9 @@ gltfCache * gltfAssetCache = &localCache;
 //	images.DeleteContents(true);
 //}
 
+
+idCVar gltf_parseVerbose( "gltf_parseVerbose", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "print gltf json data while parsing" );
+
 void gltfPropertyArray::Iterator::operator ++( ) {
 	if ( array->iterating )
 	{
@@ -173,7 +176,8 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 		extensions->Set	(&image->extensions);
 		extras->Set		(&image->extras);
 		propItems.Parse	(&lexer);
-		//common->Printf( "%s", prop.item.c_str( ) );
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
 	}
 	parser.ExpectTokenString( "]" );
 }
@@ -240,6 +244,24 @@ void GLTF_Parser::Parse_EXTENSIONS_USED( idToken &token )
 	for (auto & out : exts )
 		common->Printf("%s",out.c_str() );
 }
+void GLTF_Parser::Parse_EXTENSIONS_REQUIRED( idToken &token ) {
+	parser.ExpectTokenString( "[" );
+	idStrList exts;
+	idToken item;
+	bool parsing = true;
+	while ( parsing && parser.ExpectAnyToken( &item ) ) {
+		if ( item.type != TT_STRING )
+			common->FatalError( "malformed extensions_used array" );
+		idStr &extension = exts.Alloc( );
+		extension = item.c_str( );
+		parsing = parser.PeekTokenString( "," );
+		if ( parsing )
+			parser.ExpectTokenString( "," );
+	}
+	parser.ExpectTokenString( "]" );
+	for ( auto &out : exts )
+		common->Printf( "%s", out.c_str( ) );
+}
 
 gltfProperty GLTF_Parser::ParseProp( idToken & token )
 {
@@ -292,6 +314,9 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 		case EXTENSIONS_USED:
 			Parse_EXTENSIONS_USED( token );
 			break;
+		case EXTENSIONS_REQUIRED:
+			Parse_EXTENSIONS_REQUIRED( token );
+			break;
 		default:
 			common->FatalError("UnImplemented GLTF property : %s",token.c_str());
 	}
@@ -329,6 +354,8 @@ gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 		return gltfProperty::SKINS;
 	else if ( !idStr::Icmp( token.c_str( ), "extensionsused" ) )
 		return gltfProperty::EXTENSIONS_USED;
+	else if ( !idStr::Icmp( token.c_str( ), "extensionsrequired" ) )
+			return gltfProperty::EXTENSIONS_REQUIRED;
 
 	return gltfProperty::INVALID;
 }

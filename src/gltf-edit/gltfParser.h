@@ -19,7 +19,8 @@ enum gltfProperty {
 	BUFFERS,
 	ANIMATIONS,
 	SKINS,
-	EXTENSIONS_USED
+	EXTENSIONS_USED,
+	EXTENSIONS_REQUIRED
 };
 
 class gltfImage {
@@ -139,6 +140,7 @@ public:
 	void Parse_ANIMATIONS( idToken & token );
 	void Parse_SKINS( idToken & token );
 	void Parse_EXTENSIONS_USED( idToken &token );
+	void Parse_EXTENSIONS_REQUIRED( idToken &token );
 	bool PropertyIsAOS( );
 	gltfProperty ParseProp( idToken &token );
 	gltfProperty ResolveProp( idToken &token );
