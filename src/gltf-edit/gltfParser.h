@@ -35,30 +35,41 @@ public:
 	idStr extensions;
 	idStr extras;
 };
-
 class gltfBuffer {
 public:
-	gltfBuffer( ) : bytelength(-1) { };
+	gltfBuffer( ) : byteLength(-1) { };
 	idStr uri;
-	int bytelength;
+	int byteLength;
 	idStr name;
 	idStr extensions;
 	idStr extras;
 };
-
 class gltfSampler {
 public:
-	gltfSampler( ) : magFilter(-1),minFilter(-1) { };
-	int magFilter;
-	int minFilter;
+	gltfSampler( ) : magFilter(0),minFilter(0),wrapS(-10497),wrapT(10497){ };
+	int	magFilter;
+	int	minFilter;
+	int	wrapS;
+	int	wrapT;
+	idStr name;
+	idStr extensions;
+	idStr extras;
 };
-
 class gltfImage {
 public:
 	gltfImage( ) : bufferView(-1){}
 	idStr	uri;
 	idStr	mimeType;
 	int		bufferView;
+	idStr	name;
+	idStr	extensions;
+	idStr	extras;
+};
+class gltfTexture {
+public:
+	gltfTexture( ) : sampler(-1), source(-1){ }
+	int		sampler;
+	int		source;//image
 	idStr	name;
 	idStr	extensions;
 	idStr	extras;
@@ -90,12 +101,14 @@ public:
 	GLTFCACHEITEM( BufferView, bufferViews )
 	GLTFCACHEITEM( Data, assetData )
 	GLTFCACHEITEM( Image, images )
+	GLTFCACHEITEM( Texture, textures )
 private:
 	idList<gltfImage*>			images;
 	idList<gltfData*>			assetData;
 	idList<gltfSampler*>		samplers;
 	idList<gltfBufferView *>	bufferViews;
 	idList<gltfBuffer*>			buffers;
+	idList<gltfTexture*>		textures;
 };
 #undef GLTFCACHEITEM
 

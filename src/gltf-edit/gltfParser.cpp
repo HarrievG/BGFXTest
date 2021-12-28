@@ -231,16 +231,61 @@ void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token )
 }
 void GLTF_Parser::Parse_SAMPLERS( idToken &token ) 
 {
+	gltfItemArray sampl;
+	GLTFARRAYITEM( sampl, magFilter,	gltfItem_int );
+	GLTFARRAYITEM( sampl, minFilter,	gltfItem_int );
+	GLTFARRAYITEM( sampl, wrapS,		gltfItem_int );
+	GLTFARRAYITEM( sampl, wrapT,		gltfItem_int );
+	GLTFARRAYITEM( sampl, name,			gltfItem );
+	GLTFARRAYITEM( sampl, extensions,	gltfItem );
+	GLTFARRAYITEM( sampl, extras,		gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
 	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfSampler", 0 );
+
+		gltfSampler * gltfSampl = gltfAssetCache->Sampler();
+		GLTFARRAYITEMREF( gltfSampl, magFilter );
+		GLTFARRAYITEMREF( gltfSampl, minFilter );
+		GLTFARRAYITEMREF( gltfSampl, wrapS );
+		GLTFARRAYITEMREF( gltfSampl, wrapT );
+		GLTFARRAYITEMREF( gltfSampl, name		);
+		GLTFARRAYITEMREF( gltfSampl, extensions);
+		GLTFARRAYITEMREF( gltfSampl, extras	);
+		sampl.Parse(&lexer);
+
+		if (gltf_parseVerbose.GetBool())
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_BUFFERS( idToken &token )
 {
+	gltfItemArray buf;
+	GLTFARRAYITEM( buf, uri,		gltfItem );
+	GLTFARRAYITEM( buf, byteLength, gltfItem_int );
+	GLTFARRAYITEM( buf, name,		gltfItem );
+	GLTFARRAYITEM( buf, extensions, gltfItem );
+	GLTFARRAYITEM( buf, extras,		gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
-	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	for ( auto &prop : array ) 	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfBuffer", 0 );
+
+		gltfBuffer *gltfBuf = gltfAssetCache->Buffer( );
+		GLTFARRAYITEMREF( gltfBuf, uri );
+		GLTFARRAYITEMREF( gltfBuf, byteLength );
+		GLTFARRAYITEMREF( gltfBuf, name );
+		GLTFARRAYITEMREF( gltfBuf, extensions );
+		GLTFARRAYITEMREF( gltfBuf, extras );
+		buf.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_ANIMATIONS( idToken &token )
