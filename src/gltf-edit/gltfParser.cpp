@@ -1,12 +1,19 @@
 #include "gltfParser.h"
 #include <FileSystem.h>
-
+#include "bgfx-stubs/bgfxRender.h"
 
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 
 static gltfCache localCache;
 gltfCache * gltfAssetCache = &localCache;
+
+//target must be an gltfArrayItem
+// type with name will be added to the array
+#define GLTFARRAYITEM(target,name,type) auto name = new type (#name); target.AddItemDef((parsable*)name)
+// name must point to an existing valid entry
+// name->Set		(&target->name);
+#define GLTFARRAYITEMREF(target,name) name->Set(&target->name)
 
 //void gltfCache::clear()
 //{
@@ -156,7 +163,7 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 	gltfItemArray propItems;
 	auto uri		= new gltfItem		("uri");		propItems.AddItemDef((parsable*)uri); 
 	auto mimeType	= new gltfItem		("mimeType");	propItems.AddItemDef((parsable*)mimeType);
-	auto bufferView = new gltfItemInt	("bufferView");	propItems.AddItemDef((parsable*)bufferView );
+	auto bufferView = new gltfItem_int	("bufferView");	propItems.AddItemDef((parsable*)bufferView );
 	auto name		= new gltfItem		("name");		propItems.AddItemDef((parsable*)name);
 	auto extensions = new gltfItem		("extensions");	propItems.AddItemDef((parsable*)extensions);
 	auto extras		= new gltfItem		("extras");		propItems.AddItemDef((parsable*)extras);
@@ -167,7 +174,6 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 		lexer.LoadMemory(prop.item.c_str(),prop.item.Size(),"gltfImage",0);
 
 		gltfImage *image = gltfAssetCache->Image();
-		image = new gltfImage();
 		uri->Set		(&image->uri);
 		mimeType->Set	(&image->mimeType);
 		bufferView->Set	(&image->bufferView);
@@ -190,10 +196,37 @@ void GLTF_Parser::Parse_ACCESSORS( idToken &token )
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token ) 
-{
+{	
+	gltfItemArray bv;
+	GLTFARRAYITEM( bv, buffer,		gltfItem_int );
+	GLTFARRAYITEM( bv, byteLength,	gltfItem_int );
+	GLTFARRAYITEM( bv, byteStride,	gltfItem_int );
+	GLTFARRAYITEM( bv, byteOffset,	gltfItem_int );
+	GLTFARRAYITEM( bv, target,		gltfItem_int );
+	GLTFARRAYITEM( bv, name,		gltfItem );
+	GLTFARRAYITEM( bv, extensions,	gltfItem );
+	GLTFARRAYITEM( bv, extras,		gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
 	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfBufferView", 0 );
+
+		gltfBufferView * gltfBV = gltfAssetCache->BufferView();
+		GLTFARRAYITEMREF( gltfBV, buffer	);
+		GLTFARRAYITEMREF( gltfBV, byteLength);
+		GLTFARRAYITEMREF( gltfBV, byteStride);
+		GLTFARRAYITEMREF( gltfBV, byteOffset);
+		GLTFARRAYITEMREF( gltfBV, target	);
+		GLTFARRAYITEMREF( gltfBV, name		);
+		GLTFARRAYITEMREF( gltfBV, extensions);
+		GLTFARRAYITEMREF( gltfBV, extras	);
+		bv.Parse(&lexer); 
+
+		if (gltf_parseVerbose.GetBool())
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_SAMPLERS( idToken &token ) 
@@ -354,7 +387,7 @@ gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 	else if ( !idStr::Icmp( token.c_str( ), "extensionsused" ) )
 		return gltfProperty::EXTENSIONS_USED;
 	else if ( !idStr::Icmp( token.c_str( ), "extensionsrequired" ) )
-			return gltfProperty::EXTENSIONS_REQUIRED;
+		return gltfProperty::EXTENSIONS_REQUIRED;
 
 	return gltfProperty::INVALID;
 }
@@ -485,6 +518,8 @@ bool GLTF_Parser::Load(idStr filename )
 	parser.Reset();
 	parser.FreeSource();
 	common->SetRefreshOnPrint( false );
+
+	CreateTextures();
 	return true;
 }
 
@@ -500,6 +535,23 @@ void GLTF_Parser::Init( ) {
 
 }
 
+void GLTF_Parser::CreateTextures( )
+{
+	int dataIndex = gltfAssetCache->GetDataList().Num() - 1;
+	auto samplers = gltfAssetCache->GetSamplerList( );
+	bgfxTextureHandle texture;
+	int cnt = 0;
+	for ( auto & image : gltfAssetCache->GetImageList( ) ) 
+	{
+		//gltfData * data = gltfAssetCache->AssetData()[dataIndex + image.]
+		//if (image. )
+
+		//texture.dim = idVec2( img.width, img.height );
+		//uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
+		//texture.handle = bgfx::createTexture2D( img.width, img.height, false, 1, bgfx::TextureFormat::RGBA8, tex_flags, bgfx::copy( img.image.data( ), img.width * img.height * 4 ) );
+	}
+	__debugbreak();
+}
 //gltfData::gltfData( size_t jsonSize, size_t datasize ) {
 //	data = new byte[datasize];
 //	json = new byte[jsonSize];
@@ -512,3 +564,6 @@ gltfData::~gltfData() {
 	if (json)
 		delete[] json;
 }
+
+#undef GLTFARRAYITEM
+#undef GLTFARRAYITEMREF

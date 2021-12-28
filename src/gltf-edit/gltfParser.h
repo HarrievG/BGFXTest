@@ -23,6 +23,36 @@ enum gltfProperty {
 	EXTENSIONS_REQUIRED
 };
 
+class gltfBufferView {
+public: 
+	gltfBufferView( ) : buffer(-1),byteLength(-1),byteStride(-1),byteOffset(-1),target(-1){};
+	int buffer;
+	int byteLength;
+	int byteStride;
+	int byteOffset;
+	int target;
+	idStr name;
+	idStr extensions;
+	idStr extras;
+};
+
+class gltfBuffer {
+public:
+	gltfBuffer( ) : bytelength(-1) { };
+	idStr uri;
+	int bytelength;
+	idStr name;
+	idStr extensions;
+	idStr extras;
+};
+
+class gltfSampler {
+public:
+	gltfSampler( ) : magFilter(-1),minFilter(-1) { };
+	int magFilter;
+	int minFilter;
+};
+
 class gltfImage {
 public:
 	gltfImage( ) : bufferView(-1){}
@@ -44,20 +74,31 @@ public:
 	byte * data;
 };
 
+
+//// For these to function you need to add an private idList<gltf{name}*> {target}
+#define GLTFCACHEITEM(name,target) \
+gltf##name * name ( ) { target.AssureSizeAlloc( target.Num()+1,idListNewElement<gltf##name>); return target[target.Num()-1];} \
+const idList<gltf##name*> & Get##name##List() { return target; }
 class gltfCache {
 public:
 	gltfCache( ) { }
 	void clear(){
 		images.DeleteContents( true );
 	}
-	// returns new data element
-	gltfData * Data( ) { data.AssureSizeAlloc( data.Num()+1,idListNewElement<gltfData>); return data[data.Num()-1];}
-	// returns (and might allocate) new Image element
-	gltfImage * Image( ) { images.AssureSizeAlloc(images.Num()+1,idListNewElement<gltfImage>); return images[images.Num()-1]; }
+	GLTFCACHEITEM( Sampler, samplers )
+	GLTFCACHEITEM( Buffer, buffers )
+	GLTFCACHEITEM( BufferView, bufferViews )
+	GLTFCACHEITEM( Data, assetData )
+	GLTFCACHEITEM( Image, images )
 private:
-	idList<gltfImage*> images;
-	idList<gltfData*> data;
+	idList<gltfImage*>			images;
+	idList<gltfData*>			assetData;
+	idList<gltfSampler*>		samplers;
+	idList<gltfBufferView *>	bufferViews;
+	idList<gltfBuffer*>			buffers;
 };
+#undef GLTFCACHEITEM
+
 extern gltfCache * gltfAssetCache;
 
 struct parsable {
@@ -73,25 +114,31 @@ public:
 	T* item;
 };
 
+//gltf data types
+// string type does not have suffix for easy of use
+// all others should use the gltfItemClass macro.
 class gltfItem : public parsable, public parseType<idStr>
 {
 public:
-	gltfItem( idStr Name) : name( Name ){ }
+	gltfItem( idStr Name) : name( Name ){ item = nullptr; }
 	virtual void parse( idToken &token ) { *item = token; };
 	virtual idStr &Name( ) {return name;}
 private:
 	idStr name;
 };
 
-class gltfItemInt : public parsable, public parseType<int>
-{
-public:
-	gltfItemInt( idStr Name ) : name( Name ){ }
-	virtual void parse( idToken &token ) { *item = token.GetIntValue(); };
-	virtual idStr &Name( ) { return name; }
-private:
-	idStr name;
-};
+//helper macro to define more gltf data types
+#define gltfItemClass(type,function) \
+class gltfItem_##type : public parsable, public parseType<type>				\
+{public:																	\
+	gltfItem_##type( idStr Name ) : name( Name ){ item = nullptr; }			\
+	virtual void parse( idToken &token ) { function }						\
+	virtual idStr &Name( ) { return name; }									\
+private:																	\
+	idStr name;}
+
+gltfItemClass(int, *item = token.GetIntValue( ); );
+/////////////////////////////////////////////////////////////////////////////
 
 class gltfItemArray
 {
@@ -166,6 +213,7 @@ public:
 	bool Load(idStr filename );
 	bool loadGLB(idStr filename );
 private:
+	void CreateTextures( );
 	idLexer	parser;
 	idToken	token;
 	idStr currentFile;
