@@ -36,11 +36,12 @@ public:
 
 class gltfData
 {
+	friend class gltfCache;
 public:
-	gltfData( int size );
+	gltfData( ) : json( nullptr ), data( nullptr ) { };
 	~gltfData();
-private:
-	unsigned char * data;
+	byte * json;
+	byte * data;
 };
 
 class gltfCache {
@@ -49,6 +50,11 @@ public:
 	void clear(){
 		images.DeleteContents( true );
 	}
+	// returns new data element
+	gltfData * Data( ) { data.AssureSizeAlloc( data.Num()+1,idListNewElement<gltfData>); return data[data.Num()-1];}
+	// returns (and might allocate) new Image element
+	gltfImage * Image( ) { images.AssureSizeAlloc(images.Num()+1,idListNewElement<gltfImage>); return images[images.Num()-1]; }
+private:
 	idList<gltfImage*> images;
 	idList<gltfData*> data;
 };

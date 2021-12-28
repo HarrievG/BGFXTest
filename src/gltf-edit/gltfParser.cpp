@@ -165,10 +165,9 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 	{
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory(prop.item.c_str(),prop.item.Size(),"gltfImage",0);
-		//remove the pre-alloc.
-		//not needed : just image.Alloc;
-		gltfAssetCache->images.AssureSizeAlloc( gltfAssetCache->images.Num( ) + 1, idListNewElement<gltfImage> );
-		gltfImage *image = gltfAssetCache->images[gltfAssetCache->images.Num( ) - 1];
+
+		gltfImage *image = gltfAssetCache->Image();
+		image = new gltfImage();
 		uri->Set		(&image->uri);
 		mimeType->Set	(&image->mimeType);
 		bufferView->Set	(&image->bufferView);
@@ -401,44 +400,41 @@ bool GLTF_Parser::loadGLB(idStr filename )
 	file->ReadUnsignedInt( length );
 	length -= 12; // header size
 
-	unsigned int chunk_type;	// 4 bytes
-	unsigned int chunk_length;	// 4 bytes
-	const char * data = nullptr;
+	unsigned int chunk_type=0;	// 4 bytes
+	unsigned int chunk_length=0;	// 4 bytes
+	byte * data;
+	gltfData *dataCache = gltfAssetCache->Data( );
 
 	int chunkCount = 0;
 	while ( length ) {
+		unsigned int prev_length = chunk_length;
 		length -= file->ReadUnsignedInt( chunk_length );
 		length -= file->ReadUnsignedInt( chunk_type );
 		
-		if (data != nullptr )
-			delete[] data;
+		if (chunkCount)
+			dataCache->json = data;
 
-		data = new char[chunk_length];
+		data = new byte[chunk_length];
+
 		int read = file->Read((void*)data, chunk_length );
 		if (read != chunk_length)
 			common->FatalError("Could not read full chunk (%i bytes) in file %s",chunk_length, filename );
-		
 		length -= read;
-
 		if (chunk_type == gltfChunk_Type_JSON)
 		{
 			currentFile = filename + " [JSON CHUNK]";
-			parser.LoadMemory(data,chunk_length,"gltfJson",0);
-			Parse();
+			parser.LoadMemory((const char*)data,chunk_length,"gltfJson",0);
 		}else if ( !chunkCount )
 			common->FatalError("first chunk was not a json chunk");
 		else {
 			common->Printf("BINCHUNK i", chunk_length );
-			//store data.
+			dataCache->data = data;
 		}
-
 		if (chunkCount++ && length )
 			common->FatalError("corrupt glb file." );
 	}
 
-	//lets start making stuff
-	//1. textures.
-
+	Parse();
 	return true;
 }
 
@@ -504,11 +500,15 @@ void GLTF_Parser::Init( ) {
 
 }
 
-gltfData::gltfData( int size ) {
-	data = new byte[size];
-}
+//gltfData::gltfData( size_t jsonSize, size_t datasize ) {
+//	data = new byte[datasize];
+//	json = new byte[jsonSize];
+//}
 
 
 gltfData::~gltfData() {
-	delete[] data;
+	if (data)
+		delete[] data;
+	if (json)
+		delete[] json;
 }
