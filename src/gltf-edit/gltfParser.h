@@ -2,89 +2,7 @@
 #include "idFramework/Common.h"
 #include "idFramework/idlib/containers/StrList.h"
 #include <functional>
-
-enum gltfProperty {
-	INVALID, 
-	ASSET,
-	SCENE,
-	SCENES,
-	NODES,
-	MATERIALS,
-	MESHES,
-	TEXTURES,
-	IMAGES,
-	ACCESSORS,
-	BUFFERVIEWS,
-	SAMPLERS,
-	BUFFERS,
-	ANIMATIONS,
-	SKINS,
-	EXTENSIONS_USED,
-	EXTENSIONS_REQUIRED
-};
-
-class gltfBufferView {
-public: 
-	gltfBufferView( ) : buffer(-1),byteLength(-1),byteStride(-1),byteOffset(-1),target(-1){};
-	int buffer;
-	int byteLength;
-	int byteStride;
-	int byteOffset;
-	int target;
-	idStr name;
-	idStr extensions;
-	idStr extras;
-};
-class gltfBuffer {
-public:
-	gltfBuffer( ) : byteLength(-1) { };
-	idStr uri;
-	int byteLength;
-	idStr name;
-	idStr extensions;
-	idStr extras;
-};
-class gltfSampler {
-public:
-	gltfSampler( ) : magFilter(0),minFilter(0),wrapS(-10497),wrapT(10497){ };
-	int	magFilter;
-	int	minFilter;
-	int	wrapS;
-	int	wrapT;
-	idStr name;
-	idStr extensions;
-	idStr extras;
-};
-class gltfImage {
-public:
-	gltfImage( ) : bufferView(-1){}
-	idStr	uri;
-	idStr	mimeType;
-	int		bufferView;
-	idStr	name;
-	idStr	extensions;
-	idStr	extras;
-};
-class gltfTexture {
-public:
-	gltfTexture( ) : sampler(-1), source(-1){ }
-	int		sampler;
-	int		source;//image
-	idStr	name;
-	idStr	extensions;
-	idStr	extras;
-};
-
-class gltfData
-{
-	friend class gltfCache;
-public:
-	gltfData( ) : json( nullptr ), data( nullptr ) { };
-	~gltfData();
-	byte * json;
-	byte * data;
-};
-
+#include "gltfProperties.h"
 
 //// For these to function you need to add an private idList<gltf{name}*> {target}
 #define GLTFCACHEITEM(name,target) \
@@ -102,6 +20,7 @@ public:
 	GLTFCACHEITEM( Data, assetData )
 	GLTFCACHEITEM( Image, images )
 	GLTFCACHEITEM( Texture, textures )
+	GLTFCACHEITEM( Accessor, accessors )
 private:
 	idList<gltfImage*>			images;
 	idList<gltfData*>			assetData;
@@ -109,6 +28,7 @@ private:
 	idList<gltfBufferView *>	bufferViews;
 	idList<gltfBuffer*>			buffers;
 	idList<gltfTexture*>		textures;
+	idList<gltfAccessor *>		accessors;
 };
 #undef GLTFCACHEITEM
 
