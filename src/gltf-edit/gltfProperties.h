@@ -229,7 +229,7 @@ class gltfData
 public:
 	gltfData( ) : data( nullptr ), totalChunks(-1) { };
 	~gltfData();
-	byte* AddData(int size );
+	byte* AddData(int size, int * chunkCount=nullptr);
 private:
 	//buffer chunks
 	byte ** data;

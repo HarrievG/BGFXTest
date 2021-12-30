@@ -67,12 +67,14 @@ public:
 	gltfItem_uri( idStr Name ) : name( Name ) { item = nullptr; }
 	virtual void parse( idToken &token ) { *item = token; Convert(); };
 	virtual idStr &Name( ) { return name; }
+	void Set( idStr *type,int * targetBufferview,gltfData* dataDestination ) { parseType::Set(type); bufferView = targetBufferview; data = dataDestination; }
 	// read data from uri file, and push it at end of current data buffer for this GLTF File
 	// bufferView will be set accordingly to the generated buffer.
 	bool Convert( );
 private:
 	idStr name;
 	int * bufferView;
+	gltfData *  data;
 };
 
 //helper macro to define more gltf data types
@@ -168,7 +170,6 @@ public:
 	gltfData *currentAsset;
 private:
 	void CreateTextures( );
-	void ProcessBuffers( );
 	
 	
 	idLexer	parser;

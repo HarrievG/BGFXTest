@@ -8,6 +8,12 @@ static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 static gltfCache localCache;
 gltfCache * gltfAssetCache = &localCache;
 
+//some arbitrary amount for now.
+#define GLTF_MAX_CHUNKS 32
+
+//Helper macros for gltf data deserialize
+//NOTE: gltfItem_uri are an unique string datatype with extra params to allow for instant data loading
+//		gltfItem_uri is not supported by the item macros!
 //target must be an gltfArrayItem
 // type with name will be added to the array
 #define GLTFARRAYITEM(target,name,type) auto name = new type (#name); target.AddItemDef((parsable*)name)
@@ -108,14 +114,21 @@ void gltfItemArray::Parse(idLexer * lexer) {
 	lexer->ExpectTokenString( "}" );
 }
 
-byte * gltfData::AddData(int size )
+byte * gltfData::AddData(int size, int * chunkCount/*=nullptr*/)
 {
-	data[++totalChunks] = (byte*)Mem_Alloc(sizeof(byte*));
-	data[totalChunks] = (byte*)Mem_Alloc16(size);
+	if (data == nullptr )
+		data = (byte**)Mem_Alloc(GLTF_MAX_CHUNKS * sizeof(byte**) );
+	data[++totalChunks] = (byte*)Mem_Alloc16(size);
+	
+	if ( chunkCount )
+		*chunkCount = totalChunks;
+
 	return data[totalChunks];
 }
 
 bool gltfItem_uri::Convert( ) {
+	//HVG_TODO
+	// uri cache.
 	//read data
 	int length = fileSystem->ReadFile( item->c_str( ), NULL );
 	idFile *file = fileSystem->OpenFileRead( item->c_str() );
@@ -124,9 +137,25 @@ bool gltfItem_uri::Convert( ) {
 	gltfBuffer *buffer = gltfAssetCache->Buffer( );
 	buffer->name = item->c_str( );
 	buffer->byteLength = length;
+	int bufferID = -1;
+	byte * dest = data->AddData( length, &bufferID );
+	if (file->Read( dest, length ) != length)
+		common->FatalError("Could not read %s",item->c_str() );
 	
+	if (gltf_parseVerbose.GetBool() )
+		common->Warning("gltf Uri %s loaded into buffer[ %i ]",buffer->name,bufferID );
+
 	//create bufferview
-	gltfBufferView *bufferView = gltfAssetCache->BufferView( );
+	//if bufferview is not set, this is an buffer.uri.
+	//A bufferview should aready be defined if the buffer is used.
+	if (bufferView != nullptr )
+	{
+		*bufferView = gltfAssetCache->GetBufferViewList().Num();
+		gltfBufferView * newBufferView = gltfAssetCache->BufferView( );
+		newBufferView->buffer = bufferID;
+		newBufferView->byteLength = length;
+	}
+
 	//set bufferview
 	return false;
 }
@@ -198,7 +227,7 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 		lexer.LoadMemory(prop.item.c_str(),prop.item.Size(),"gltfImage",0);
 
 		gltfImage *image = gltfAssetCache->Image();
-		uri->Set		(&image->uri);
+		uri->Set		(&image->uri, &image->bufferView,currentAsset);
 		mimeType->Set	(&image->mimeType);
 		bufferView->Set	(&image->bufferView);
 		name->Set		(&image->name);
@@ -300,7 +329,8 @@ void GLTF_Parser::Parse_BUFFERS( idToken &token )
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfBuffer", 0 );
 
 		gltfBuffer *gltfBuf = gltfAssetCache->Buffer( );
-		GLTFARRAYITEMREF( gltfBuf, uri );
+		//GLTFARRAYITEMREF( gltfBuf, uri )
+		uri->Set( &gltfBuf->uri, nullptr , currentAsset );
 		GLTFARRAYITEMREF( gltfBuf, byteLength );
 		GLTFARRAYITEMREF( gltfBuf, name );
 		GLTFARRAYITEMREF( gltfBuf, extensions );
@@ -575,15 +605,24 @@ bool GLTF_Parser::Load(idStr filename )
 			return false;
 	}
 	else {
-		if ( !parser.LoadFile( filename ) )
+		int length = fileSystem->ReadFile(filename,NULL);
+		gltfData * data = gltfAssetCache->Data();
+		byte* dataBuff = data->AddData(length);
+		currentAsset = data;
+		
+		if (fileSystem->ReadFile(filename, ( void ** )&dataBuff)!=length)
+			common->FatalError("Cannot read file, %s",filename.c_str() );
+		
+		if ( !parser.LoadMemory((const char*)dataBuff,length,"GLTF_ASCII_JSON",0))
 			return false;
+		
 		Parse();
+
 	}
 
 	parser.Reset();
 	parser.FreeSource();
 	common->SetRefreshOnPrint( false );
-	ProcessBuffers( );
 	CreateTextures();
 	return true;
 }
@@ -593,9 +632,6 @@ void GLTF_Parser::ResolveUri( const idStr &uri )
 
 }
 
-void GLTF_Parser::ProcessBuffers( ) {
-
-}
 
 void GLTF_Parser::Init( ) {
 	static auto * thisPtr = this;
