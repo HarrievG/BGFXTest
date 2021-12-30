@@ -158,15 +158,16 @@ void GLTF_Parser::Parse_TEXTURES( idToken &token )
 }
 void GLTF_Parser::Parse_IMAGES( idToken &token )
 {
+	//reference impl
 	gltfPropertyArray array = gltfPropertyArray( &parser );
 
 	gltfItemArray propItems;
-	auto uri		= new gltfItem		("uri");		propItems.AddItemDef((parsable*)uri); 
-	auto mimeType	= new gltfItem		("mimeType");	propItems.AddItemDef((parsable*)mimeType);
-	auto bufferView = new gltfItem_int	("bufferView");	propItems.AddItemDef((parsable*)bufferView );
-	auto name		= new gltfItem		("name");		propItems.AddItemDef((parsable*)name);
-	auto extensions = new gltfItem		("extensions");	propItems.AddItemDef((parsable*)extensions);
-	auto extras		= new gltfItem		("extras");		propItems.AddItemDef((parsable*)extras);
+	auto uri		= new gltfItem_uri		("uri");		propItems.AddItemDef((parsable*)uri); 
+	auto mimeType	= new gltfItem			("mimeType");	propItems.AddItemDef((parsable*)mimeType);
+	auto bufferView = new gltfItem_integer	("bufferView");	propItems.AddItemDef((parsable*)bufferView );
+	auto name		= new gltfItem			("name");		propItems.AddItemDef((parsable*)name);
+	auto extensions = new gltfItem			("extensions");	propItems.AddItemDef((parsable*)extensions);
+	auto extras		= new gltfItem			("extras");		propItems.AddItemDef((parsable*)extras);
 
 	for ( auto &prop : array )
 	{
@@ -198,11 +199,11 @@ void GLTF_Parser::Parse_ACCESSORS( idToken &token )
 void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token ) 
 {	
 	gltfItemArray bv;
-	GLTFARRAYITEM( bv, buffer,		gltfItem_int );
-	GLTFARRAYITEM( bv, byteLength,	gltfItem_int );
-	GLTFARRAYITEM( bv, byteStride,	gltfItem_int );
-	GLTFARRAYITEM( bv, byteOffset,	gltfItem_int );
-	GLTFARRAYITEM( bv, target,		gltfItem_int );
+	GLTFARRAYITEM( bv, buffer,		gltfItem_integer );
+	GLTFARRAYITEM( bv, byteLength,	gltfItem_integer );
+	GLTFARRAYITEM( bv, byteStride,	gltfItem_integer );
+	GLTFARRAYITEM( bv, byteOffset,	gltfItem_integer );
+	GLTFARRAYITEM( bv, target,		gltfItem_integer );
 	GLTFARRAYITEM( bv, name,		gltfItem );
 	GLTFARRAYITEM( bv, extensions,	gltfItem );
 	GLTFARRAYITEM( bv, extras,		gltfItem );
@@ -232,10 +233,10 @@ void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token )
 void GLTF_Parser::Parse_SAMPLERS( idToken &token ) 
 {
 	gltfItemArray sampl;
-	GLTFARRAYITEM( sampl, magFilter,	gltfItem_int );
-	GLTFARRAYITEM( sampl, minFilter,	gltfItem_int );
-	GLTFARRAYITEM( sampl, wrapS,		gltfItem_int );
-	GLTFARRAYITEM( sampl, wrapT,		gltfItem_int );
+	GLTFARRAYITEM( sampl, magFilter,	gltfItem_integer );
+	GLTFARRAYITEM( sampl, minFilter,	gltfItem_integer );
+	GLTFARRAYITEM( sampl, wrapS,		gltfItem_integer );
+	GLTFARRAYITEM( sampl, wrapT,		gltfItem_integer );
 	GLTFARRAYITEM( sampl, name,			gltfItem );
 	GLTFARRAYITEM( sampl, extensions,	gltfItem );
 	GLTFARRAYITEM( sampl, extras,		gltfItem );
@@ -264,8 +265,8 @@ void GLTF_Parser::Parse_SAMPLERS( idToken &token )
 void GLTF_Parser::Parse_BUFFERS( idToken &token )
 {
 	gltfItemArray buf;
-	GLTFARRAYITEM( buf, uri,		gltfItem );
-	GLTFARRAYITEM( buf, byteLength, gltfItem_int );
+	GLTFARRAYITEM( buf, uri,		gltfItem_uri );
+	GLTFARRAYITEM( buf, byteLength, gltfItem_integer );
 	GLTFARRAYITEM( buf, name,		gltfItem );
 	GLTFARRAYITEM( buf, extensions, gltfItem );
 	GLTFARRAYITEM( buf, extras,		gltfItem );
@@ -282,7 +283,6 @@ void GLTF_Parser::Parse_BUFFERS( idToken &token )
 		GLTFARRAYITEMREF( gltfBuf, extensions );
 		GLTFARRAYITEMREF( gltfBuf, extras );
 		buf.Parse( &lexer );
-
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
 	}
@@ -482,6 +482,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 	unsigned int chunk_length=0;	// 4 bytes
 	byte * data;
 	gltfData *dataCache = gltfAssetCache->Data( );
+	currentAsset = dataCache;
 
 	int chunkCount = 0;
 	while ( length ) {
@@ -563,9 +564,18 @@ bool GLTF_Parser::Load(idStr filename )
 	parser.Reset();
 	parser.FreeSource();
 	common->SetRefreshOnPrint( false );
-
+	ProcessBuffers( );
 	CreateTextures();
 	return true;
+}
+
+void GLTF_Parser::ResolveUri( const idStr &uri, gltfData * dest )
+{
+
+}
+
+void GLTF_Parser::ProcessBuffers( ) {
+
 }
 
 void GLTF_Parser::Init( ) {

@@ -6,6 +6,7 @@
 enum gltfProperty {
 	INVALID, 
 	ASSET,
+	ACCESSOR,
 	SCENE,
 	SCENES,
 	NODES,
@@ -218,6 +219,9 @@ public:
 	idStr	extras;
 };
 
+//No URI's are left after parsing
+// all data should be layed out like an GLB.
+// EACH URI will be an unique chunk
 class gltfData
 {
 	friend class gltfCache;

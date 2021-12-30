@@ -4,10 +4,12 @@
 #include <functional>
 #include "gltfProperties.h"
 
+/////////////////////////////////////////////////////////////////////////////
 //// For these to function you need to add an private idList<gltf{name}*> {target}
 #define GLTFCACHEITEM(name,target) \
 gltf##name * name ( ) { target.AssureSizeAlloc( target.Num()+1,idListNewElement<gltf##name>); return target[target.Num()-1];} \
 const idList<gltf##name*> & Get##name##List() { return target; }
+
 class gltfCache {
 public:
 	gltfCache( ) { }
@@ -30,9 +32,9 @@ private:
 	idList<gltfTexture*>		textures;
 	idList<gltfAccessor *>		accessors;
 };
+extern gltfCache *gltfAssetCache;
 #undef GLTFCACHEITEM
-
-extern gltfCache * gltfAssetCache;
+/////////////////////////////////////////////////////////////////////////////
 
 struct parsable {
 public:
@@ -47,9 +49,9 @@ public:
 	T* item;
 };
 
+/////////////////////////////////////////////////////////////////////////////
 //gltf data types
-// string type does not have suffix for easy of use
-// all others should use the gltfItemClass macro.
+// gltfItem  - string type
 class gltfItem : public parsable, public parseType<idStr>
 {
 public:
@@ -60,17 +62,32 @@ private:
 	idStr name;
 };
 
+class gltfItem_uri : public parsable, public parseType<idStr> {
+public:
+	gltfItem_uri( idStr Name ) : name( Name ) { item = nullptr; }
+	virtual void parse( idToken &token ) { *item = token; };
+	virtual idStr &Name( ) { return name; }
+	void Set( gltfItem_uri *type,int * targetBufferView ) { item = type; }
+	// read data from uri file, and push it at end of current data buffer for this GLTF File
+	// bufferView will be set accordingly to the generated buffer.
+	bool Convert( gltfData * dataDest, int * bufferView ) {return false; }
+private:
+	idStr name;
+	int * bufferView;
+};
+
 //helper macro to define more gltf data types
-#define gltfItemClass(type,function) \
-class gltfItem_##type : public parsable, public parseType<type>				\
+#define gltfItemClass(className,type,function) \
+class gltfItem_##className : public parsable, public parseType<type>				\
 {public:																	\
-	gltfItem_##type( idStr Name ) : name( Name ){ item = nullptr; }			\
+	gltfItem_##className( idStr Name ) : name( Name ){ item = nullptr; }			\
 	virtual void parse( idToken &token ) { function }						\
 	virtual idStr &Name( ) { return name; }									\
 private:																	\
 	idStr name;}
 
-gltfItemClass(int, *item = token.GetIntValue( ); );
+////
+gltfItemClass(integer, int, *item = token.GetIntValue( ); );
 /////////////////////////////////////////////////////////////////////////////
 
 class gltfItemArray
@@ -139,14 +156,22 @@ public:
 	bool PropertyIsAOS( );
 	gltfProperty ParseProp( idToken &token );
 	gltfProperty ResolveProp( idToken &token );
+	
+	static void ResolveUri( const idStr &uri, gltfData *dest );
 
 	GLTF_Parser();
 	void Init();
 	bool Parse();
 	bool Load(idStr filename );
 	bool loadGLB(idStr filename );
+
+	//current/last loaded gltf asset 
+	gltfData *currentAsset;
 private:
 	void CreateTextures( );
+	void ProcessBuffers( );
+	
+	
 	idLexer	parser;
 	idToken	token;
 	idStr currentFile;
