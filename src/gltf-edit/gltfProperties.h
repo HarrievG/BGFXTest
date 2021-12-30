@@ -222,12 +222,16 @@ public:
 //No URI's are left after parsing
 // all data should be layed out like an GLB.
 // EACH URI will be an unique chunk
+// JSON chunk must be first.
 class gltfData
 {
 	friend class gltfCache;
 public:
-	gltfData( ) : json( nullptr ), data( nullptr ) { };
+	gltfData( ) : data( nullptr ), totalChunks(-1) { };
 	~gltfData();
-	byte * json;
-	byte * data;
+	byte* AddData(int size );
+private:
+	//buffer chunks
+	byte ** data;
+	int totalChunks;
 };

@@ -65,12 +65,11 @@ private:
 class gltfItem_uri : public parsable, public parseType<idStr> {
 public:
 	gltfItem_uri( idStr Name ) : name( Name ) { item = nullptr; }
-	virtual void parse( idToken &token ) { *item = token; };
+	virtual void parse( idToken &token ) { *item = token; Convert(); };
 	virtual idStr &Name( ) { return name; }
-	void Set( gltfItem_uri *type,int * targetBufferView ) { item = type; }
 	// read data from uri file, and push it at end of current data buffer for this GLTF File
 	// bufferView will be set accordingly to the generated buffer.
-	bool Convert( gltfData * dataDest, int * bufferView ) {return false; }
+	bool Convert( );
 private:
 	idStr name;
 	int * bufferView;
@@ -157,7 +156,7 @@ public:
 	gltfProperty ParseProp( idToken &token );
 	gltfProperty ResolveProp( idToken &token );
 	
-	static void ResolveUri( const idStr &uri, gltfData *dest );
+	static void ResolveUri( const idStr &uri );
 
 	GLTF_Parser();
 	void Init();

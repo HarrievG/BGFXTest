@@ -108,6 +108,29 @@ void gltfItemArray::Parse(idLexer * lexer) {
 	lexer->ExpectTokenString( "}" );
 }
 
+byte * gltfData::AddData(int size )
+{
+	data[++totalChunks] = (byte*)Mem_Alloc(sizeof(byte*));
+	data[totalChunks] = (byte*)Mem_Alloc16(size);
+	return data[totalChunks];
+}
+
+bool gltfItem_uri::Convert( ) {
+	//read data
+	int length = fileSystem->ReadFile( item->c_str( ), NULL );
+	idFile *file = fileSystem->OpenFileRead( item->c_str() );
+
+	//create buffer
+	gltfBuffer *buffer = gltfAssetCache->Buffer( );
+	buffer->name = item->c_str( );
+	buffer->byteLength = length;
+	
+	//create bufferview
+	gltfBufferView *bufferView = gltfAssetCache->BufferView( );
+	//set bufferview
+	return false;
+}
+
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) { }
 
@@ -480,7 +503,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 
 	unsigned int chunk_type=0;	// 4 bytes
 	unsigned int chunk_length=0;	// 4 bytes
-	byte * data;
+	byte * data = nullptr;
 	gltfData *dataCache = gltfAssetCache->Data( );
 	currentAsset = dataCache;
 
@@ -490,10 +513,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 		length -= file->ReadUnsignedInt( chunk_length );
 		length -= file->ReadUnsignedInt( chunk_type );
 		
-		if (chunkCount)
-			dataCache->json = data;
-
-		data = new byte[chunk_length];
+		data = dataCache->AddData(chunk_length);
 
 		int read = file->Read((void*)data, chunk_length );
 		if (read != chunk_length)
@@ -507,7 +527,6 @@ bool GLTF_Parser::loadGLB(idStr filename )
 			common->FatalError("first chunk was not a json chunk");
 		else {
 			common->Printf("BINCHUNK i", chunk_length );
-			dataCache->data = data;
 		}
 		if (chunkCount++ && length )
 			common->FatalError("corrupt glb file." );
@@ -569,7 +588,7 @@ bool GLTF_Parser::Load(idStr filename )
 	return true;
 }
 
-void GLTF_Parser::ResolveUri( const idStr &uri, gltfData * dest )
+void GLTF_Parser::ResolveUri( const idStr &uri )
 {
 
 }
@@ -607,17 +626,13 @@ void GLTF_Parser::CreateTextures( )
 	}
 	__debugbreak();
 }
-//gltfData::gltfData( size_t jsonSize, size_t datasize ) {
-//	data = new byte[datasize];
-//	json = new byte[jsonSize];
-//}
-
 
 gltfData::~gltfData() {
+	//hvg_todo
+	//delete data, not only pointer
+	common->Warning("GLTF DATA NOT FREED" );
 	if (data)
 		delete[] data;
-	if (json)
-		delete[] json;
 }
 
 #undef GLTFARRAYITEM
