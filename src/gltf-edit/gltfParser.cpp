@@ -631,12 +631,6 @@ bool GLTF_Parser::Load(idStr filename )
 	return true;
 }
 
-void GLTF_Parser::ResolveUri( const idStr &uri )
-{
-
-}
-
-
 void GLTF_Parser::Init( ) {
 	static auto * thisPtr = this;
 	cmdSystem->AddCommand( "gltf_XloadFile", []( const idCmdArgs &args )

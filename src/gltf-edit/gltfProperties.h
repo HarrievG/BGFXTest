@@ -24,6 +24,20 @@ enum gltfProperty {
 	EXTENSIONS_REQUIRED
 };
 
+
+// todo:
+//materials, meshes , nodes
+
+class gltfMesh {
+public:
+	gltfMesh( ) { };
+	idStr primitives;
+	idStr weights;  // number[1,*]
+	idStr name;
+	idStr extensions;
+	idStr extras;
+};
+
 class gltfCamera_Orthographic {
 public:
 	gltfCamera_Orthographic( ) : xmag( 0.0f ), ymag( 0.0f ), zfar( 0.0f ), znear( 0.0f ) { };
