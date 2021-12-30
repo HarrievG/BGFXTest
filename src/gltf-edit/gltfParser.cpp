@@ -117,9 +117,9 @@ void gltfItemArray::Parse(idLexer * lexer) {
 byte * gltfData::AddData(int size, int * chunkCount/*=nullptr*/)
 {
 	if (data == nullptr )
-		data = (byte**)Mem_Alloc(GLTF_MAX_CHUNKS * sizeof(byte**) );
-	data[++totalChunks] = (byte*)Mem_Alloc16(size);
-	
+		data = ( byte ** ) Mem_ClearedAlloc( GLTF_MAX_CHUNKS * sizeof( byte * ) );
+	data[++totalChunks] = (byte*) Mem_ClearedAlloc(size);
+
 	if ( chunkCount )
 		*chunkCount = totalChunks;
 
@@ -143,7 +143,7 @@ bool gltfItem_uri::Convert( ) {
 		common->FatalError("Could not read %s",item->c_str() );
 	
 	if (gltf_parseVerbose.GetBool() )
-		common->Warning("gltf Uri %s loaded into buffer[ %i ]",buffer->name,bufferID );
+		common->Warning("gltf Uri %s loaded into buffer[ %i ]",buffer->name.c_str(),bufferID );
 
 	//create bufferview
 	//if bufferview is not set, this is an buffer.uri.
@@ -156,6 +156,7 @@ bool gltfItem_uri::Convert( ) {
 		newBufferView->byteLength = length;
 	}
 
+	fileSystem->CloseFile( file );
 	//set bufferview
 	return false;
 }
@@ -610,9 +611,12 @@ bool GLTF_Parser::Load(idStr filename )
 		byte* dataBuff = data->AddData(length);
 		currentAsset = data;
 		
-		if (fileSystem->ReadFile(filename, ( void ** )&dataBuff)!=length)
+		idFile* file = fileSystem->OpenFileRead( filename );
+		if ( file->Read(dataBuff,length)!=length)
 			common->FatalError("Cannot read file, %s",filename.c_str() );
-		
+
+		fileSystem->CloseFile(file);
+
 		if ( !parser.LoadMemory((const char*)dataBuff,length,"GLTF_ASCII_JSON",0))
 			return false;
 		

@@ -225,7 +225,6 @@ public:
 // JSON chunk must be first.
 class gltfData
 {
-	friend class gltfCache;
 public:
 	gltfData( ) : data( nullptr ), totalChunks(-1) { };
 	~gltfData();
