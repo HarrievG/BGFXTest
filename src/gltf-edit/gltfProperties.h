@@ -236,15 +236,19 @@ public:
 //No URI's are left after parsing
 // all data should be layed out like an GLB.
 // EACH URI will be an unique chunk
-// JSON chunk must be first.
+// JSON chunk MUST be the first one to be allocated/added
 class gltfData
 {
 public:
-	gltfData( ) : data( nullptr ), totalChunks(-1) { };
+	gltfData( ) : json (nullptr), data( nullptr ), totalChunks(-1) { };
 	~gltfData();
-	byte* AddData(int size, int * chunkCount=nullptr);
+	byte* AddData(int size, int * bufferID=nullptr);
+	byte* GetJsonData() { return json; }
+	byte* GetData(int index ) { return data[index]; }	
+	idStr fileName;
 private:
 	//buffer chunks
+	byte *json;
 	byte ** data;
 	int totalChunks;
 };

@@ -1,6 +1,7 @@
 #include "gltfParser.h"
 #include <FileSystem.h>
 #include "bgfx-stubs/bgfxRender.h"
+#include "bgfx-stubs/bgfxImage.h"
 
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
@@ -114,16 +115,25 @@ void gltfItemArray::Parse(idLexer * lexer) {
 	lexer->ExpectTokenString( "}" );
 }
 
-byte * gltfData::AddData(int size, int * chunkCount/*=nullptr*/)
+byte * gltfData::AddData(int size, int * bufferID/*=nullptr*/)
 {
+	if (totalChunks == -1 )
+	{
+		json  =  (byte*) Mem_ClearedAlloc(size);
+		totalChunks++;
+		return json;
+	}
+
+	int id = totalChunks;
+
 	if (data == nullptr )
 		data = ( byte ** ) Mem_ClearedAlloc( GLTF_MAX_CHUNKS * sizeof( byte * ) );
-	data[++totalChunks] = (byte*) Mem_ClearedAlloc(size);
+	data[totalChunks++] = (byte*) Mem_ClearedAlloc(size);
+	
+	if ( bufferID )
+		*bufferID = id;
 
-	if ( chunkCount )
-		*chunkCount = totalChunks;
-
-	return data[totalChunks];
+	return data[id];
 }
 
 bool gltfItem_uri::Convert( ) {
@@ -139,6 +149,7 @@ bool gltfItem_uri::Convert( ) {
 	buffer->byteLength = length;
 	int bufferID = -1;
 	byte * dest = data->AddData( length, &bufferID );
+
 	if (file->Read( dest, length ) != length)
 		common->FatalError("Could not read %s",item->c_str() );
 	
@@ -645,20 +656,12 @@ void GLTF_Parser::Init( ) {
 
 void GLTF_Parser::CreateTextures( )
 {
-	int dataIndex = gltfAssetCache->GetDataList().Num() - 1;
-	auto samplers = gltfAssetCache->GetSamplerList( );
-	bgfxTextureHandle texture;
-	int cnt = 0;
-	for ( auto & image : gltfAssetCache->GetImageList( ) ) 
-	{
-		//gltfData * data = gltfAssetCache->AssetData()[dataIndex + image.]
-		//if (image. )
-
-		//texture.dim = idVec2( img.width, img.height );
-		//uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
-		//texture.handle = bgfx::createTexture2D( img.width, img.height, false, 1, bgfx::TextureFormat::RGBA8, tex_flags, bgfx::copy( img.image.data( ), img.width * img.height * 4 ) );
+	for ( auto &image : gltfAssetCache->GetImageList( ) ) {
+		gltfBufferView *bv = gltfAssetCache->GetBufferViewList( )[image->bufferView];
+		gltfBuffer *buff = gltfAssetCache->GetBufferList( )[bv->buffer];
+		gltfData *data = gltfAssetCache->GetDataList( )[0];
+		bgfxImageLoad(data->GetData(bv->buffer),bv->byteLength );
 	}
-	__debugbreak();
 }
 
 gltfData::~gltfData() {
