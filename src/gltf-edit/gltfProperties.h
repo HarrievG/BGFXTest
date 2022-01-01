@@ -2,6 +2,7 @@
 #include "idFramework/Common.h"
 #include "idFramework/idlib/containers/StrList.h"
 #include <functional>
+#include "bgfx-stubs/bgfxRender.h"
 
 enum gltfProperty {
 	INVALID, 
@@ -24,6 +25,30 @@ enum gltfProperty {
 	EXTENSIONS_REQUIRED
 };
 
+//No URI's are left after parsing
+// all data should be layed out like an GLB.
+// EACH URI will be an unique chunk
+// JSON chunk MUST be the first one to be allocated/added
+class gltfData
+{
+public:
+	gltfData( ) : json (nullptr), data( nullptr ), totalChunks(-1) { };
+	~gltfData();
+	byte* AddData(int size, int * bufferID=nullptr);
+	byte* GetJsonData() { return json; }
+	byte* GetData(int index ) { return data[index]; }	
+	void FileName( const idStr & file ) { fileName = file; fileNameHash = idStr::Hash( file );}
+	int FileNameHash() {return fileNameHash; }
+	idStr & FileName() { return fileName; }
+private:
+	//buffer chunks
+	byte *json;
+	byte ** data;
+	int totalChunks;
+
+	idStr fileName;
+	int	fileNameHash;
+};
 
 // todo:
 //materials, meshes , nodes
@@ -170,12 +195,14 @@ public:
 
 class gltfBuffer {
 public:
-	gltfBuffer( ) : byteLength(-1) { };
+	gltfBuffer( ) : byteLength(-1) , parent(nullptr){ };
 	idStr uri;
 	int byteLength;
 	idStr name;
 	idStr extensions;
 	idStr extras;
+	//
+	gltfData * parent;
 };
 
 class gltfSampler {
@@ -199,6 +226,8 @@ public:
 	idStr	name;
 	idStr	extensions;
 	idStr	extras;
+	//
+	bgfxTextureHandle bgfxTexture;
 };
 
 class gltfSkin 	{
@@ -233,22 +262,8 @@ public:
 	idStr	extras;
 };
 
-//No URI's are left after parsing
-// all data should be layed out like an GLB.
-// EACH URI will be an unique chunk
-// JSON chunk MUST be the first one to be allocated/added
-class gltfData
-{
+class gltfExtensionsUsed{
 public:
-	gltfData( ) : json (nullptr), data( nullptr ), totalChunks(-1) { };
-	~gltfData();
-	byte* AddData(int size, int * bufferID=nullptr);
-	byte* GetJsonData() { return json; }
-	byte* GetData(int index ) { return data[index]; }	
-	idStr fileName;
-private:
-	//buffer chunks
-	byte *json;
-	byte ** data;
-	int totalChunks;
+	gltfExtensionsUsed( ) { }
+	idStr	extension;
 };

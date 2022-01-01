@@ -23,14 +23,16 @@ public:
 	GLTFCACHEITEM( Image, images )
 	GLTFCACHEITEM( Texture, textures )
 	GLTFCACHEITEM( Accessor, accessors )
+	GLTFCACHEITEM( ExtensionsUsed, extensionsUsed )
 private:
-	idList<gltfImage*>			images;
-	idList<gltfData*>			assetData;
-	idList<gltfSampler*>		samplers;
-	idList<gltfBufferView *>	bufferViews;
-	idList<gltfBuffer*>			buffers;
-	idList<gltfTexture*>		textures;
-	idList<gltfAccessor *>		accessors;
+	idList<gltfImage*>				images;
+	idList<gltfData*>				assetData;
+	idList<gltfSampler*>			samplers;
+	idList<gltfBufferView *>		bufferViews;
+	idList<gltfBuffer*>				buffers;
+	idList<gltfTexture*>			textures;
+	idList<gltfAccessor *>			accessors;
+	idList<gltfExtensionsUsed *>	extensionsUsed;
 };
 extern gltfCache *gltfAssetCache;
 #undef GLTFCACHEITEM
@@ -114,7 +116,7 @@ public:
 class gltfPropertyArray
 {
 public:
-	gltfPropertyArray( idLexer *Parser );
+	gltfPropertyArray( idLexer *Parser,bool AoS = true );
 	~gltfPropertyArray( );
 	struct Iterator {
 		gltfPropertyArray * array;
@@ -133,6 +135,7 @@ public:
 	idLexer * parser;
 	idList<gltfPropertyItem*> properties;
 	gltfPropertyItem * endPtr;
+	bool isArrayOfStructs;
 };
 
 class GLTF_Parser 

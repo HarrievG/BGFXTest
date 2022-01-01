@@ -2,6 +2,7 @@
 
 #include "idFramework/idlib/containers/StrList.h"
 #include "bgfx-stubs/bgfxRender.h"
+#include "gltfProperties.h"
 
 namespace tinygltf {
 	class Model;
@@ -65,6 +66,7 @@ private:
 	bool guiVisible;
 
 	int selectedFileHash;
+	gltfImage * selectedImage;
 };
 
 extern gltfAssetExplorer * assetExplorer;

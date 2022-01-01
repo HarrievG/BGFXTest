@@ -260,32 +260,33 @@ bool gltfSceneEditor::LoadFile( const char *binFile )
 			common->DPrintf( "%s was already loaded \n", binFile );
 		return true;
 	}
+	gltfParser->Load( binFile );
 
-	std::string ext = tinygltf::GetFilePathExtension( binFile );
-	tinygltf::Model &model = loadedAssets.Alloc();
-	std::string err;
-	std::string warn;
-	bool ret = false;
-	if ( ext.compare( "glb" ) == 0 || ext.compare( "bin" ) == 0 ) {
-		common->DPrintf( "Loading %s as a binary\n", binFile );
-		// assume binary glTF.
-		ret = gGLFTLoader.LoadBinaryFromFile( &model, &err, &warn, binFile );
-	} else {
-		// assume ascii glTF.
-		common->DPrintf( "Loading %s as a ASCII\n", binFile );
-		ret = gGLFTLoader.LoadASCIIFromFile( &model, &err, &warn, binFile );
-	}
+	//std::string ext = tinygltf::GetFilePathExtension( binFile );
+	//tinygltf::Model &model = loadedAssets.Alloc();
+	//std::string err;
+	//std::string warn;
+	//bool ret = false;
+	//if ( ext.compare( "glb" ) == 0 || ext.compare( "bin" ) == 0 ) {
+	//	common->DPrintf( "Loading %s as a binary\n", binFile );
+	//	// assume binary glTF.
+	//	ret = gGLFTLoader.LoadBinaryFromFile( &model, &err, &warn, binFile );
+	//} else {
+	//	// assume ascii glTF.
+	//	common->DPrintf( "Loading %s as a ASCII\n", binFile );
+	//	ret = gGLFTLoader.LoadASCIIFromFile( &model, &err, &warn, binFile );
+	//}
 
-	if ( !warn.empty( ) ) {
-		common->Warning( "%s", warn.c_str( ) );
-	}
+	//if ( !warn.empty( ) ) {
+	//	common->Warning( "%s", warn.c_str( ) );
+	//}
 
-	if ( !err.empty( ) ) {
-		common->Error( "%s", err.c_str( ) );
-	}
-	if ( !ret ) {
-		common->Error( "Failed to load .glTF : %s\n", binFile );
-	}
+	//if ( !err.empty( ) ) {
+	//	common->Error( "%s", err.c_str( ) );
+	//}
+	//if ( !ret ) {
+	//	common->Error( "Failed to load .glTF : %s\n", binFile );
+	//}
 	loadedFiles.Append(	binFile );
 	common->Printf( "^2Loading %s Done",binFile );
 	common->SetRefreshOnPrint( false );
@@ -570,12 +571,8 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context )
 		}
 		ImGui::EndChild( );
 		ImGui::SameLine();
-		auto handle = sceneEditor->renderModels.begin();
-		if (handle.p && handle.p->textures.Num())
-			ImGui::Image((void*)(intptr_t)handle.p->textures[0].handle.idx, idVec2((float)500, (float)500), idVec2(0.0f, 1.0f), idVec2(1.0f, 0.0f));
-
-		if ( bgfx::isValid( context->rb ) )
-			ImGui::Image((void*)(intptr_t) context->rb.idx, idVec2((float)context->width/4, (float)context->height/4), idVec2(0.0f, 0.0f), idVec2(1.0f, 1.0f));
+		if ( selectedImage != nullptr )
+			ImGui::Image((void*)(intptr_t) selectedImage->bgfxTexture.handle.idx, idVec2((float)context->width/4, (float)context->height/4), idVec2(0.0f, 0.0f), idVec2(1.0f, 1.0f));
 		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();
@@ -583,36 +580,46 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context )
 }
 void gltfAssetExplorer::DrawImAssetTree( )
 {
-	auto &assets = sceneEditor->GetLoadedAssets( );
-
-	const auto &currentAsset = assets.begin();
 	static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
 	int assetCnt = 0;
-	for (auto & asset : assets )
+	for (auto & data : gltfAssetCache->GetDataList() )
 	{
-		if (selectedFileHash != idStr::Hash(sceneEditor->GetLoadedFiles()[++assetCnt - 1]) )
+		if (selectedFileHash != idStr::Hash(data->FileName().c_str()))
 			continue;
-		//idStr assetStr = 
+
+		auto & images= gltfAssetCache->GetImageList( );
+		//idList<gltfImage*> images;
+
 		int assetID = idStr::Hash( (idStr("Asset%i") + assetCnt).c_str());
-		if (asset.meshes.size() )
+		if ( images.Num() )
 		{
-			int meshCnt=0;
-			bool drawMeshes = ImGui::TreeNodeEx((void*)(intptr_t)(assetID), base_flags, "Meshes ( %i )",asset.meshes.size());
-			if (drawMeshes )
+			int cnt=0;
+			bool drawImages = ImGui::TreeNodeEx((void*)(intptr_t)(assetID), base_flags, "Images ( %i )",images.Num());
+			if ( drawImages )
 			{
-				for (auto & mesh : asset.meshes )
+				for (auto & image : images )
 				{
-					int meshID =  idStr::Hash((idStr("Meshes" ) + ++meshCnt).c_str());
-					if (ImGui::TreeNodeEx((void*)(intptr_t)(meshID), base_flags,mesh.name.empty() ? "<Unnamed Mesh>" : mesh.name.c_str()))
+					idStr & fileName = gltfAssetCache->GetBufferList( )[gltfAssetCache->GetBufferViewList( )[image->bufferView]->buffer]->parent->FileName();
+					int fileHash = gltfAssetCache->GetBufferList( )[gltfAssetCache->GetBufferViewList( )[image->bufferView]->buffer]->parent->FileNameHash( );
+					if (selectedFileHash == fileHash)
 					{
-						int apap = 1;
-						ImGui::TreePop();
+						int imageID =  idStr::Hash((idStr("Images" ) + ++cnt).c_str());
+						idStr name = image->name.IsEmpty() ? image->uri.IsEmpty() ? fileName : image->uri : image->name;
+						if (ImGui::TreeNodeEx((void*)(intptr_t)(imageID), base_flags,name.c_str()))
+						{
+							selectedImage = image;
+							ImGui::TreePop();
+						}
 					}
-					
 				}
 				ImGui::TreePop();
 			}
 		}
 	}
+	//auto &assets = sceneEditor->GetLoadedAssets( );
+
+	//const auto &currentAsset = assets.begin();
+	
+	//}
 	
 }

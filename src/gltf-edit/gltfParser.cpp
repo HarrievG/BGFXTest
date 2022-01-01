@@ -58,8 +58,8 @@ gltfPropertyArray::~gltfPropertyArray()
 	delete endPtr;
 	properties.DeleteContents(true);
 }
-gltfPropertyArray::gltfPropertyArray( idLexer *Parser ) 
-	: parser( Parser ), iterating( true ), dirty( true ), index( 0 )
+gltfPropertyArray::gltfPropertyArray( idLexer *Parser, bool AoS/* = true */)
+	: parser( Parser ), iterating( true ), dirty( true ), index( 0 ), isArrayOfStructs(AoS)
 {
 	properties.AssureSizeAlloc(1024, idListNewElement<gltfPropertyItem> );
 	properties.SetNum(0);
@@ -69,15 +69,23 @@ gltfPropertyArray::gltfPropertyArray( idLexer *Parser )
 auto gltfPropertyArray::begin( )  {
 	if ( iterating )
 	{
-		if ( !parser->PeekTokenString( "{" ) ) 	{
+		if ( isArrayOfStructs && !parser->PeekTokenString( "{" ) ) 	{
 			if ( !parser->ExpectTokenString( "[" ) && parser->PeekTokenString( "{" ) )
 				common->FatalError( "Malformed gltf array" );
-		}
+		}else if ( !isArrayOfStructs && !parser->ExpectTokenString( "[") )
+			common->FatalError( "Malformed gltf array" );
 
 		properties.AssureSizeAlloc( properties.Num() + 1,idListNewElement<gltfPropertyItem> );
 		gltfPropertyItem *start = properties[0];
 		start->array = this; 
-		parser->ParseBracedSection( start->item );
+		if (isArrayOfStructs )
+			parser->ParseBracedSection( start->item );
+		else
+		{
+			idToken token;
+			parser->ExpectAnyToken(&token);
+			start->item = token;
+		}
 		iterating = parser->PeekTokenString( "," );
 		if ( iterating )
 		{
@@ -145,6 +153,7 @@ bool gltfItem_uri::Convert( ) {
 
 	//create buffer
 	gltfBuffer *buffer = gltfAssetCache->Buffer( );
+	buffer->parent = data;
 	buffer->name = item->c_str( );
 	buffer->byteLength = length;
 	int bufferID = -1;
@@ -341,7 +350,8 @@ void GLTF_Parser::Parse_BUFFERS( idToken &token )
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfBuffer", 0 );
 
 		gltfBuffer *gltfBuf = gltfAssetCache->Buffer( );
-		//GLTFARRAYITEMREF( gltfBuf, uri )
+		gltfBuf->parent = currentAsset;
+
 		uri->Set( &gltfBuf->uri, nullptr , currentAsset );
 		GLTFARRAYITEMREF( gltfBuf, byteLength );
 		GLTFARRAYITEMREF( gltfBuf, name );
@@ -368,23 +378,14 @@ void GLTF_Parser::Parse_SKINS( idToken &token ) {
 }
 void GLTF_Parser::Parse_EXTENSIONS_USED( idToken &token )
 {
-	parser.ExpectTokenString( "[" );
-	idStrList exts;
-	idToken item;
-	bool parsing = true;
-	while (parsing && parser.ExpectAnyToken(&item))
-	{
-		if ( item.type != TT_STRING )
-			common->FatalError( "malformed extensions_used array" );
-		idStr &extension = exts.Alloc( );
-		extension = item.c_str( );
-		parsing = parser.PeekTokenString(",");
-		if ( parsing )
-			parser.ExpectTokenString(",");
+	gltfPropertyArray array = gltfPropertyArray( &parser,false );
+	for ( auto &prop : array ) {
+		gltfExtensionsUsed * ext = gltfAssetCache->ExtensionsUsed( );
+		ext->extension = prop.item;
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
 	}
 	parser.ExpectTokenString( "]" );
-	for (auto & out : exts )
-		common->Printf("%s",out.c_str() );
 }
 void GLTF_Parser::Parse_EXTENSIONS_REQUIRED( idToken &token ) {
 	parser.ExpectTokenString( "[" );
@@ -556,7 +557,8 @@ bool GLTF_Parser::loadGLB(idStr filename )
 		length -= file->ReadUnsignedInt( chunk_type );
 		
 		data = dataCache->AddData(chunk_length);
-
+		dataCache->FileName(filename);
+			
 		int read = file->Read((void*)data, chunk_length );
 		if (read != chunk_length)
 			common->FatalError("Could not read full chunk (%i bytes) in file %s",chunk_length, filename );
@@ -619,6 +621,7 @@ bool GLTF_Parser::Load(idStr filename )
 	else {
 		int length = fileSystem->ReadFile(filename,NULL);
 		gltfData * data = gltfAssetCache->Data();
+		data->FileName(filename);
 		byte* dataBuff = data->AddData(length);
 		currentAsset = data;
 		
@@ -659,8 +662,8 @@ void GLTF_Parser::CreateTextures( )
 	for ( auto &image : gltfAssetCache->GetImageList( ) ) {
 		gltfBufferView *bv = gltfAssetCache->GetBufferViewList( )[image->bufferView];
 		gltfBuffer *buff = gltfAssetCache->GetBufferList( )[bv->buffer];
-		gltfData *data = gltfAssetCache->GetDataList( )[0];
-		bgfxImageLoad(data->GetData(bv->buffer),bv->byteLength );
+		gltfData *data = buff->parent;
+		image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer),bv->byteLength );
 	}
 }
 
