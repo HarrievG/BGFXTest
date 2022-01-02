@@ -663,7 +663,7 @@ void GLTF_Parser::CreateTextures( )
 		gltfBufferView *bv = gltfAssetCache->GetBufferViewList( )[image->bufferView];
 		gltfBuffer *buff = gltfAssetCache->GetBufferList( )[bv->buffer];
 		gltfData *data = buff->parent;
-		image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer),bv->byteLength );
+		image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
 	}
 }
 

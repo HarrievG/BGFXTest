@@ -182,7 +182,7 @@ public:
 
 class gltfBufferView {
 public: 
-	gltfBufferView( ) : buffer(-1),byteLength(-1),byteStride(-1),byteOffset(-1),target(-1){};
+	gltfBufferView( ) : buffer(-1),byteLength(-1),byteStride(0),byteOffset(0),target(-1){};
 	int buffer;
 	int byteLength;
 	int byteStride;
