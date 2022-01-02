@@ -136,7 +136,7 @@ byte * gltfData::AddData(int size, int * bufferID/*=nullptr*/)
 
 	if (data == nullptr )
 		data = ( byte ** ) Mem_ClearedAlloc( GLTF_MAX_CHUNKS * sizeof( byte * ) );
-	data[totalChunks++] = (byte*) Mem_ClearedAlloc(size);
+	data[totalChunks++] = (byte*) Mem_Alloc16(size);
 	
 	if ( bufferID )
 		*bufferID = id;
@@ -257,6 +257,8 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 		propItems.Parse	(&lexer);
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
+		//automate..
+		image->bgfxTexture.handle.idx = UINT16_MAX;
 	}
 	parser.ExpectTokenString( "]" );
 }
@@ -660,10 +662,13 @@ void GLTF_Parser::Init( ) {
 void GLTF_Parser::CreateTextures( )
 {
 	for ( auto &image : gltfAssetCache->GetImageList( ) ) {
-		gltfBufferView *bv = gltfAssetCache->GetBufferViewList( )[image->bufferView];
-		gltfBuffer *buff = gltfAssetCache->GetBufferList( )[bv->buffer];
-		gltfData *data = buff->parent;
-		image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
+		if(image->bgfxTexture.handle.idx == UINT16_MAX )
+		{
+			gltfBufferView *bv = gltfAssetCache->GetBufferViewList( )[image->bufferView];
+			gltfBuffer *buff = gltfAssetCache->GetBufferList( )[bv->buffer];
+			gltfData *data = buff->parent;
+			image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
+		}
 	}
 }
 

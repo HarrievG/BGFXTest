@@ -584,26 +584,25 @@ void gltfAssetExplorer::DrawImAssetTree( )
 	int assetCnt = 0;
 	for (auto & data : gltfAssetCache->GetDataList() )
 	{
-		if (selectedFileHash != idStr::Hash(data->FileName().c_str()))
+		if (selectedFileHash != data->FileNameHash())
 			continue;
 
 		auto & images= gltfAssetCache->GetImageList( );
 		//idList<gltfImage*> images;
-
-		int assetID = idStr::Hash( (idStr("Asset%i") + assetCnt).c_str());
+		int assetID = idStr::Hash( ( idStr( "Asset%i" ) + assetCnt++ ).c_str( ) );
 		if ( images.Num() )
 		{
-			int cnt=0;
-			bool drawImages = ImGui::TreeNodeEx((void*)(intptr_t)(assetID), base_flags, "Images ( %i )",images.Num());
+			bool drawImages = ImGui::TreeNodeEx((void*)(intptr_t)(data->FileNameHash()), base_flags, "Images ( %i )",images.Num());
 			if ( drawImages )
 			{
+				int cnt = 0;
 				for (auto & image : images )
 				{
 					idStr & fileName = gltfAssetCache->GetBufferList( )[gltfAssetCache->GetBufferViewList( )[image->bufferView]->buffer]->parent->FileName();
 					int fileHash = gltfAssetCache->GetBufferList( )[gltfAssetCache->GetBufferViewList( )[image->bufferView]->buffer]->parent->FileNameHash( );
 					if (selectedFileHash == fileHash)
 					{
-						int imageID =  idStr::Hash((idStr("Images" ) + ++cnt).c_str());
+						int imageID = data->FileNameHash( ) + ++cnt;
 						idStr name = image->name.IsEmpty() ? image->uri.IsEmpty() ? fileName : image->uri : image->name;
 						if (ImGui::TreeNodeEx((void*)(intptr_t)(imageID), base_flags,name.c_str()))
 						{
