@@ -169,8 +169,11 @@ public:
 	bool Load(idStr filename );
 	bool loadGLB(idStr filename );
 
-	//current/last loaded gltf asset 
+	//current/last loaded gltf asset and index offsets
 	gltfData *currentAsset;
+	int bufferViewOffset;
+	int bufferOffset;
+
 private:
 	void CreateTextures( );
 	

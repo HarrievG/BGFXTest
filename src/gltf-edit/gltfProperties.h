@@ -37,7 +37,7 @@ public:
 	byte* AddData(int size, int * bufferID=nullptr);
 	byte* GetJsonData() { return json; }
 	byte* GetData(int index ) { return data[index]; }	
-	void FileName( const idStr & file ) { fileName = file; fileNameHash = idStr::Hash( file );}
+	void FileName( const idStr & file ) { fileName = file; fileNameHash = idStr::Hash( file.c_str() );}
 	int FileNameHash() {return fileNameHash; }
 	idStr & FileName() { return fileName; }
 private:
@@ -191,6 +191,8 @@ public:
 	idStr name;
 	idStr extensions;
 	idStr extras;
+	//
+	gltfData *parent;
 };
 
 class gltfBuffer {

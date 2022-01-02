@@ -174,10 +174,11 @@ bool gltfItem_uri::Convert( ) {
 		gltfBufferView * newBufferView = gltfAssetCache->BufferView( );
 		newBufferView->buffer = bufferID;
 		newBufferView->byteLength = length;
+		newBufferView->parent = data;
 	}
 
 	fileSystem->CloseFile( file );
-	//set bufferview
+
 	return false;
 }
 
@@ -255,8 +256,14 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 		extensions->Set	(&image->extensions);
 		extras->Set		(&image->extras);
 		propItems.Parse	(&lexer);
+		
+		////only offset when no buffer was generated
+		//if (image->uri.IsEmpty() )
+		//	image->bufferView += bufferViewOffset;
+
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
+
 		//automate..
 		image->bgfxTexture.handle.idx = UINT16_MAX;
 	}
@@ -299,6 +306,8 @@ void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token )
 		GLTFARRAYITEMREF( gltfBV, extensions);
 		GLTFARRAYITEMREF( gltfBV, extras	);
 		bv.Parse(&lexer); 
+		gltfBV->parent = currentAsset;
+		gltfBV->buffer += bufferOffset;
 
 		if (gltf_parseVerbose.GetBool())
 			common->Printf( "%s", prop.item.c_str( ) );
@@ -584,6 +593,9 @@ bool GLTF_Parser::loadGLB(idStr filename )
 
 bool GLTF_Parser::Parse()
 {
+	bufferViewOffset = gltfAssetCache->GetBufferViewList().Num();
+	bufferOffset = gltfAssetCache->GetBufferList().Num();
+
 	bool parsing = true;
 	parser.ExpectTokenString( "{" );
 	while ( parsing && parser.ExpectAnyToken( &token ) ) {
@@ -615,6 +627,8 @@ bool GLTF_Parser::Load(idStr filename )
 	//gfx is not updated on command
 	common->SetRefreshOnPrint( true );
 
+	int bufferCnt = gltfAssetCache->GetBufferList().Num();
+	int bufferViewCnt = gltfAssetCache->GetBufferViewList().Num();
 	currentFile = filename;
  	if ( filename.CheckExtension( ".glb" ) ) {
 		if ( !loadGLB( filename ) )
@@ -666,7 +680,7 @@ void GLTF_Parser::CreateTextures( )
 		{
 			gltfBufferView *bv = gltfAssetCache->GetBufferViewList( )[image->bufferView];
 			gltfBuffer *buff = gltfAssetCache->GetBufferList( )[bv->buffer];
-			gltfData *data = buff->parent;
+			gltfData *data = bv->parent;
 			image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
 		}
 	}
