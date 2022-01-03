@@ -29,6 +29,8 @@ enum gltfProperty {
 // all data should be layed out like an GLB.
 // EACH URI will be an unique chunk
 // JSON chunk MUST be the first one to be allocated/added
+
+class gltfBuffer;
 class gltfData
 {
 public:
@@ -40,12 +42,16 @@ public:
 	void FileName( const idStr & file ) { fileName = file; fileNameHash = idStr::Hash( file.c_str() );}
 	int FileNameHash() {return fileNameHash; }
 	idStr & FileName() { return fileName; }
+
+	gltfBuffer * newBuffer( ) { buffers.AssureSizeAlloc( buffers.Num( ) + 1, idListNewElement<gltfBuffer> ); return buffers[buffers.Num( ) - 1]; }
+	idList<gltfBuffer *> & BufferList() { return buffers; }
 private:
 	//buffer chunks
 	byte *json;
 	byte ** data;
 	int totalChunks;
-
+	
+	idList<gltfBuffer *> buffers;
 	idStr fileName;
 	int	fileNameHash;
 };

@@ -61,7 +61,7 @@ gltfPropertyArray::~gltfPropertyArray()
 gltfPropertyArray::gltfPropertyArray( idLexer *Parser, bool AoS/* = true */)
 	: parser( Parser ), iterating( true ), dirty( true ), index( 0 ), isArrayOfStructs(AoS)
 {
-	properties.AssureSizeAlloc(1024, idListNewElement<gltfPropertyItem> );
+	properties.AssureSizeAlloc(32, idListNewElement<gltfPropertyItem> );
 	properties.SetNum(0);
 	endPtr = new gltfPropertyItem();
 	endPtr->array = this;
@@ -136,7 +136,7 @@ byte * gltfData::AddData(int size, int * bufferID/*=nullptr*/)
 
 	if (data == nullptr )
 		data = ( byte ** ) Mem_ClearedAlloc( GLTF_MAX_CHUNKS * sizeof( byte * ) );
-	data[totalChunks++] = (byte*) Mem_Alloc16(size);
+	data[totalChunks++] = (byte*) Mem_ClearedAlloc(size);
 	
 	if ( bufferID )
 		*bufferID = id;
@@ -152,7 +152,7 @@ bool gltfItem_uri::Convert( ) {
 	idFile *file = fileSystem->OpenFileRead( item->c_str() );
 
 	//create buffer
-	gltfBuffer *buffer = gltfAssetCache->Buffer( );
+	gltfBuffer *buffer = data->newBuffer( );
 	buffer->parent = data;
 	buffer->name = item->c_str( );
 	buffer->byteLength = length;
@@ -256,10 +256,10 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 		extensions->Set	(&image->extensions);
 		extras->Set		(&image->extras);
 		propItems.Parse	(&lexer);
-		
-		////only offset when no buffer was generated
-		//if (image->uri.IsEmpty() )
-		//	image->bufferView += bufferViewOffset;
+
+		//only offset when no buffer was generated
+		if (image->uri.IsEmpty() )
+			image->bufferView += bufferViewOffset;
 
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
@@ -307,7 +307,6 @@ void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token )
 		GLTFARRAYITEMREF( gltfBV, extras	);
 		bv.Parse(&lexer); 
 		gltfBV->parent = currentAsset;
-		gltfBV->buffer += bufferOffset;
 
 		if (gltf_parseVerbose.GetBool())
 			common->Printf( "%s", prop.item.c_str( ) );
@@ -360,7 +359,7 @@ void GLTF_Parser::Parse_BUFFERS( idToken &token )
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfBuffer", 0 );
 
-		gltfBuffer *gltfBuf = gltfAssetCache->Buffer( );
+		gltfBuffer *gltfBuf = currentAsset->newBuffer( );
 		gltfBuf->parent = currentAsset;
 
 		uri->Set( &gltfBuf->uri, nullptr , currentAsset );
@@ -569,7 +568,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 		
 		data = dataCache->AddData(chunk_length);
 		dataCache->FileName(filename);
-			
+
 		int read = file->Read((void*)data, chunk_length );
 		if (read != chunk_length)
 			common->FatalError("Could not read full chunk (%i bytes) in file %s",chunk_length, filename );
@@ -594,7 +593,6 @@ bool GLTF_Parser::loadGLB(idStr filename )
 bool GLTF_Parser::Parse()
 {
 	bufferViewOffset = gltfAssetCache->GetBufferViewList().Num();
-	bufferOffset = gltfAssetCache->GetBufferList().Num();
 
 	bool parsing = true;
 	parser.ExpectTokenString( "{" );
@@ -627,8 +625,6 @@ bool GLTF_Parser::Load(idStr filename )
 	//gfx is not updated on command
 	common->SetRefreshOnPrint( true );
 
-	int bufferCnt = gltfAssetCache->GetBufferList().Num();
-	int bufferViewCnt = gltfAssetCache->GetBufferViewList().Num();
 	currentFile = filename;
  	if ( filename.CheckExtension( ".glb" ) ) {
 		if ( !loadGLB( filename ) )
@@ -679,8 +675,9 @@ void GLTF_Parser::CreateTextures( )
 		if(image->bgfxTexture.handle.idx == UINT16_MAX )
 		{
 			gltfBufferView *bv = gltfAssetCache->GetBufferViewList( )[image->bufferView];
-			gltfBuffer *buff = gltfAssetCache->GetBufferList( )[bv->buffer];
 			gltfData *data = bv->parent;
+			gltfBuffer *buff = data->BufferList( )[bv->buffer];
+			
 			image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
 		}
 	}

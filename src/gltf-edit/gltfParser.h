@@ -17,7 +17,6 @@ public:
 		images.DeleteContents( true );
 	}
 	GLTFCACHEITEM( Sampler, samplers )
-	GLTFCACHEITEM( Buffer, buffers )
 	GLTFCACHEITEM( BufferView, bufferViews )
 	GLTFCACHEITEM( Data, assetData )
 	GLTFCACHEITEM( Image, images )
@@ -29,7 +28,6 @@ private:
 	idList<gltfData*>				assetData;
 	idList<gltfSampler*>			samplers;
 	idList<gltfBufferView *>		bufferViews;
-	idList<gltfBuffer*>				buffers;
 	idList<gltfTexture*>			textures;
 	idList<gltfAccessor *>			accessors;
 	idList<gltfExtensionsUsed *>	extensionsUsed;
@@ -172,7 +170,6 @@ public:
 	//current/last loaded gltf asset and index offsets
 	gltfData *currentAsset;
 	int bufferViewOffset;
-	int bufferOffset;
 
 private:
 	void CreateTextures( );

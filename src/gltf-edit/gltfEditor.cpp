@@ -580,7 +580,7 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context )
 }
 void gltfAssetExplorer::DrawImAssetTree( )
 {
-	static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_OpenOnDoubleClick | ImGuiTreeNodeFlags_SpanAvailWidth;
+	static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 	int assetCnt = 0;
 	for (auto & data : gltfAssetCache->GetDataList() )
 	{
@@ -598,20 +598,17 @@ void gltfAssetExplorer::DrawImAssetTree( )
 			{
 				for (auto & image : images )
 				{
-					imageCount++;
-					idStr & fileName = gltfAssetCache->GetBufferList( )[gltfAssetCache->GetBufferViewList( )[image->bufferView]->buffer]->parent->FileName();
-					int fileHash = gltfAssetCache->GetBufferList( )[gltfAssetCache->GetBufferViewList( )[image->bufferView]->buffer]->parent->FileNameHash( );
+					gltfData * data = gltfAssetCache->GetBufferViewList( )[image->bufferView]->parent;
+					int fileHash = data->FileNameHash( );
 					if (selectedFileHash == fileHash)
 					{
-						int imageID = idStr::Hash( ( idStr( "image" ) + imageCount ).c_str( ) );
-						idStr name = image->name.IsEmpty() ? image->uri.IsEmpty() ? fileName : image->uri : image->name;
+						int imageID = idStr::Hash( ( idStr( "image" ) + imageCount++ ).c_str( ) );
+						idStr name = image->name.IsEmpty() ? image->uri.IsEmpty() ? data->FileName() : image->uri : image->name;
 						bool selected = selectedImage == image;
+						{ImGui::PushID(( idStr( "image" ) + imageCount ).c_str( ));
 						if(ImGui::Selectable( name.c_str( ), selected, ImGuiSelectableFlags_AllowDoubleClick ))
-						//if (ImGui::TreeNodeEx((void*)(intptr_t)(imageID), base_flags,name.c_str()))
-						{
 							selectedImage = image;
-							//ImGui::TreePop();
-						}
+						ImGui::PopID(/*image*/ );}
 					}
 				}
 				ImGui::TreePop();
