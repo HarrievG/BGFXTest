@@ -43,6 +43,7 @@ public:
 	int FileNameHash() {return fileNameHash; }
 	idStr & FileName() { return fileName; }
 
+	//GLTFCACHEITEM(Buffer,buffers );
 	gltfBuffer * newBuffer( ) { buffers.AssureSizeAlloc( buffers.Num( ) + 1, idListNewElement<gltfBuffer> ); return buffers[buffers.Num( ) - 1]; }
 	idList<gltfBuffer *> & BufferList() { return buffers; }
 private:
@@ -59,9 +60,29 @@ private:
 // todo:
 //materials, meshes , nodes
 
+class gltfMesh_Primitive_Attribute {
+public:
+	gltfMesh_Primitive_Attribute( ) : accessorIndex(-1){ }
+	idStr attributeSemantic;
+	int accessorIndex;
+};
+
+class gltfMesh_Primitive {
+public:
+	gltfMesh_Primitive( ) { }
+	idStr attributes;
+	int	indices;
+	int  material;
+	int mode;
+	idStr targets;
+	idStr extensions;
+	idStr extras;
+};
+
 class gltfMesh {
 public:
 	gltfMesh( ) { };
+
 	idStr primitives;
 	idStr weights;  // number[1,*]
 	idStr name;

@@ -260,7 +260,8 @@ bool gltfSceneEditor::LoadFile( const char *binFile )
 			common->DPrintf( "%s was already loaded \n", binFile );
 		return true;
 	}
-	gltfParser->Load( binFile );
+	if (!gltfParser->Load( binFile ))
+		return false;
 
 	//std::string ext = tinygltf::GetFilePathExtension( binFile );
 	//tinygltf::Model &model = loadedAssets.Alloc();

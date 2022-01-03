@@ -28,7 +28,7 @@ gltfCache * gltfAssetCache = &localCache;
 //}
 
 
-idCVar gltf_parseVerbose( "gltf_parseVerbose", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "print gltf json data while parsing" );
+idCVar gltf_parseVerbose( "gltf_parseVerbose", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "print gltf json data while parsing" );
 
 void gltfPropertyArray::Iterator::operator ++( ) {
 	if ( array->iterating )
@@ -182,6 +182,59 @@ bool gltfItem_uri::Convert( ) {
 	return false;
 }
 
+void gltfItem_mesh_primitive::parse( idToken &token )
+{ 
+	gltfItemArray prim;
+	GLTFARRAYITEM( prim, attributes,	gltfItem_mesh_primitive_attribute );
+	GLTFARRAYITEM( prim, indices,		gltfItem_integer );
+	GLTFARRAYITEM( prim, material,		gltfItem_integer );
+	GLTFARRAYITEM( prim, mode,			gltfItem_integer );
+	GLTFARRAYITEM( prim, targets,		gltfItem ); // object [1-*]
+	GLTFARRAYITEM( prim, extensions,	gltfItem );
+	GLTFARRAYITEM( prim, extras,		gltfItem );
+
+	gltfPropertyArray array = gltfPropertyArray( parser );
+	for ( auto &prop : array ) 	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfItem_mesh_primitiveB", 0 );
+
+		gltfMesh_Primitive *gltfMeshPrim = gltfAssetCache->Mesh_Primitive( );
+
+		attributes->Set( &gltfMeshPrim->attributes, &lexer );
+		GLTFARRAYITEMREF( gltfMeshPrim, indices	);
+		GLTFARRAYITEMREF( gltfMeshPrim, material );
+		GLTFARRAYITEMREF( gltfMeshPrim, mode );
+		GLTFARRAYITEMREF( gltfMeshPrim, targets );
+		GLTFARRAYITEMREF( gltfMeshPrim, extensions );
+		GLTFARRAYITEMREF( gltfMeshPrim, extras );
+		prim.Parse( &lexer );
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
+	parser->ExpectTokenString( "]" );
+}
+
+void gltfItem_mesh_primitive_attribute::parse( idToken &token ) {
+	parser->UnreadToken(&token);
+	bool parsing = true;
+	parser->ExpectTokenString( "{" );
+	while ( parsing && parser->ExpectAnyToken( &token ) ) {
+		gltfMesh_Primitive_Attribute *attr = gltfAssetCache->Mesh_Primitive_Attribute( );
+		parser->ExpectTokenString( ":" );
+		attr->attributeSemantic = token;
+		parser->ExpectAnyToken( &token );
+		attr->accessorIndex = token.GetIntValue();
+		parsing = parser->PeekTokenString( "," );
+		if ( parsing )
+			parser->ExpectTokenString( "," );
+	}
+	parser->ExpectTokenString( "}" );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
+
+
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) { }
 
@@ -218,9 +271,29 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 }
 void GLTF_Parser::Parse_MESHES( idToken &token ) 
 {
+	gltfItemArray mesh;
+	GLTFARRAYITEM( mesh, primitives,	gltfItem_mesh_primitive ); // object
+	GLTFARRAYITEM( mesh, weights,		gltfItem ); //number[1 - *]
+	GLTFARRAYITEM( mesh, name,			gltfItem ); 
+	GLTFARRAYITEM( mesh, extensions,	gltfItem );
+	GLTFARRAYITEM( mesh, extras,		gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
-	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	for ( auto &prop : array ) 	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfMesh", 0 );
+
+		gltfMesh *gltfMesh = gltfAssetCache->Mesh( );
+
+		primitives->Set( &gltfMesh->primitives, &lexer);
+		GLTFARRAYITEMREF( gltfMesh,  weights );
+		GLTFARRAYITEMREF( gltfMesh,  name );
+		GLTFARRAYITEMREF( gltfMesh,  extensions );
+		GLTFARRAYITEMREF( gltfMesh,  extras );
+		mesh.Parse( &lexer );
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_TEXTURES( idToken &token )
@@ -625,12 +698,13 @@ bool GLTF_Parser::Load(idStr filename )
 	//gfx is not updated on command
 	common->SetRefreshOnPrint( true );
 
+	
 	currentFile = filename;
  	if ( filename.CheckExtension( ".glb" ) ) {
 		if ( !loadGLB( filename ) )
 			return false;
 	}
-	else {
+	else if ( filename.CheckExtension( ".gltf" ) ) {
 		int length = fileSystem->ReadFile(filename,NULL);
 		gltfData * data = gltfAssetCache->Data();
 		data->FileName(filename);
@@ -648,7 +722,8 @@ bool GLTF_Parser::Load(idStr filename )
 		
 		Parse();
 
-	}
+	}else
+		return false;
 
 	parser.Reset();
 	parser.FreeSource();

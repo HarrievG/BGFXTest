@@ -23,17 +23,22 @@ public:
 	GLTFCACHEITEM( Texture, textures )
 	GLTFCACHEITEM( Accessor, accessors )
 	GLTFCACHEITEM( ExtensionsUsed, extensionsUsed )
+	GLTFCACHEITEM( Mesh, meshes )
+	GLTFCACHEITEM( Mesh_Primitive, mesh_primitives )
+	GLTFCACHEITEM( Mesh_Primitive_Attribute, mesh_attributes )
 private:
-	idList<gltfImage*>				images;
-	idList<gltfData*>				assetData;
-	idList<gltfSampler*>			samplers;
-	idList<gltfBufferView *>		bufferViews;
-	idList<gltfTexture*>			textures;
-	idList<gltfAccessor *>			accessors;
-	idList<gltfExtensionsUsed *>	extensionsUsed;
+	idList<gltfImage*>						images;
+	idList<gltfData*>						assetData;
+	idList<gltfSampler*>					samplers;
+	idList<gltfBufferView *>				bufferViews;
+	idList<gltfTexture*>					textures;
+	idList<gltfAccessor *>					accessors;
+	idList<gltfExtensionsUsed *>			extensionsUsed;
+	idList<gltfMesh*>						meshes;
+	idList<gltfMesh_Primitive *>			mesh_primitives;
+	idList<gltfMesh_Primitive_Attribute *>	mesh_attributes;
 };
 extern gltfCache *gltfAssetCache;
-#undef GLTFCACHEITEM
 /////////////////////////////////////////////////////////////////////////////
 
 struct parsable {
@@ -75,6 +80,28 @@ private:
 	idStr name;
 	int * bufferView;
 	gltfData *  data;
+};
+
+class gltfItem_mesh_primitive: public parsable, public parseType<idStr> {
+public:
+	gltfItem_mesh_primitive( idStr Name ) : name( Name ),parser(nullptr) { item = nullptr; }
+	virtual void parse( idToken &token );;
+	virtual idStr &Name( ) { return name; }
+	void Set( idStr *type, idLexer *lexer ) { parseType::Set( type ); parser = lexer; }
+private:
+	idStr name;
+	idLexer * parser;
+};
+
+class gltfItem_mesh_primitive_attribute : public parsable, public parseType<idStr> {
+public:
+	gltfItem_mesh_primitive_attribute( idStr Name ) : name( Name ),parser(nullptr)  { item = nullptr; }
+	virtual void parse( idToken &token );;
+	virtual idStr &Name( ) { return name; }
+	void Set( idStr *type, idLexer *lexer ) { parseType::Set( type ); parser = lexer; }
+private:
+	idStr name;
+	idLexer *parser;
 };
 
 //helper macro to define more gltf data types
