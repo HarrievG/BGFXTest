@@ -46,6 +46,8 @@ public:
 	//GLTFCACHEITEM(Buffer,buffers );
 	gltfBuffer * newBuffer( ) { buffers.AssureSizeAlloc( buffers.Num( ) + 1, idListNewElement<gltfBuffer> ); return buffers[buffers.Num( ) - 1]; }
 	idList<gltfBuffer *> & BufferList() { return buffers; }
+	//gltfAccessor *newAccessor( ) { accessors.AssureSizeAlloc( accessors.Num( ) + 1, idListNewElement<gltfAccessor> ); return accessors[accessors.Num( ) - 1]; }
+	//idList<gltfAccessor *> &AccessorList( ) { return accessors; }
 private:
 	//buffer chunks
 	byte *json;
@@ -53,6 +55,7 @@ private:
 	int totalChunks;
 	
 	idList<gltfBuffer *> buffers;
+	//idList<gltfAccessor *> accessors;
 	idStr fileName;
 	int	fileNameHash;
 };
@@ -69,12 +72,12 @@ public:
 
 class gltfMesh_Primitive {
 public:
-	gltfMesh_Primitive( ) { }
-	idStr attributes;
+	gltfMesh_Primitive( ): indices(-1), material(-1), mode(-1){ }
+	idList<gltfMesh_Primitive_Attribute*> attributes;
 	int	indices;
 	int  material;
 	int mode;
-	idStr targets;
+	idStr target;
 	idStr extensions;
 	idStr extras;
 };
@@ -83,7 +86,7 @@ class gltfMesh {
 public:
 	gltfMesh( ) { };
 
-	idStr primitives;
+	idList<gltfMesh_Primitive*> primitives;
 	idStr weights;  // number[1,*]
 	idStr name;
 	idStr extensions;

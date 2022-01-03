@@ -189,7 +189,7 @@ void gltfItem_mesh_primitive::parse( idToken &token )
 	GLTFARRAYITEM( prim, indices,		gltfItem_integer );
 	GLTFARRAYITEM( prim, material,		gltfItem_integer );
 	GLTFARRAYITEM( prim, mode,			gltfItem_integer );
-	GLTFARRAYITEM( prim, targets,		gltfItem ); // object [1-*]
+	GLTFARRAYITEM( prim, target,		gltfItem ); 
 	GLTFARRAYITEM( prim, extensions,	gltfItem );
 	GLTFARRAYITEM( prim, extras,		gltfItem );
 
@@ -198,13 +198,15 @@ void gltfItem_mesh_primitive::parse( idToken &token )
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfItem_mesh_primitiveB", 0 );
 
-		gltfMesh_Primitive *gltfMeshPrim = gltfAssetCache->Mesh_Primitive( );
+
+		item->AssureSizeAlloc(item->Num() + 1,idListNewElement<gltfMesh_Primitive>);
+		gltfMesh_Primitive *gltfMeshPrim =(*item)[item->Num() - 1];
 
 		attributes->Set( &gltfMeshPrim->attributes, &lexer );
 		GLTFARRAYITEMREF( gltfMeshPrim, indices	);
 		GLTFARRAYITEMREF( gltfMeshPrim, material );
 		GLTFARRAYITEMREF( gltfMeshPrim, mode );
-		GLTFARRAYITEMREF( gltfMeshPrim, targets );
+		GLTFARRAYITEMREF( gltfMeshPrim, target );
 		GLTFARRAYITEMREF( gltfMeshPrim, extensions );
 		GLTFARRAYITEMREF( gltfMeshPrim, extras );
 		prim.Parse( &lexer );
@@ -215,11 +217,11 @@ void gltfItem_mesh_primitive::parse( idToken &token )
 }
 
 void gltfItem_mesh_primitive_attribute::parse( idToken &token ) {
-	parser->UnreadToken(&token);
 	bool parsing = true;
-	parser->ExpectTokenString( "{" );
 	while ( parsing && parser->ExpectAnyToken( &token ) ) {
-		gltfMesh_Primitive_Attribute *attr = gltfAssetCache->Mesh_Primitive_Attribute( );
+		
+		item->AssureSizeAlloc( item->Num( ) + 1, idListNewElement<gltfMesh_Primitive_Attribute> );
+		gltfMesh_Primitive_Attribute *attr = ( *item )[item->Num( ) - 1];
 		parser->ExpectTokenString( ":" );
 		attr->attributeSemantic = token;
 		parser->ExpectAnyToken( &token );
