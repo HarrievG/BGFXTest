@@ -4,37 +4,7 @@
 #include <functional>
 #include "gltfProperties.h"
 
-/////////////////////////////////////////////////////////////////////////////
-//// For these to function you need to add an private idList<gltf{name}*> {target}
-#define GLTFCACHEITEM(name,target) \
-gltf##name * name ( ) { target.AssureSizeAlloc( target.Num()+1,idListNewElement<gltf##name>); return target[target.Num()-1];} \
-const idList<gltf##name*> & Get##name##List() { return target; }
-
-class gltfCache {
-public:
-	gltfCache( ) { }
-	void clear(){
-		images.DeleteContents( true );
-	}
-	GLTFCACHEITEM( Sampler, samplers )
-	GLTFCACHEITEM( BufferView, bufferViews )
-	GLTFCACHEITEM( Data, assetData )
-	GLTFCACHEITEM( Image, images )
-	GLTFCACHEITEM( Texture, textures )
-	GLTFCACHEITEM( Accessor, accessors )
-	GLTFCACHEITEM( ExtensionsUsed, extensionsUsed )
-	GLTFCACHEITEM( Mesh, meshes )
-private:
-	idList<gltfImage*>						images;
-	idList<gltfData*>						assetData;
-	idList<gltfSampler*>					samplers;
-	idList<gltfBufferView *>				bufferViews;
-	idList<gltfTexture*>					textures;
-	idList<gltfAccessor *>					accessors;
-	idList<gltfExtensionsUsed *>			extensionsUsed;
-	idList<gltfMesh*>						meshes;
-};
-extern gltfCache *gltfAssetCache;
+#pragma region GLTF Types parsing
 /////////////////////////////////////////////////////////////////////////////
 
 struct parsable {
@@ -50,9 +20,6 @@ public:
 	T* item;
 };
 
-/////////////////////////////////////////////////////////////////////////////
-//gltf data types
-// gltfItem  - string type
 class gltfItem : public parsable, public parseType<idStr>
 {
 public:
@@ -78,42 +45,47 @@ private:
 	gltfData *  data;
 };
 
-class gltfItem_mesh_primitive: public parsable, public parseType<idList<gltfMesh_Primitive *>> {
-public:
-	gltfItem_mesh_primitive( idStr Name ) : name( Name ),parser(nullptr) { item = nullptr; }
-	virtual void parse( idToken &token );;
-	virtual idStr &Name( ) { return name; }
-	void Set( idList<gltfMesh_Primitive *> *type, idLexer *lexer ) { parseType::Set( type ); parser = lexer; }
-private:
-	idStr name;
-	idLexer * parser;
-};
+#pragma region helper macro to define more gltf data types with extra parsing context
+#define gltfItemClassParser(className,ptype)											\
+class gltfItem_##className : public parsable, public parseType<ptype>					\
+{public:																				\
+	gltfItem_##className( idStr Name ) : name( Name ){ item = nullptr; }				\
+	virtual void parse( idToken &token );												\
+	virtual idStr &Name( ) { return name; }												\
+	void Set( ptype *type, idLexer *lexer ) { parseType::Set( type ); parser = lexer; }	\
+private:																				\
+	idStr name;																			\
+	idLexer *parser;}
+#pragma endregion 
 
-class gltfItem_mesh_primitive_attribute : public parsable, public parseType<idList<gltfMesh_Primitive_Attribute*> > {
-public:
-	gltfItem_mesh_primitive_attribute( idStr Name ) : name( Name ),parser(nullptr)  { item = nullptr; }
-	virtual void parse( idToken &token );;
-	virtual idStr &Name( ) { return name; }
-	void Set( idList<gltfMesh_Primitive_Attribute*>  *type, idLexer *lexer ) { parseType::Set( type ); parser = lexer; }
-private:
-	idStr name;
-	idLexer *parser;
-};
+gltfItemClassParser( mesh_primitive,				idList<gltfMesh_Primitive *>);
+gltfItemClassParser( mesh_primitive_attribute,		idList<gltfMesh_Primitive_Attribute *> );
+gltfItemClassParser( integer_array,					idList<int>);
+gltfItemClassParser( number_array,					idList<double>);
+gltfItemClassParser( accessor_sparse,				gltfAccessor_Sparse );
+gltfItemClassParser( accessor_sparse_indices,		gltfAccessor_Sparse_Indices );
+gltfItemClassParser( accessor_sparse_values,		gltfAccessor_Sparse_Values );
+#undef gltfItemClassParser
 
-//helper macro to define more gltf data types
-#define gltfItemClass(className,type,function) \
-class gltfItem_##className : public parsable, public parseType<type>				\
+#pragma region helper macro to define more gltf data types that only rely on token
+#define gltfItemClass(className,type,function)								\
+class gltfItem_##className : public parsable, public parseType<type>		\
 {public:																	\
-	gltfItem_##className( idStr Name ) : name( Name ){ item = nullptr; }			\
+	gltfItem_##className( idStr Name ) : name( Name ){ item = nullptr; }	\
 	virtual void parse( idToken &token ) { function }						\
 	virtual idStr &Name( ) { return name; }									\
 private:																	\
 	idStr name;}
+#pragma endregion 
 
-////
 gltfItemClass(integer, int, *item = token.GetIntValue( ); );
-/////////////////////////////////////////////////////////////////////////////
+gltfItemClass(number, float, *item = token.GetFloatValue( ); );
+gltfItemClass(boolean, bool, token.Icmp("true") == 0 ? *item=true : token.Icmp("false") == 0 ? *item=false : common->FatalError("parse error"); );
+#undef gltfItemClass
 
+#pragma endregion 
+
+#pragma region GLTF Object parsing
 class gltfItemArray
 {
 public:
@@ -131,7 +103,7 @@ class gltfPropertyItem
 public:
 	gltfPropertyItem( ) : array(nullptr){ }
 	gltfPropertyArray * array;
-	idStr item; 
+	idToken item; 
 };
 
 class gltfPropertyArray
@@ -158,6 +130,7 @@ public:
 	gltfPropertyItem * endPtr;
 	bool isArrayOfStructs;
 };
+#pragma endregion
 
 class GLTF_Parser 
 {

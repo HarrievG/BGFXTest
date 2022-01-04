@@ -6,17 +6,13 @@
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 
-static gltfCache localCache;
-gltfCache * gltfAssetCache = &localCache;
-
 //some arbitrary amount for now.
 #define GLTF_MAX_CHUNKS 32
 
 //Helper macros for gltf data deserialize
-//NOTE: gltfItem_uri are an unique string datatype with extra params to allow for instant data loading
-//		gltfItem_uri is not supported by the item macros!
-//target must be an gltfArrayItem
-// type with name will be added to the array
+//NOTE: gltfItems that deviate from the default SET(T*) function cannot be handled with itemref macro.
+// target must be an gltfArrayItem.
+// type with name will be added to the array.
 #define GLTFARRAYITEM(target,name,type) auto name = new type (#name); target.AddItemDef((parsable*)name)
 // name must point to an existing valid entry
 // name->Set		(&target->name);
@@ -27,15 +23,34 @@ gltfCache * gltfAssetCache = &localCache;
 //	images.DeleteContents(true);
 //}
 
+idList<gltfData *> gltfData::dataList;
 
 idCVar gltf_parseVerbose( "gltf_parseVerbose", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "print gltf json data while parsing" );
 
 void gltfPropertyArray::Iterator::operator ++( ) {
+
+	//check if by modification, we are iterating again.
+	//custom not AOS things can do this since it is not nicely guarded by braces
+	if ( array->dirty && (!array->iterating &&  !array->isArrayOfStructs) ) {
+		array->iterating = array->parser->PeekTokenString( "," );
+		if ( array->iterating ) {
+			array->properties.AssureSizeAlloc( array->properties.Num( ) + 1, idListNewElement<gltfPropertyItem> );
+			array->parser->ExpectTokenString( "," );
+		} 
+	}
+
 	if ( array->iterating )
 	{
 		p = array->properties[array->properties.Num( ) - 1];
 		p->array = array;
-		array->parser->ParseBracedSection( p->item );
+		if (array->isArrayOfStructs )
+			array->parser->ParseBracedSection( p->item );
+		else
+		{
+			idToken token;
+			array->parser->ExpectAnyToken( &token );
+			p->item = token;
+		}
 		array->iterating = array->parser->PeekTokenString( "," );
 		if ( array->iterating ) {
 			array->properties.AssureSizeAlloc( array->properties.Num( ) + 1, idListNewElement<gltfPropertyItem> );
@@ -66,6 +81,7 @@ gltfPropertyArray::gltfPropertyArray( idLexer *Parser, bool AoS/* = true */)
 	endPtr = new gltfPropertyItem();
 	endPtr->array = this;
 }
+
 auto gltfPropertyArray::begin( )  {
 	if ( iterating )
 	{
@@ -152,7 +168,7 @@ bool gltfItem_uri::Convert( ) {
 	idFile *file = fileSystem->OpenFileRead( item->c_str() );
 
 	//create buffer
-	gltfBuffer *buffer = data->newBuffer( );
+	gltfBuffer *buffer = data->Buffer( );
 	buffer->parent = data;
 	buffer->name = item->c_str( );
 	buffer->byteLength = length;
@@ -170,8 +186,8 @@ bool gltfItem_uri::Convert( ) {
 	//A bufferview should aready be defined if the buffer is used.
 	if (bufferView != nullptr )
 	{
-		*bufferView = gltfAssetCache->GetBufferViewList().Num();
-		gltfBufferView * newBufferView = gltfAssetCache->BufferView( );
+		*bufferView = data->BufferViewList().Num();
+		gltfBufferView * newBufferView = data->BufferView( );
 		newBufferView->buffer = bufferID;
 		newBufferView->byteLength = length;
 		newBufferView->parent = data;
@@ -202,7 +218,7 @@ void gltfItem_mesh_primitive::parse( idToken &token )
 		item->AssureSizeAlloc(item->Num() + 1,idListNewElement<gltfMesh_Primitive>);
 		gltfMesh_Primitive *gltfMeshPrim =(*item)[item->Num() - 1];
 
-		attributes->Set( &gltfMeshPrim->attributes, &lexer );
+		attributes->Set	( &gltfMeshPrim->attributes, &lexer );
 		GLTFARRAYITEMREF( gltfMeshPrim, indices	);
 		GLTFARRAYITEMREF( gltfMeshPrim, material );
 		GLTFARRAYITEMREF( gltfMeshPrim, mode );
@@ -236,6 +252,111 @@ void gltfItem_mesh_primitive_attribute::parse( idToken &token ) {
 		common->Printf( "%s", token.c_str( ) );
 }
 
+void gltfItem_integer_array::parse( idToken &token ) {
+	
+	parser->UnreadToken( &token );
+	gltfPropertyArray array = gltfPropertyArray( parser, false );
+	for ( auto &prop : array ) {
+		idStr neg;
+		int &value = item->Alloc( );
+		value = prop.item.GetIntValue();
+
+		if ( prop.item.type == TT_PUNCTUATION && prop.item == "-" ) {
+			parser->ExpectTokenType( TT_NUMBER, 0, &prop.item );
+			value = -( prop.item.GetIntValue( ) );
+			neg = "-";
+		} else if ( prop.item.type == TT_NUMBER ) {
+			value = prop.item.GetIntValue( );
+		} else
+			common->FatalError( "parse error" );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s%s", neg.c_str( ), prop.item.c_str( ) );
+	}
+	parser->ExpectTokenString( "]" );
+}
+
+void gltfItem_number_array::parse( idToken &token ) {
+
+	parser->UnreadToken(&token);
+	gltfPropertyArray array = gltfPropertyArray( parser, false );
+	for ( auto &prop : array ) {
+		idStr neg;
+		double& value = item->Alloc( );
+		if ( prop.item.type == TT_PUNCTUATION && prop.item == "-" ) {
+			parser->ExpectTokenType( TT_NUMBER, 0, &prop.item );
+			value = -(prop.item.GetDoubleValue());
+			neg = "-";
+		} else if ( prop.item.type == TT_NUMBER ) {
+			value = prop.item.GetDoubleValue( );
+		}else
+			common->FatalError("parse error" );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s%s", neg.c_str(),prop.item.c_str( ) );
+	}
+	parser->ExpectTokenString( "]" );
+}
+
+void gltfItem_accessor_sparse::parse( idToken &token ) {
+	parser->Warning("%s is untested!", "gltfItem_accessor_sparse" );
+
+	gltfItemArray sparse;
+	GLTFARRAYITEM( sparse, count, gltfItem_integer );
+	GLTFARRAYITEM( sparse, indices, gltfItem_accessor_sparse_indices);
+	GLTFARRAYITEM( sparse, values, gltfItem_accessor_sparse_values );
+	GLTFARRAYITEM( sparse, extensions, gltfItem );
+	GLTFARRAYITEM( sparse, extras, gltfItem );
+
+	GLTFARRAYITEMREF( item, count );
+	indices->Set	( &item->indices, parser );
+	values->Set		( &item->values, parser );
+	GLTFARRAYITEMREF( item, extensions );
+	GLTFARRAYITEMREF( item, extras );
+	sparse.Parse( parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
+
+void gltfItem_accessor_sparse_values::parse( idToken &token ) {
+	parser->Warning( "%s is untested!", "gltfItem_accessor_sparse_values" );
+
+	gltfItemArray values;
+	GLTFARRAYITEM( values, bufferView, gltfItem_integer );
+	GLTFARRAYITEM( values, byteOffset, gltfItem_integer );
+	GLTFARRAYITEM( values, extensions, gltfItem );
+	GLTFARRAYITEM( values, extras, gltfItem );
+
+	GLTFARRAYITEMREF( item, bufferView );
+	GLTFARRAYITEMREF( item, byteOffset );
+	GLTFARRAYITEMREF( item, extensions );
+	GLTFARRAYITEMREF( item, extras );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
+
+void gltfItem_accessor_sparse_indices::parse( idToken &token ) {
+	parser->Warning( "%s is untested!", "gltfItem_accessor_sparse_indices" );
+
+	gltfItemArray indices;
+	GLTFARRAYITEM( indices, bufferView, gltfItem_integer );
+	GLTFARRAYITEM( indices, byteOffset, gltfItem_integer );
+	GLTFARRAYITEM( indices, componentType, gltfItem_integer );
+	GLTFARRAYITEM( indices, extensions, gltfItem );
+	GLTFARRAYITEM( indices, extras, gltfItem );
+
+	GLTFARRAYITEMREF( item, bufferView );
+	GLTFARRAYITEMREF( item, byteOffset );
+	GLTFARRAYITEMREF( item, componentType );
+	GLTFARRAYITEMREF( item, extensions );
+	GLTFARRAYITEMREF( item, extras );
+	indices.Parse( parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
 
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) { }
@@ -275,7 +396,7 @@ void GLTF_Parser::Parse_MESHES( idToken &token )
 {
 	gltfItemArray mesh;
 	GLTFARRAYITEM( mesh, primitives,	gltfItem_mesh_primitive ); // object
-	GLTFARRAYITEM( mesh, weights,		gltfItem ); //number[1 - *]
+	GLTFARRAYITEM( mesh, weights,		gltfItem_number_array ); //number[1 - *]
 	GLTFARRAYITEM( mesh, name,			gltfItem ); 
 	GLTFARRAYITEM( mesh, extensions,	gltfItem );
 	GLTFARRAYITEM( mesh, extras,		gltfItem );
@@ -285,10 +406,10 @@ void GLTF_Parser::Parse_MESHES( idToken &token )
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfMesh", 0 );
 
-		gltfMesh *gltfMesh = gltfAssetCache->Mesh( );
+		gltfMesh *gltfMesh = currentAsset->Mesh( );
 
-		primitives->Set( &gltfMesh->primitives, &lexer);
-		GLTFARRAYITEMREF( gltfMesh,  weights );
+		primitives->Set	( &gltfMesh->primitives, &lexer);
+		weights->Set	( &gltfMesh->weights, &lexer );
 		GLTFARRAYITEMREF( gltfMesh,  name );
 		GLTFARRAYITEMREF( gltfMesh,  extensions );
 		GLTFARRAYITEMREF( gltfMesh,  extras );
@@ -323,7 +444,7 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory(prop.item.c_str(),prop.item.Size(),"gltfImage",0);
 
-		gltfImage *image = gltfAssetCache->Image();
+		gltfImage *image = currentAsset->Image();
 		uri->Set		(&image->uri, &image->bufferView,currentAsset);
 		mimeType->Set	(&image->mimeType);
 		bufferView->Set	(&image->bufferView);
@@ -331,10 +452,6 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 		extensions->Set	(&image->extensions);
 		extras->Set		(&image->extras);
 		propItems.Parse	(&lexer);
-
-		//only offset when no buffer was generated
-		if (image->uri.IsEmpty() )
-			image->bufferView += bufferViewOffset;
 
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
@@ -346,10 +463,43 @@ void GLTF_Parser::Parse_IMAGES( idToken &token )
 }
 void GLTF_Parser::Parse_ACCESSORS( idToken &token ) 
 {
+	gltfItemArray accessor;
+	GLTFARRAYITEM( accessor, bufferView, gltfItem_integer );
+	GLTFARRAYITEM( accessor, byteOffset, gltfItem_integer );
+	GLTFARRAYITEM( accessor, componentType, gltfItem_integer );
+	GLTFARRAYITEM( accessor, normalized, gltfItem_boolean );
+	GLTFARRAYITEM( accessor, count, gltfItem_integer );
+	GLTFARRAYITEM( accessor, type, gltfItem ); //todo: gltfItem_type
+	GLTFARRAYITEM( accessor, max, gltfItem_number_array );
+	GLTFARRAYITEM( accessor, min, gltfItem_number_array );
+	GLTFARRAYITEM( accessor, sparse, gltfItem_accessor_sparse);
+	GLTFARRAYITEM( accessor, name, gltfItem );
+	GLTFARRAYITEM( accessor, extensions, gltfItem );
+	GLTFARRAYITEM( accessor, extras, gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
 	for ( auto & prop : array )
 	{
-		common->Printf( "%s", prop.item.c_str( ) );
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfAccessor", 0 );
+
+		gltfAccessor * item = currentAsset->Accessor();
+		GLTFARRAYITEMREF( item, bufferView);
+		GLTFARRAYITEMREF( item, byteOffset);
+		GLTFARRAYITEMREF( item, componentType);
+		GLTFARRAYITEMREF( item, normalized);
+		GLTFARRAYITEMREF( item, count);
+		GLTFARRAYITEMREF( item, type ); //todo: gltfItem_type
+		max->Set		( &item->max, &lexer );
+		min->Set		( &item->min, &lexer );
+		sparse->Set		( &item->sparse, &lexer );
+		GLTFARRAYITEMREF( item, name);
+		GLTFARRAYITEMREF( item, extensions);
+		GLTFARRAYITEMREF( item, extras);
+		accessor.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
 	}
 	parser.ExpectTokenString( "]" );
 }
@@ -371,7 +521,7 @@ void GLTF_Parser::Parse_BUFFERVIEWS( idToken &token )
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfBufferView", 0 );
 
-		gltfBufferView * gltfBV = gltfAssetCache->BufferView();
+		gltfBufferView * gltfBV = currentAsset->BufferView();
 		GLTFARRAYITEMREF( gltfBV, buffer	);
 		GLTFARRAYITEMREF( gltfBV, byteLength);
 		GLTFARRAYITEMREF( gltfBV, byteStride);
@@ -405,7 +555,7 @@ void GLTF_Parser::Parse_SAMPLERS( idToken &token )
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfSampler", 0 );
 
-		gltfSampler * gltfSampl = gltfAssetCache->Sampler();
+		gltfSampler * gltfSampl = currentAsset->Sampler();
 		GLTFARRAYITEMREF( gltfSampl, magFilter );
 		GLTFARRAYITEMREF( gltfSampl, minFilter );
 		GLTFARRAYITEMREF( gltfSampl, wrapS );
@@ -434,7 +584,7 @@ void GLTF_Parser::Parse_BUFFERS( idToken &token )
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfBuffer", 0 );
 
-		gltfBuffer *gltfBuf = currentAsset->newBuffer( );
+		gltfBuffer *gltfBuf = currentAsset->Buffer( );
 		gltfBuf->parent = currentAsset;
 
 		uri->Set( &gltfBuf->uri, nullptr , currentAsset );
@@ -465,7 +615,7 @@ void GLTF_Parser::Parse_EXTENSIONS_USED( idToken &token )
 {
 	gltfPropertyArray array = gltfPropertyArray( &parser,false );
 	for ( auto &prop : array ) {
-		gltfExtensionsUsed * ext = gltfAssetCache->ExtensionsUsed( );
+		gltfExtensionsUsed * ext = currentAsset->ExtensionsUsed( );
 		ext->extension = prop.item;
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
@@ -632,7 +782,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 	unsigned int chunk_type=0;	// 4 bytes
 	unsigned int chunk_length=0;	// 4 bytes
 	byte * data = nullptr;
-	gltfData *dataCache = gltfAssetCache->Data( );
+	gltfData *dataCache = gltfData::Data( );
 	currentAsset = dataCache;
 
 	int chunkCount = 0;
@@ -667,8 +817,6 @@ bool GLTF_Parser::loadGLB(idStr filename )
 
 bool GLTF_Parser::Parse()
 {
-	bufferViewOffset = gltfAssetCache->GetBufferViewList().Num();
-
 	bool parsing = true;
 	parser.ExpectTokenString( "{" );
 	while ( parsing && parser.ExpectAnyToken( &token ) ) {
@@ -708,7 +856,7 @@ bool GLTF_Parser::Load(idStr filename )
 	}
 	else if ( filename.CheckExtension( ".gltf" ) ) {
 		int length = fileSystem->ReadFile(filename,NULL);
-		gltfData * data = gltfAssetCache->Data();
+		gltfData * data = gltfData::Data();
 		data->FileName(filename);
 		byte* dataBuff = data->AddData(length);
 		currentAsset = data;
@@ -748,10 +896,10 @@ void GLTF_Parser::Init( ) {
 
 void GLTF_Parser::CreateTextures( )
 {
-	for ( auto &image : gltfAssetCache->GetImageList( ) ) {
+	for ( auto &image : currentAsset->ImageList( ) ) {
 		if(image->bgfxTexture.handle.idx == UINT16_MAX )
 		{
-			gltfBufferView *bv = gltfAssetCache->GetBufferViewList( )[image->bufferView];
+			gltfBufferView *bv = currentAsset->BufferViewList( )[image->bufferView];
 			gltfData *data = bv->parent;
 			gltfBuffer *buff = data->BufferList( )[bv->buffer];
 			

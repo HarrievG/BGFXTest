@@ -24,41 +24,7 @@ enum gltfProperty {
 	EXTENSIONS_USED,
 	EXTENSIONS_REQUIRED
 };
-
-//No URI's are left after parsing
-// all data should be layed out like an GLB.
-// EACH URI will be an unique chunk
-// JSON chunk MUST be the first one to be allocated/added
-
-class gltfBuffer;
-class gltfData
-{
-public:
-	gltfData( ) : json (nullptr), data( nullptr ), totalChunks(-1) { };
-	~gltfData();
-	byte* AddData(int size, int * bufferID=nullptr);
-	byte* GetJsonData() { return json; }
-	byte* GetData(int index ) { return data[index]; }	
-	void FileName( const idStr & file ) { fileName = file; fileNameHash = idStr::Hash( file.c_str() );}
-	int FileNameHash() {return fileNameHash; }
-	idStr & FileName() { return fileName; }
-
-	//GLTFCACHEITEM(Buffer,buffers );
-	gltfBuffer * newBuffer( ) { buffers.AssureSizeAlloc( buffers.Num( ) + 1, idListNewElement<gltfBuffer> ); return buffers[buffers.Num( ) - 1]; }
-	idList<gltfBuffer *> & BufferList() { return buffers; }
-	//gltfAccessor *newAccessor( ) { accessors.AssureSizeAlloc( accessors.Num( ) + 1, idListNewElement<gltfAccessor> ); return accessors[accessors.Num( ) - 1]; }
-	//idList<gltfAccessor *> &AccessorList( ) { return accessors; }
-private:
-	//buffer chunks
-	byte *json;
-	byte ** data;
-	int totalChunks;
-	
-	idList<gltfBuffer *> buffers;
-	//idList<gltfAccessor *> accessors;
-	idStr fileName;
-	int	fileNameHash;
-};
+class gltfData;
 
 // todo:
 //materials, meshes , nodes
@@ -86,8 +52,8 @@ class gltfMesh {
 public:
 	gltfMesh( ) { };
 
-	idList<gltfMesh_Primitive*> primitives;
-	idStr weights;  // number[1,*]
+	idList<gltfMesh_Primitive*> primitives;	// gltfMesh_Primitive[1,*]
+	idList<double> weights;					// number[1,*]
 	idStr name;
 	idStr extensions;
 	idStr extras;
@@ -187,24 +153,24 @@ class gltfAccessor_Sparse {
 public:
 	gltfAccessor_Sparse( ) : count( -1 ) { };
 	int count;
-	idStr indices;
-	idStr values;
+	gltfAccessor_Sparse_Indices indices;
+	gltfAccessor_Sparse_Values values;
 	idStr extensions;
 	idStr extras;
 };
 
 class gltfAccessor {
 public:
-	gltfAccessor ( ) : bufferView( -1 ), byteOffset( -1 ), componentType( -1 ), normalized( false ), count( -1 ), max( -1 ), min( -1 ){ }
+	gltfAccessor ( ) : bufferView( -1 ), byteOffset( 0 ), componentType( -1 ), normalized( false ), count( -1 ) { }
 	int bufferView;
 	int byteOffset;
 	int componentType;
 	bool normalized;
 	int count;
 	idStr type;
-	int max;
-	int min;
-	idStr sparse;
+	idList<double> max;
+	idList<double> min;
+	gltfAccessor_Sparse sparse;
 	idStr name;
 	idStr extensions;
 	idStr extras;
@@ -299,3 +265,61 @@ public:
 	gltfExtensionsUsed( ) { }
 	idStr	extension;
 };
+
+/////////////////////////////////////////////////////////////////////////////
+//// For these to function you need to add an private idList<gltf{name}*> {target}
+#define GLTFCACHEITEM(name,target) \
+gltf##name * name ( ) { target.AssureSizeAlloc( target.Num()+1,idListNewElement<gltf##name>); return target[target.Num()-1];} \
+const idList<gltf##name*> & ##name##List() { return target; }
+
+
+// URI's are resolbed during parsing so that
+// all data should be layed out like an GLB with multple bin chunks
+// EACH URI will habe an unique chunk
+// JSON chunk MUST be the first one to be allocated/added
+
+class gltfData {
+public:
+	gltfData( ) : json( nullptr ), data( nullptr ), totalChunks( -1 ) { };
+	~gltfData( );
+	byte *AddData( int size, int *bufferID = nullptr );
+	byte *GetJsonData( ) { return json; }
+	byte *GetData( int index ) { return data[index]; }
+	void FileName( const idStr &file ) { fileName = file; fileNameHash = idStr::Hash( file.c_str( ) ); }
+	int FileNameHash( ) { return fileNameHash; }
+	idStr &FileName( ) { return fileName; }
+
+	static idList<gltfData *> dataList;
+	static gltfData *Data( ) { dataList.AssureSizeAlloc( dataList.Num( ) + 1, idListNewElement<gltfData> ); return dataList[dataList.Num( ) - 1]; }
+	static const idList<gltfData *> &DataList( ) { return dataList; }
+	static void ClearData( ) { common->Warning("TODO! DATA NOT FREED");}
+
+	GLTFCACHEITEM( Buffer, buffers ) 
+	GLTFCACHEITEM( Sampler, samplers )
+	GLTFCACHEITEM( BufferView, bufferViews )
+	GLTFCACHEITEM( Image, images )
+	GLTFCACHEITEM( Texture, textures )
+	GLTFCACHEITEM( Accessor, accessors )
+	GLTFCACHEITEM( ExtensionsUsed, extensionsUsed )
+	GLTFCACHEITEM( Mesh, meshes )
+
+private:
+	idStr fileName;
+	int	fileNameHash;
+
+	byte *json;
+	byte **data;
+	int totalChunks;
+
+	idList<gltfBuffer *>					buffers;
+	idList<gltfImage *>						images;
+	idList<gltfData *>						assetData;
+	idList<gltfSampler *>					samplers;
+	idList<gltfBufferView *>				bufferViews;
+	idList<gltfTexture *>					textures;
+	idList<gltfAccessor *>					accessors;
+	idList<gltfExtensionsUsed *>			extensionsUsed;
+	idList<gltfMesh *>						meshes;
+
+};
+#undef GLTFCACHEITEM

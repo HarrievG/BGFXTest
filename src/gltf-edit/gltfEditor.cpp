@@ -583,14 +583,13 @@ void gltfAssetExplorer::DrawImAssetTree( )
 {
 	static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
 	int assetCnt = 0;
-	for (auto & data : gltfAssetCache->GetDataList() )
+	for (auto & data : gltfData::DataList() )
 	{
 		if (selectedFileHash != data->FileNameHash())
 			continue;
 
 		int imageCount = 0;
-		auto & images= gltfAssetCache->GetImageList( );
-		//idList<gltfImage*> images;
+		auto & images= data->ImageList( );
 		int assetID = idStr::Hash( ( idStr( "Asset" ) + assetCnt++ ).c_str( ) );
 		if ( images.Num() )
 		{
@@ -599,7 +598,6 @@ void gltfAssetExplorer::DrawImAssetTree( )
 			{
 				for (auto & image : images )
 				{
-					gltfData * data = gltfAssetCache->GetBufferViewList( )[image->bufferView]->parent;
 					int fileHash = data->FileNameHash( );
 					if (selectedFileHash == fileHash)
 					{
