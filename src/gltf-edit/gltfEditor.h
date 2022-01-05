@@ -67,6 +67,7 @@ private:
 
 	int selectedFileHash;
 	gltfImage * selectedImage;
+	gltfMesh * selectedMesh;
 };
 
 extern gltfAssetExplorer * assetExplorer;

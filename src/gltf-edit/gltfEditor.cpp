@@ -581,7 +581,7 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context )
 }
 void gltfAssetExplorer::DrawImAssetTree( )
 {
-	static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
+	static ImGuiTreeNodeFlags base_flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth | ImGuiSelectableFlags_AllowDoubleClick;
 	int assetCnt = 0;
 	for (auto & data : gltfData::DataList() )
 	{
@@ -590,23 +590,56 @@ void gltfAssetExplorer::DrawImAssetTree( )
 
 		int imageCount = 0;
 		auto & images= data->ImageList( );
+
+		int meshCount = 0;
+		auto & meshList = data->MeshList( );
+
 		int assetID = idStr::Hash( ( idStr( "Asset" ) + assetCnt++ ).c_str( ) );
 		if ( images.Num() )
 		{
-			bool drawImages = ImGui::TreeNodeEx((void*)(intptr_t)(data->FileNameHash()), base_flags, "Images ",images.Num());
+			const static int imagesHash = idStr::Hash("images");
+			bool drawImages = ImGui::TreeNodeEx((void*)(intptr_t)( imagesHash ), base_flags, "Images %i",images.Num());
 			if ( drawImages )
 			{
-				for (auto & image : images )
+				for (auto image : images )
 				{
 					int fileHash = data->FileNameHash( );
 					if (selectedFileHash == fileHash)
 					{
-						int imageID = idStr::Hash( ( idStr( "image" ) + imageCount++ ).c_str( ) );
 						idStr name = image->name.IsEmpty() ? image->uri.IsEmpty() ? data->FileName() : image->uri : image->name;
 						bool selected = selectedImage == image;
 						{ImGui::PushID(( idStr( "image" ) + imageCount ).c_str( ));
 						if(ImGui::Selectable( name.c_str( ), selected, ImGuiSelectableFlags_AllowDoubleClick ))
+						{
 							selectedImage = image;
+							selectedMesh = nullptr;
+						}
+						ImGui::PopID(/*image*/ );}
+					}
+				}
+				ImGui::TreePop();
+			}
+		}
+		if ( meshList.Num() )
+		{
+			const static int meshesHash = idStr::Hash( "meshes" );
+			bool drawMeshes = ImGui::TreeNodeEx((void*)(intptr_t)( meshesHash ), base_flags, "Meshes %i", meshList.Num());
+			if ( drawMeshes )
+			{
+				for (auto mesh : meshList )
+				{
+					int fileHash = data->FileNameHash( );
+					if (selectedFileHash == fileHash)
+					{
+						int meshID = idStr::Hash( ( idStr( "mesh" ) + meshCount++ ).c_str( ) );
+						idStr name = mesh->name.IsEmpty() ? data->FileName() : mesh->name;
+						bool selected = selectedMesh == mesh;
+						{ImGui::PushID(( idStr( "image" ) + imageCount ).c_str( ));
+						if(ImGui::Selectable( name.c_str( ), selected, ImGuiSelectableFlags_AllowDoubleClick ))
+						{
+							selectedMesh = mesh;
+							selectedImage = nullptr;
+						}
 						ImGui::PopID(/*image*/ );}
 					}
 				}
@@ -614,10 +647,4 @@ void gltfAssetExplorer::DrawImAssetTree( )
 			}
 		}
 	}
-	//auto &assets = sceneEditor->GetLoadedAssets( );
-
-	//const auto &currentAsset = assets.begin();
-	
-	//}
-	
 }
