@@ -268,12 +268,15 @@ void bgfxInitShaders( bgfxContext_t *context ) {
             createShader(args.Argv(1),args.Argv(2));
         }
         , CMD_FL_SYSTEM, "compiles the given shader file" );
+		cmdSystemSet = true;
     }   
 
 }
 
 void bgfxRender( bgfxContext_t *context ){
 
+	
+	//setup frame buffer for rendertarget
     if ( !bgfx::isValid( context->fbh ))
 /*        || m_oldWidth != m_width
         || m_oldHeight != m_height
@@ -301,8 +304,7 @@ void bgfxRender( bgfxContext_t *context ){
         bgfx::TextureFormat::Enum depthFormat =
             bgfx::isTextureValid( 0, false, 1, bgfx::TextureFormat::D16, textureFlags ) ? bgfx::TextureFormat::D16
             : bgfx::isTextureValid( 0, false, 1, bgfx::TextureFormat::D24S8, textureFlags ) ? bgfx::TextureFormat::D24S8
-            : bgfx::TextureFormat::D32
-            ;
+            : bgfx::TextureFormat::D32;
 
         context->fbTextureHandle[1] = bgfx::createTexture2D(
             uint16_t( context->width )
@@ -392,13 +394,13 @@ void bgfxRender( bgfxContext_t *context ){
 	bgfx::setIndexBuffer( context->ibh );
 	bgfx::submit( 0, context->program );
 
-	bx::mtxIdentity( modelTranslation );
-	bx::mtxMul( tmp, modelScale, xtmp );
-	bx::mtxMul( modelTransform, tmp, modelTranslation );
-    bgfx::setTransform( modelTransform );
-    bgfx::setVertexBuffer( 0, context->vbh );
-    bgfx::setIndexBuffer( context->ibh );
-    bgfx::submit( 1, context->program );
+	//bx::mtxIdentity( modelTranslation );
+	//bx::mtxMul( tmp, modelScale, xtmp );
+	//bx::mtxMul( modelTransform, tmp, modelTranslation );
+ //   bgfx::setTransform( modelTransform );
+ //   bgfx::setVertexBuffer( 0, context->vbh );
+ //   bgfx::setIndexBuffer( context->ibh );
+ //   bgfx::submit( 1, context->program );
     
     for ( auto &item : bgfxCallbackList )
         item( context );

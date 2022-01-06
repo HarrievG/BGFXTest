@@ -26,6 +26,18 @@ enum gltfProperty {
 };
 class gltfData;
 
+struct gltf_mesh_attribute_map {
+	idStr stringID;
+	bgfx::Attrib::Enum attib;
+};
+
+struct gltf_accessor_component_type_map {
+	idStr stringID;
+	int id;
+	bgfx::AttribType::Enum type;
+};
+
+
 // todo:
 //materials, meshes , nodes
 
@@ -34,6 +46,8 @@ public:
 	gltfMesh_Primitive_Attribute( ) : accessorIndex(-1){ }
 	idStr attributeSemantic;
 	int accessorIndex;
+		
+	bgfx::Attrib::Enum bgfxType;
 };
 
 class gltfMesh_Primitive {
@@ -46,6 +60,9 @@ public:
 	idStr target;
 	idStr extensions;
 	idStr extras;
+	//
+	bgfx::VertexBufferHandle vertexBufferHandle;
+	bgfx::IndexBufferHandle indexBufferHandle;
 };
 
 class gltfMesh {
@@ -167,13 +184,15 @@ public:
 	int componentType;
 	bool normalized;
 	int count;
-	idStr type;
+	int type;
 	idList<double> max;
 	idList<double> min;
 	gltfAccessor_Sparse sparse;
 	idStr name;
 	idStr extensions;
 	idStr extras;
+
+	bgfx::AttribType::Enum bgfxType;
 };
 
 class gltfBufferView {

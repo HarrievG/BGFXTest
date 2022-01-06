@@ -2,9 +2,56 @@
 #include <FileSystem.h>
 #include "bgfx-stubs/bgfxRender.h"
 #include "bgfx-stubs/bgfxImage.h"
-
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
+
+gltf_mesh_attribute_map s_meshAttributeMap[] = {
+	"POSITION",		bgfx::Attrib::Position,
+	"NORMAL",		bgfx::Attrib::Normal,
+	"TANGENT",		bgfx::Attrib::Tangent,
+	"TEXCOORD_0",	bgfx::Attrib::TexCoord0,
+	"TEXCOORD_1",	bgfx::Attrib::TexCoord1,
+	"TEXCOORD_2",	bgfx::Attrib::TexCoord2,
+	"TEXCOORD_3",	bgfx::Attrib::TexCoord3,
+	"TEXCOORD_4",	bgfx::Attrib::TexCoord4,
+	"TEXCOORD_5",	bgfx::Attrib::TexCoord5,
+	"TEXCOORD_6",	bgfx::Attrib::TexCoord6,
+	"TEXCOORD_7",	bgfx::Attrib::TexCoord7,
+	"COLOR_0",		bgfx::Attrib::Color0,
+	"COLOR_1",		bgfx::Attrib::Color1,
+	"COLOR_2",		bgfx::Attrib::Color2,
+	"COLOR_3",		bgfx::Attrib::Color3,
+	"WEIGHTS_0",	bgfx::Attrib::Weight,
+	"",				bgfx::Attrib::Count
+};
+bgfx::Attrib::Enum GetAttributeEnum( const char *str ) {
+	   int i = -1;
+	   while ( s_meshAttributeMap[++i].attib != bgfx::Attrib::Count )
+		   if ( !idStr::Icmp( s_meshAttributeMap[i].stringID, str ) )
+			   return s_meshAttributeMap[i].attib;
+	   
+	   return bgfx::Attrib::Count;
+}
+
+gltf_accessor_component_type_map s_componentTypeMap[] = {
+	//"signed byte",	5120,	bgfx::AttribType::int8,
+	"unsigned byte",	5121,	bgfx::AttribType::Uint8,
+	"signed short",		5122,	bgfx::AttribType::Int16,
+	//"unsigned short",	5123,	bgfx::AttribType::UInt16,
+	"unsigned int",		5125,	bgfx::AttribType::Uint8, //:# :@
+	"float",			5126,	bgfx::AttribType::Float,
+	"",					0,		bgfx::AttribType::Count
+};
+
+bgfx::AttribType::Enum GetComponentTypeEnum( int id ) {
+	int i = -1;
+	while ( s_componentTypeMap[++i].type != bgfx::AttribType::Count )
+		if ( s_componentTypeMap[i].id == id )
+			return s_componentTypeMap[i].type;
+	
+	return bgfx::AttribType::Count;
+}
+
 
 //some arbitrary amount for now.
 #define GLTF_MAX_CHUNKS 32
@@ -240,6 +287,7 @@ void gltfItem_mesh_primitive_attribute::parse( idToken &token ) {
 		gltfMesh_Primitive_Attribute *attr = ( *item )[item->Num( ) - 1];
 		parser->ExpectTokenString( ":" );
 		attr->attributeSemantic = token;
+		attr->bgfxType = GetAttributeEnum( attr->attributeSemantic.c_str() );
 		parser->ExpectAnyToken( &token );
 		attr->accessorIndex = token.GetIntValue();
 		parsing = parser->PeekTokenString( "," );
@@ -469,7 +517,7 @@ void GLTF_Parser::Parse_ACCESSORS( idToken &token )
 	GLTFARRAYITEM( accessor, componentType, gltfItem_integer );
 	GLTFARRAYITEM( accessor, normalized, gltfItem_boolean );
 	GLTFARRAYITEM( accessor, count, gltfItem_integer );
-	GLTFARRAYITEM( accessor, type, gltfItem ); //todo: gltfItem_type
+	GLTFARRAYITEM( accessor, type, gltfItem_integer );
 	GLTFARRAYITEM( accessor, max, gltfItem_number_array );
 	GLTFARRAYITEM( accessor, min, gltfItem_number_array );
 	GLTFARRAYITEM( accessor, sparse, gltfItem_accessor_sparse);
@@ -497,6 +545,8 @@ void GLTF_Parser::Parse_ACCESSORS( idToken &token )
 		GLTFARRAYITEMREF( item, extensions);
 		GLTFARRAYITEMREF( item, extras);
 		accessor.Parse( &lexer );
+
+		item->bgfxType = GetComponentTypeEnum( item->type );
 
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
@@ -738,17 +788,6 @@ gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 	return gltfProperty::INVALID;
 }
 
-bool GLTF_Parser::PropertyIsAOS()
-{
-	if (!parser.PeekTokenString( "{" ))
-	{
-		if (!parser.ExpectTokenString( "[" ) && parser.PeekTokenString( "{" ))
-			common->FatalError("Malformed gltf" );
-		return true;
-	}
-	return false;
-}
-
 bool GLTF_Parser::loadGLB(idStr filename )
 {
 	idFile * file = fileSystem->OpenFileRead( filename );
@@ -878,7 +917,7 @@ bool GLTF_Parser::Load(idStr filename )
 	parser.Reset();
 	parser.FreeSource();
 	common->SetRefreshOnPrint( false );
-	CreateTextures();
+	CreateBgfxData();
 	return true;
 }
 
@@ -894,9 +933,23 @@ void GLTF_Parser::Init( ) {
 
 }
 
-void GLTF_Parser::CreateTextures( )
+void GLTF_Parser::CreateBgfxData( )
 {
-	for ( auto &image : currentAsset->ImageList( ) ) {
+
+	//buffers
+	for ( auto &mesh : currentAsset->MeshList( ) ) 
+	{
+		for ( auto &prim : mesh->primitives ) 
+		{
+			for ( auto& attrib : prim->attributes )
+			{
+
+			}
+		}
+	}
+	//textures
+	for ( auto &image : currentAsset->ImageList( ) ) 
+	{
 		if(image->bgfxTexture.handle.idx == UINT16_MAX )
 		{
 			gltfBufferView *bv = currentAsset->BufferViewList( )[image->bufferView];

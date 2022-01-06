@@ -488,7 +488,8 @@ gltfAssetExplorer::gltfAssetExplorer( )
 {
 	guiVisible = false;
 	selectedFileHash = 0;
-
+	selectedImage = nullptr;
+	selectedMesh = nullptr;
 } 
 gltfAssetExplorer::~gltfAssetExplorer( ) 
 {
@@ -513,6 +514,18 @@ bool gltfAssetExplorer::Show(bool visible )
 }
 bool gltfAssetExplorer::Render( bgfxContext_t *context ) 
 {
+
+	if (selectedMesh != nullptr )
+	{
+		float modelTransform[16];
+		bx::mtxIdentity( modelTransform );
+		//bx::mtxMul( tmp, modelScale, xtmp );
+		//bx::mtxMul( modelTransform, tmp, modelTranslation );
+	    bgfx::setTransform( modelTransform );
+	    bgfx::setVertexBuffer( 0, context->vbh );
+	    bgfx::setIndexBuffer( context->ibh );
+	    bgfx::submit( 1, context->program );
+	}
 	return false;
 }
 bool gltfAssetExplorer::imDraw( bgfxContext_t *context ) 

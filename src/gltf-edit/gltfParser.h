@@ -5,8 +5,8 @@
 #include "gltfProperties.h"
 
 #pragma region GLTF Types parsing
-/////////////////////////////////////////////////////////////////////////////
 
+#pragma region Parser interfaces
 struct parsable {
 public:
 	virtual void parse(idToken & token )=0;
@@ -44,8 +44,9 @@ private:
 	int * bufferView;
 	gltfData *  data;
 };
+#pragma endregion 
 
-#pragma region helper macro to define more gltf data types with extra parsing context
+#pragma region helper macro to define gltf data types with extra parsing context forced to be implemented externally
 #define gltfItemClassParser(className,ptype)											\
 class gltfItem_##className : public parsable, public parseType<ptype>					\
 {public:																				\
@@ -83,9 +84,6 @@ gltfItemClass(number, float, *item = token.GetFloatValue( ); );
 gltfItemClass(boolean, bool, token.Icmp("true") == 0 ? *item=true : token.Icmp("false") == 0 ? *item=false : common->FatalError("parse error"); );
 #undef gltfItemClass
 
-#pragma endregion 
-
-#pragma region GLTF Object parsing
 class gltfItemArray
 {
 public:
@@ -96,7 +94,9 @@ public:
 private:
 	idList<parsable*> items;
 };
+#pragma endregion 
 
+#pragma region GLTF Object parsing
 class gltfPropertyArray;
 class gltfPropertyItem 
 {
@@ -122,6 +122,7 @@ public:
 	};	
 	auto begin( );
 	auto end( );
+private:
 	bool iterating;
 	bool dirty;
 	int index;
@@ -135,28 +136,6 @@ public:
 class GLTF_Parser 
 {
 public:
-	void Parse_ASSET( idToken &token ) ;
-	void Parse_SCENE( idToken &token ) ;
-	void Parse_SCENES( idToken &token ) ;
-	void Parse_NODES( idToken &token ) ;
-	void Parse_MATERIALS( idToken &token ) ;
-	void Parse_MESHES( idToken &token ) ;
-	void Parse_TEXTURES( idToken &token ) ;
-	void Parse_IMAGES( idToken &token ) ;
-	void Parse_ACCESSORS( idToken &token ) ;
-	void Parse_BUFFERVIEWS( idToken &token ) ;
-	void Parse_SAMPLERS( idToken &token ) ;
-	void Parse_BUFFERS( idToken &token ) ;
-	void Parse_ANIMATIONS( idToken & token );
-	void Parse_SKINS( idToken & token );
-	void Parse_EXTENSIONS_USED( idToken &token );
-	void Parse_EXTENSIONS_REQUIRED( idToken &token );
-	bool PropertyIsAOS( );
-	gltfProperty ParseProp( idToken &token );
-	gltfProperty ResolveProp( idToken &token );
-	
-	static void ResolveUri( const idStr &uri );
-
 	GLTF_Parser();
 	void Init();
 	bool Parse();
@@ -165,11 +144,28 @@ public:
 
 	//current/last loaded gltf asset and index offsets
 	gltfData *currentAsset;
-	int bufferViewOffset;
-
 private:
-	void CreateTextures( );
-	
+	void CreateBgfxData( );
+
+	void Parse_ASSET( idToken &token );
+	void Parse_SCENE( idToken &token );
+	void Parse_SCENES( idToken &token );
+	void Parse_NODES( idToken &token );
+	void Parse_MATERIALS( idToken &token );
+	void Parse_MESHES( idToken &token );
+	void Parse_TEXTURES( idToken &token );
+	void Parse_IMAGES( idToken &token );
+	void Parse_ACCESSORS( idToken &token );
+	void Parse_BUFFERVIEWS( idToken &token );
+	void Parse_SAMPLERS( idToken &token );
+	void Parse_BUFFERS( idToken &token );
+	void Parse_ANIMATIONS( idToken &token );
+	void Parse_SKINS( idToken &token );
+	void Parse_EXTENSIONS_USED( idToken &token );
+	void Parse_EXTENSIONS_REQUIRED( idToken &token );
+
+	gltfProperty ParseProp( idToken &token );
+	gltfProperty ResolveProp( idToken &token );
 	
 	idLexer	parser;
 	idToken	token;
