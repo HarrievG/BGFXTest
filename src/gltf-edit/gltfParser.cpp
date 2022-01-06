@@ -6,29 +6,33 @@ static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 
 gltf_mesh_attribute_map s_meshAttributeMap[] = {
-	"POSITION",		bgfx::Attrib::Position,
-	"NORMAL",		bgfx::Attrib::Normal,
-	"TANGENT",		bgfx::Attrib::Tangent,
-	"TEXCOORD_0",	bgfx::Attrib::TexCoord0,
-	"TEXCOORD_1",	bgfx::Attrib::TexCoord1,
-	"TEXCOORD_2",	bgfx::Attrib::TexCoord2,
-	"TEXCOORD_3",	bgfx::Attrib::TexCoord3,
-	"TEXCOORD_4",	bgfx::Attrib::TexCoord4,
-	"TEXCOORD_5",	bgfx::Attrib::TexCoord5,
-	"TEXCOORD_6",	bgfx::Attrib::TexCoord6,
-	"TEXCOORD_7",	bgfx::Attrib::TexCoord7,
-	"COLOR_0",		bgfx::Attrib::Color0,
-	"COLOR_1",		bgfx::Attrib::Color1,
-	"COLOR_2",		bgfx::Attrib::Color2,
-	"COLOR_3",		bgfx::Attrib::Color3,
-	"WEIGHTS_0",	bgfx::Attrib::Weight,
+	"POSITION",		bgfx::Attrib::Position,	3,
+	"NORMAL",		bgfx::Attrib::Normal,	3,
+	"TANGENT",		bgfx::Attrib::Tangent,	3,
+	"TEXCOORD_0",	bgfx::Attrib::TexCoord0,2,
+	"TEXCOORD_1",	bgfx::Attrib::TexCoord1,2,
+	"TEXCOORD_2",	bgfx::Attrib::TexCoord2,2,
+	"TEXCOORD_3",	bgfx::Attrib::TexCoord3,2,
+	"TEXCOORD_4",	bgfx::Attrib::TexCoord4,2,
+	"TEXCOORD_5",	bgfx::Attrib::TexCoord5,2,
+	"TEXCOORD_6",	bgfx::Attrib::TexCoord6,2,
+	"TEXCOORD_7",	bgfx::Attrib::TexCoord7,2,
+	"COLOR_0",		bgfx::Attrib::Color0,	4,
+	"COLOR_1",		bgfx::Attrib::Color1,	4,
+	"COLOR_2",		bgfx::Attrib::Color2,	4,
+	"COLOR_3",		bgfx::Attrib::Color3,	4,
+	"WEIGHTS_0",	bgfx::Attrib::Weight,	1,
 	"",				bgfx::Attrib::Count
 };
-bgfx::Attrib::Enum GetAttributeEnum( const char *str ) {
+bgfx::Attrib::Enum GetAttributeEnum( const char *str , uint * elementSize = nullptr) {
 	   int i = -1;
 	   while ( s_meshAttributeMap[++i].attib != bgfx::Attrib::Count )
-		   if ( !idStr::Icmp( s_meshAttributeMap[i].stringID, str ) )
-			   return s_meshAttributeMap[i].attib;
+			if ( !idStr::Icmp( s_meshAttributeMap[i].stringID, str ) )
+			{
+				if (elementSize != nullptr)
+					*elementSize = s_meshAttributeMap[i].elementSize;
+				return s_meshAttributeMap[i].attib;
+			}
 	   
 	   return bgfx::Attrib::Count;
 }
@@ -287,7 +291,7 @@ void gltfItem_mesh_primitive_attribute::parse( idToken &token ) {
 		gltfMesh_Primitive_Attribute *attr = ( *item )[item->Num( ) - 1];
 		parser->ExpectTokenString( ":" );
 		attr->attributeSemantic = token;
-		attr->bgfxType = GetAttributeEnum( attr->attributeSemantic.c_str() );
+		attr->bgfxType = GetAttributeEnum( attr->attributeSemantic.c_str(), &attr->elementSize );
 		parser->ExpectAnyToken( &token );
 		attr->accessorIndex = token.GetIntValue();
 		parsing = parser->PeekTokenString( "," );
@@ -937,14 +941,29 @@ void GLTF_Parser::CreateBgfxData( )
 {
 
 	//buffers
-	for ( auto &mesh : currentAsset->MeshList( ) ) 
+	for ( auto mesh : currentAsset->MeshList( ) ) 
 	{
-		for ( auto &prim : mesh->primitives ) 
+		for ( auto prim : mesh->primitives ) 
 		{
-			for ( auto& attrib : prim->attributes )
-			{
+			//vertexindices accessor
+			gltfAccessor * accessor = currentAsset->AccessorList( )[prim->indices];
 
-			}
+			gltfBufferView *bv = currentAsset->BufferViewList( )[accessor->bufferView];
+			gltfData *data = bv->parent;
+			gltfBuffer *buff = data->BufferList( )[bv->buffer];
+
+			prim->indexBufferHandle = bgfx::createIndexBuffer(
+				bgfx::makeRef( data->GetData(bv->buffer) + bv->byteOffset, bv->byteLength ));
+			
+			bgfx::VertexLayout vtxLayout;
+			vtxLayout.begin( );
+			for ( auto attrib : prim->attributes )
+				vtxLayout.add(attrib->bgfxType,attrib->elementSize,accessor->bgfxType );
+			vtxLayout.end();
+
+			//prim->vertexBufferHandle = bgfx::createVertexBuffer(
+			//	bgfx::makeRef( cube_vertices, sizeof( cube_vertices ) ),
+			//	pos_col_vert_layout );
 		}
 	}
 	//textures

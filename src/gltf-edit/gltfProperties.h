@@ -29,6 +29,7 @@ class gltfData;
 struct gltf_mesh_attribute_map {
 	idStr stringID;
 	bgfx::Attrib::Enum attib;
+	uint elementSize;
 };
 
 struct gltf_accessor_component_type_map {
@@ -43,11 +44,11 @@ struct gltf_accessor_component_type_map {
 
 class gltfMesh_Primitive_Attribute {
 public:
-	gltfMesh_Primitive_Attribute( ) : accessorIndex(-1){ }
+	gltfMesh_Primitive_Attribute( ) : accessorIndex(-1), bgfxType( bgfx::Attrib::Count ),elementSize(0){ }
 	idStr attributeSemantic;
 	int accessorIndex;
-		
 	bgfx::Attrib::Enum bgfxType;
+	uint elementSize;
 };
 
 class gltfMesh_Primitive {
