@@ -171,5 +171,5 @@ private:
 	idToken	token;
 	idStr currentFile;
 
-	byte * currentDataBuffer;
+	bool buffersDone;
 };

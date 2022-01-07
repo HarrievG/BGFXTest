@@ -412,7 +412,7 @@ void gltfItem_accessor_sparse_indices::parse( idToken &token ) {
 }
 
 GLTF_Parser::GLTF_Parser()
-	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) { }
+	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) , buffersDone(false) { }
 
 void GLTF_Parser::Parse_ASSET( idToken &token )
 {
@@ -700,6 +700,44 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 {
 	parser.ExpectTokenString( ":" );
 	gltfProperty prop = ResolveProp( token );
+
+	bool skipping = false;
+	if (!buffersDone)
+	{
+		if (prop == BUFFERS)
+		{
+			Parse_BUFFERS( token );
+			return prop;
+		}
+		skipping = true;
+		common->DPrintf( "Searching for buffer tag. Skipping %s.", token.c_str());
+	}else 
+	{
+		if ( prop == BUFFERS )
+		{
+			skipping = true;
+			common->DPrintf( "Skipping %s , already done.", token.c_str( ) );
+		}
+	}
+
+	if (skipping )
+	{
+		//1. search for {} scope.
+		//2. search for [] scope.
+		//3. singele token.
+
+		idToken skipTok;
+		int sectionsSkipped = 0;
+		if (parser.PeekTokenString("{"))
+			parser.SkipBracedSection( true,BRSKIP_BRACE, &sectionsSkipped );
+		if ( !sectionsSkipped && parser.PeekTokenString( "[" ) )
+			parser.SkipBracedSection( true, BRSKIP_BRACKET, &sectionsSkipped );
+		if ( !sectionsSkipped )
+			parser.ExpectAnyToken( &skipTok );
+
+		return gltfProperty::INVALID;
+	}
+		
 	switch ( prop )
 	{
 		case ASSET:
@@ -867,7 +905,17 @@ bool GLTF_Parser::Parse( ) {
 			common->FatalError( "Expected an \"string\" " );
 
 		common->Printf( token.c_str( ) );
-		ParseProp( token );
+		gltfProperty prop = ParseProp( token );
+		if ( prop == BUFFERS  )
+		{
+			if ( !buffersDone )
+			{
+				parser.Reset();
+				parser.ExpectTokenString( "{" );
+				buffersDone = true;
+				continue;
+			}
+		}
 		common->Printf( "\n" );
 		parsing = parser.PeekTokenString( "," );
 		if ( parsing )
@@ -882,6 +930,7 @@ bool GLTF_Parser::Parse( ) {
 	else
 		common->FatalError( "%s not fully loaded.", currentFile );
 	
+	buffersDone = false;
 	return true;
 }
 	

@@ -9,20 +9,21 @@
   },
   "images": [
     {
-        "mimeType" : "image/png",
-        "name" : "Dummy_White",
-        "uri" : "textures/dummy_white.png"
+      "mimeType": "image/png",
+      "name": "Dummy_White",
+      "uri": "textures/dummy_white.png"
     },
     {
-        "mimeType" : "image/png",
-        "name" : "Dummy_Normal_Map",
-        "uri" : "textures/dummy_normal_map.png"
+      "mimeType": "image/png",
+      "name": "Dummy_Normal_Map",
+      "uri": "textures/dummy_normal_map.png"
     },
     {
-        "mimeType" : "image/png",
-        "name" : "Dummy_MetallicRoughness",
-        "uri" : "textures/dummy_metallicRoughness.png"
+      "mimeType": "image/png",
+      "name": "Dummy_MetallicRoughness",
+      "uri": "textures/dummy_metallicRoughness.png"
     }
-  ]
+  ],
+  "buffers": {  }
 }
 

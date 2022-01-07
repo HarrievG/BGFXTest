@@ -66,7 +66,7 @@ typedef enum {
 } lexerFlags_t;
 
 typedef enum {
-	BRSKIP_BRACES,
+	BRSKIP_BRACE,
 	BRSKIP_BRACKET
 } braceSkipMode_t;
 
@@ -184,7 +184,7 @@ public:
 					// skip the rest of the current line
 	int				SkipRestOfLine( void );
 					// skip the braced section
-	int				SkipBracedSection( bool parseFirstBrace = true , braceSkipMode_t skipMode = BRSKIP_BRACES,int * skipped = nullptr);
+	int				SkipBracedSection( bool parseFirstBrace = true , braceSkipMode_t skipMode = BRSKIP_BRACE,int * skipped = nullptr);
 					// unread the given token
 	void			UnreadToken( const idToken *token );
 					// read a token only if on the same line
