@@ -235,7 +235,7 @@ void bgfxInitShaders( bgfxContext_t *context ) {
     bgfx::VertexLayout pos_col_vert_layout;
     pos_col_vert_layout.begin( )
         .add( bgfx::Attrib::Position, 3, bgfx::AttribType::Float )
-        .add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8 )
+        .add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8,true )
         .end( );
     bgfx::VertexBufferHandle vbh = bgfx::createVertexBuffer(
         bgfx::makeRef( cube_vertices, sizeof( cube_vertices ) ),

@@ -41,7 +41,7 @@ gltf_accessor_component_type_map s_componentTypeMap[] = {
 	//"signed byte",	5120,	bgfx::AttribType::int8,
 	"unsigned byte",	5121,	bgfx::AttribType::Uint8,
 	"signed short",		5122,	bgfx::AttribType::Int16,
-	//"unsigned short",	5123,	bgfx::AttribType::UInt16,
+	"unsigned short",	5123,	bgfx::AttribType::Half,
 	"unsigned int",		5125,	bgfx::AttribType::Uint8, //:# :@
 	"float",			5126,	bgfx::AttribType::Float,
 	"",					0,		bgfx::AttribType::Count
@@ -196,6 +196,7 @@ byte * gltfData::AddData(int size, int * bufferID/*=nullptr*/)
 	{
 		json  =  (byte*) Mem_ClearedAlloc(size);
 		totalChunks++;
+		jsonDataLength = size;
 		return json;
 	}
 
@@ -521,7 +522,7 @@ void GLTF_Parser::Parse_ACCESSORS( idToken &token )
 	GLTFARRAYITEM( accessor, componentType, gltfItem_integer );
 	GLTFARRAYITEM( accessor, normalized, gltfItem_boolean );
 	GLTFARRAYITEM( accessor, count, gltfItem_integer );
-	GLTFARRAYITEM( accessor, type, gltfItem_integer );
+	GLTFARRAYITEM( accessor, type, gltfItem );
 	GLTFARRAYITEM( accessor, max, gltfItem_number_array );
 	GLTFARRAYITEM( accessor, min, gltfItem_number_array );
 	GLTFARRAYITEM( accessor, sparse, gltfItem_accessor_sparse);
@@ -541,7 +542,7 @@ void GLTF_Parser::Parse_ACCESSORS( idToken &token )
 		GLTFARRAYITEMREF( item, componentType);
 		GLTFARRAYITEMREF( item, normalized);
 		GLTFARRAYITEMREF( item, count);
-		GLTFARRAYITEMREF( item, type ); //todo: gltfItem_type
+		GLTFARRAYITEMREF( item, type );
 		max->Set		( &item->max, &lexer );
 		min->Set		( &item->min, &lexer );
 		sparse->Set		( &item->sparse, &lexer );
@@ -550,7 +551,7 @@ void GLTF_Parser::Parse_ACCESSORS( idToken &token )
 		GLTFARRAYITEMREF( item, extras);
 		accessor.Parse( &lexer );
 
-		item->bgfxType = GetComponentTypeEnum( item->type );
+		item->bgfxType = GetComponentTypeEnum( item->componentType );
 
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
@@ -858,8 +859,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 	return true;
 }
 
-bool GLTF_Parser::Parse()
-{
+bool GLTF_Parser::Parse( ) {
 	bool parsing = true;
 	parser.ExpectTokenString( "{" );
 	while ( parsing && parser.ExpectAnyToken( &token ) ) {
@@ -868,7 +868,7 @@ bool GLTF_Parser::Parse()
 
 		common->Printf( token.c_str( ) );
 		ParseProp( token );
-		common->Printf("\n" );
+		common->Printf( "\n" );
 		parsing = parser.PeekTokenString( "," );
 		if ( parsing )
 			parser.ExpectTokenString( "," );
@@ -958,7 +958,10 @@ void GLTF_Parser::CreateBgfxData( )
 			bgfx::VertexLayout vtxLayout;
 			vtxLayout.begin( );
 			for ( auto attrib : prim->attributes )
-				vtxLayout.add(attrib->bgfxType,attrib->elementSize,accessor->bgfxType );
+			{
+				gltfAccessor * attrAcc = currentAsset->AccessorList( )[attrib->accessorIndex];
+				vtxLayout.add(attrib->bgfxType,attrib->elementSize, attrAcc->bgfxType, attrAcc->normalized );
+			}
 			vtxLayout.end();
 
 			//prim->vertexBufferHandle = bgfx::createVertexBuffer(

@@ -185,7 +185,7 @@ public:
 	int componentType;
 	bool normalized;
 	int count;
-	int type;
+	idStr type;
 	idList<double> max;
 	idList<double> min;
 	gltfAccessor_Sparse sparse;
@@ -303,7 +303,7 @@ public:
 	gltfData( ) : json( nullptr ), data( nullptr ), totalChunks( -1 ) { };
 	~gltfData( );
 	byte *AddData( int size, int *bufferID = nullptr );
-	byte *GetJsonData( ) { return json; }
+	byte *GetJsonData(int & size ) { size = jsonDataLength; return json; }
 	byte *GetData( int index ) { return data[index]; }
 	void FileName( const idStr &file ) { fileName = file; fileNameHash = idStr::Hash( file.c_str( ) ); }
 	int FileNameHash( ) { return fileNameHash; }
@@ -329,6 +329,7 @@ private:
 
 	byte *json;
 	byte **data;
+	int jsonDataLength;
 	int totalChunks;
 
 	idList<gltfBuffer *>					buffers;

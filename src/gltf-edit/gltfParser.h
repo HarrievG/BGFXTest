@@ -170,4 +170,6 @@ private:
 	idLexer	parser;
 	idToken	token;
 	idStr currentFile;
+
+	byte * currentDataBuffer;
 };
