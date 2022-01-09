@@ -37,21 +37,27 @@ bgfx::Attrib::Enum GetAttributeEnum( const char *str , uint * elementSize = null
 	   return bgfx::Attrib::Count;
 }
 
+//https://github.com/KhronosGroup/glTF/issues/832
 gltf_accessor_component_type_map s_componentTypeMap[] = {
-	//"signed byte",	5120,	bgfx::AttribType::int8,
-	"unsigned byte",	5121,	bgfx::AttribType::Uint8,
-	"signed short",		5122,	bgfx::AttribType::Int16,
-	"unsigned short",	5123,	bgfx::AttribType::Half,
-	"unsigned int",		5125,	bgfx::AttribType::Uint8, //:# :@
-	"float",			5126,	bgfx::AttribType::Float,
-	"",					0,		bgfx::AttribType::Count
+	"signed byte",		5120,	bgfx::AttribType::Count, 1 ,
+	"unsigned byte",	5121,	bgfx::AttribType::Uint8, 1 ,
+	"signed short",		5122,	bgfx::AttribType::Int16, 2 ,
+	"unsigned short",	5123,	bgfx::AttribType::Count, 2 ,
+	"unsigned int",		5125,	bgfx::AttribType::Uint8, 4 , 
+	"float",			5126,	bgfx::AttribType::Float, 4 ,
+	"double",			5130,	bgfx::AttribType::Float, 8 ,
+	"",					0,		bgfx::AttribType::Count, 0
 };
 
-bgfx::AttribType::Enum GetComponentTypeEnum( int id ) {
+bgfx::AttribType::Enum GetComponentTypeEnum( int id  , uint * sizeInBytes = nullptr) {
 	int i = -1;
-	while ( s_componentTypeMap[++i].type != bgfx::AttribType::Count )
-		if ( s_componentTypeMap[i].id == id )
+	while ( s_componentTypeMap[++i].id != 0)
+		if ( s_componentTypeMap[i].id == id ) {
+			if (sizeInBytes != nullptr )
+				*sizeInBytes = s_componentTypeMap[i].sizeInBytes;
+
 			return s_componentTypeMap[i].type;
+		}
 	
 	return bgfx::AttribType::Count;
 }
@@ -551,7 +557,7 @@ void GLTF_Parser::Parse_ACCESSORS( idToken &token )
 		GLTFARRAYITEMREF( item, extras);
 		accessor.Parse( &lexer );
 
-		item->bgfxType = GetComponentTypeEnum( item->componentType );
+		item->bgfxType = GetComponentTypeEnum( item->componentType, &item->typeSize );
 
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
@@ -774,7 +780,7 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 			Parse_SAMPLERS( token );
 			break;
 		case BUFFERS:
-			Parse_BUFFERS( token );
+			common->FatalError( "Buffers should already be parsed!" );
 			break;
 		case ANIMATIONS:
 			Parse_ANIMATIONS( token );
@@ -994,28 +1000,63 @@ void GLTF_Parser::CreateBgfxData( )
 	{
 		for ( auto prim : mesh->primitives ) 
 		{
-			//vertexindices accessor
+			//vertex indices accessor
 			gltfAccessor * accessor = currentAsset->AccessorList( )[prim->indices];
-
 			gltfBufferView *bv = currentAsset->BufferViewList( )[accessor->bufferView];
 			gltfData *data = bv->parent;
 			gltfBuffer *buff = data->BufferList( )[bv->buffer];
+			uint16_t * indices = ( uint16_t *)Mem_ClearedAlloc( accessor->typeSize * accessor->count );
+			idFile_Memory idxBin = idFile_Memory( "gltfChunkIndices", ( const char * ) data->GetData( bv->buffer ) + bv->byteOffset + bv->byteStride, bv->byteLength );
+			for (int i = accessor->count-1; i >= 0 ; i-- )
+				idxBin.ReadUnsignedShort( indices[i] );
+			prim->indexBufferHandle = bgfx::createIndexBuffer(bgfx::copy( indices, accessor->typeSize * accessor->count ));
+			Mem_Free( indices );
 
-			prim->indexBufferHandle = bgfx::createIndexBuffer(
-				bgfx::makeRef( data->GetData(bv->buffer) + bv->byteOffset, bv->byteLength ));
-			
+			//vertex attribs  
+			PosColorVertex * vtxData = NULL;
+			uint vtxDataSize = 0;
 			bgfx::VertexLayout vtxLayout;
 			vtxLayout.begin( );
-			for ( auto attrib : prim->attributes )
+			for ( auto & attrib : prim->attributes )
 			{
 				gltfAccessor * attrAcc = currentAsset->AccessorList( )[attrib->accessorIndex];
-				vtxLayout.add(attrib->bgfxType,attrib->elementSize, attrAcc->bgfxType, attrAcc->normalized );
-			}
-			vtxLayout.end();
+				gltfBufferView *attrBv = currentAsset->BufferViewList( )[attrAcc->bufferView];
+				gltfData *attrData = attrBv->parent;
+				gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
 
-			//prim->vertexBufferHandle = bgfx::createVertexBuffer(
-			//	bgfx::makeRef( cube_vertices, sizeof( cube_vertices ) ),
-			//	pos_col_vert_layout );
+				idFile_Memory bin = idFile_Memory( "gltfChunkPosition", ( const char * ) data->GetData( attrBv->buffer ) + attrBv->byteOffset + attrBv->byteStride, attrBv->byteLength );
+
+				if ( vtxData == nullptr ) {
+					vtxDataSize = sizeof( PosColorVertex ) * attrAcc->count;
+					vtxData = ( PosColorVertex * ) Mem_ClearedAlloc( vtxDataSize );
+				}
+
+				if ( attrib->bgfxType == bgfx::Attrib::Enum::Position ) {
+					for ( int i = 0; i < attrAcc->count; i++ ) {
+						bin.Read( ( void * ) ( &vtxData[i].x ), attrAcc->typeSize );
+						bin.Read( ( void * ) ( &vtxData[i].y ), attrAcc->typeSize );
+						bin.Read( ( void * ) ( &vtxData[i].z ), attrAcc->typeSize );
+						bin.Seek( bv->byteStride, FS_SEEK_CUR );
+						
+						idRandom rnd(i);
+						int r = rnd.RandomInt(255), g = rnd.RandomInt(255), b = rnd.RandomInt(255);
+
+						vtxData[i].abgr = 0xff000000 + ( b << 16 ) + ( g << 8 ) + r;
+					}
+					vtxLayout.add( attrib->bgfxType, attrib->elementSize, attrAcc->bgfxType, attrAcc->normalized );
+				}
+				
+			}
+
+			vtxLayout.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true );
+			vtxLayout.end();
+			if ( vtxData != NULL ) {
+				prim->vertexBufferHandle = bgfx::createVertexBuffer(
+					bgfx::copy( vtxData, vtxDataSize ), vtxLayout );
+
+				Mem_Free( vtxData );
+			}else
+				common->FatalError("Failed to read vertex info" );
 		}
 	}
 	//textures

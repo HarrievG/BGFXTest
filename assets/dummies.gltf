@@ -22,6 +22,16 @@
       "mimeType": "image/png",
       "name": "Dummy_MetallicRoughness",
       "uri": "textures/dummy_metallicRoughness.png"
+    },
+    {
+      "mimeType": "image/png",
+      "name": "icon_map",
+      "uri": "textures/blender_icons16.png"
+    },
+    {
+      "mimeType": "image/png",
+      "name": "SplashScreen",
+      "uri": "textures/SplashScreen.png"
     }
   ],
   "buffers": {  }

@@ -36,6 +36,7 @@ struct gltf_accessor_component_type_map {
 	idStr stringID;
 	int id;
 	bgfx::AttribType::Enum type;
+	uint sizeInBytes;//single element
 };
 
 
@@ -194,6 +195,7 @@ public:
 	idStr extras;
 
 	bgfx::AttribType::Enum bgfxType;
+	uint typeSize;
 };
 
 class gltfBufferView {
