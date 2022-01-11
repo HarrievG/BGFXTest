@@ -172,4 +172,5 @@ private:
 	idStr currentFile;
 
 	bool buffersDone;
+	bool bufferViewsDone;
 };

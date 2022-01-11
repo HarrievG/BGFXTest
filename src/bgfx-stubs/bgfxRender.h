@@ -63,6 +63,9 @@ struct bgfxContext_t {
     idVec3	vieworg;
     idMat3	viewaxis;			// transformation matrix, view looks down the positive X axis
 
+    idMat4 cameraView;
+    idMat4 cameraProjection;
+    idMat4 objMat;
     bx::RngMwc rng;
 
     bool quit = false;

@@ -41,10 +41,10 @@ void main_loop( void *data ) {
     ImGui_ImplSDL2_NewFrame( context->window );
     common->Frame();
     ImGui::NewFrame( );
+    ImGuizmo::BeginFrame( );
 
- 
     //ImGuizmo::ViewManipulate( )
-    ImGui::ShowDemoWindow( ); // your drawing here
+    //ImGui::ShowDemoWindow( ); // your drawing here
 	imConsole->Draw( );
     
     bgfxRender( context );
@@ -155,7 +155,7 @@ int main( int argc, char **argv )
     bgfx::init( bgfx_init );
 
     bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
-    bgfx::setViewClear(1, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x00000078, 1.0f, 0 );
+    bgfx::setViewClear(1, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
     
     bgfx::setViewRect( 0, 0, 0, width, height );
 
@@ -175,6 +175,7 @@ int main( int argc, char **argv )
     context.width = width;
     context.height = height;
     context.window = window;
+
     bgfxInitShaders( &context );
 
     common->PrintWarnings();

@@ -3,6 +3,7 @@
 #include "FileSystem.h"
 #include "CVarSystem.h"
 #include "CmdSystem.h"
+#include <ImGuizmo.h>
 
 
 static PosColorVertex cube_vertices[] = {
@@ -13,8 +14,8 @@ static PosColorVertex cube_vertices[] = {
 };
 
 static const uint16_t cube_tri_list[] = {
-    0, 1, 2, 1, 3, 2, 4, 6, 5, 5, 6, 7, 0, 2, 4, 4, 2, 6,
-    1, 5, 3, 5, 7, 3, 0, 4, 1, 4, 5, 1, 2, 3, 6, 6, 3, 7,
+    0, 2 , 1, 1, 2, 3, 4, 5, 6, 5, 7, 6, 0, 4, 2, 4, 6, 2,
+    1, 3, 5, 5, 3, 7, 0, 1, 4, 4, 1, 5, 2, 6, 3, 6, 7, 3,
 };
 
 idCVar r_customWidth( "r_customWidth", "1920", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen width. set r_mode to -1 to activate" );
@@ -230,6 +231,38 @@ void bgfxShutdown( bgfxContext_t *context ) {
     bgfx::shutdown( );
 }
 
+
+void Frustum( float left, float right, float bottom, float top, float znear, float zfar, float *m16 ) {
+	float temp, temp2, temp3, temp4;
+	temp = 2.0f * znear;
+	temp2 = right - left;
+	temp3 = top - bottom;
+	temp4 = zfar - znear;
+	m16[0] = temp / temp2;
+	m16[1] = 0.0;
+	m16[2] = 0.0;
+	m16[3] = 0.0;
+	m16[4] = 0.0;
+	m16[5] = temp / temp3;
+	m16[6] = 0.0;
+	m16[7] = 0.0;
+	m16[8] = ( right + left ) / temp2;
+	m16[9] = ( top + bottom ) / temp3;
+	m16[10] = ( -zfar - znear ) / temp4;
+	m16[11] = -1.0f;
+	m16[12] = 0.0;
+	m16[13] = 0.0;
+	m16[14] = ( -temp * zfar ) / temp4;
+	m16[15] = 0.0;
+}
+
+void Perspective( float fovyInDegrees, float aspectRatio, float znear, float zfar, float *m16 ) {
+	float ymax, xmax;
+	ymax = znear * tanf( fovyInDegrees * 3.141592f / 180.0f );
+	xmax = ymax * aspectRatio;
+	Frustum( -xmax, xmax, -ymax, ymax, znear, zfar, m16 );
+}
+
 void bgfxInitShaders( bgfxContext_t *context ) {
 
     bgfx::VertexLayout pos_col_vert_layout;
@@ -260,6 +293,21 @@ void bgfxInitShaders( bgfxContext_t *context ) {
         context->rb = bgfx::createTexture2D( context->width, context->height, false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_BLIT_DST );
     }
 
+	bx::mtxProj(
+		context->cameraProjection.ToFloatPtr(), 30.0, float( context->width ) / float( context->height ), 0.1f,
+		10000.0f, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
+
+
+
+	//float tmp[16];
+	//float trans[16];
+	//bx::mtxIdentity( tmp );
+	//bx::mtxIdentity( trans );
+	//bx::mtxTranslate( trans, 0.0f, 0.0f, 0.0f );
+	//
+	//bx::mtxMul( context->cameraView.ToFloatPtr( ), tmp, trans );
+	//bx::mtxInverse(, tmp );
+	bx::mtxIdentity(context->cameraView.ToFloatPtr( ));
     static bool cmdSystemSet = false;
     if (!cmdSystemSet) {
 
@@ -272,7 +320,11 @@ void bgfxInitShaders( bgfxContext_t *context ) {
     }   
 
 }
-
+static const float identityMatrix[16] =
+{ 1.f, 0.f, 0.f, 0.f,
+	0.f, 1.f, 0.f, 0.f,
+	0.f, 0.f, 1.f, 0.f,
+	0.f, 0.f, 0.f, 1.f };
 void bgfxRender( bgfxContext_t *context ){
 
 	
@@ -318,35 +370,34 @@ void bgfxRender( bgfxContext_t *context ){
         context->fbh = bgfx::createFrameBuffer( BX_COUNTOF( context->fbTextureHandle), context->fbTextureHandle, true );
         bgfx::ViewId rttView = 1;
         bgfx::setViewName( rttView, "backBuffer" );
-        //bgfx::setViewClear( rttView, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0xff0000ff, 0, 0 );
         bgfx::setViewRect( rttView, 0, 0, bgfx::BackbufferRatio::Equal );
         bgfx::setViewFrameBuffer( rttView, context->fbh );
+
+		float fov = 27.f;
+		float camYAngle = 165.f / 180.f * 3.14159f;
+		float camXAngle = 32.f / 180.f * 3.14159f;
+		bx::Vec3 eye = { cosf( camYAngle ) * cosf( camXAngle ) * 10, sinf( camXAngle ) * 10, sinf( camYAngle ) * cosf( camXAngle ) * 10 };
+		bx::Vec3 at = { 0.f, 0.f, 0.f };
+		bx::Vec3 up = { 0.f, 1.f, 0.f };
+		bx::mtxLookAt( context->cameraView.ToFloatPtr( ) ,eye,at,up, bx::Handness::Right);
     }
 
-    idMat4 camMat;
+    bgfx::setViewTransform( 0, context->cameraView.ToFloatPtr( ), context->cameraProjection.ToFloatPtr( ) );
 
-    idRotation camRot;
-    camRot.SetVec( context->cam_pitch, context->cam_yaw, 0.0f );
-    float cam_rotation[16];
-    bx::mtxRotateXYZ( cam_rotation, context->cam_pitch, context->cam_yaw, 0.0f );
+	ImGuizmo::SetOrthographic( false );
+	ImGuizmo::SetRect( 0, 0, context->width,context->height);
 
-    float cam_translation[16];
-    bx::mtxTranslate( cam_translation, 0.0f, 0.0f, -5.0f );
+	ImGuizmo::DrawGrid( context->cameraView.ToFloatPtr() , context->cameraProjection.ToFloatPtr(), identityMatrix, 100.f );
+	//ImGuizmo::DrawCubes( context->cameraView.ToFloatPtr( ), context->cameraProjection.ToFloatPtr( ), identityMatrix, 1 );
+	//ImGuizmo::Manipulate( cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL );
 
-    float cam_transform[16];
-    bx::mtxMul( cam_transform, cam_translation, cam_rotation );
+	ImGuizmo::ViewManipulate( context->cameraView.ToFloatPtr( ), 10, ImVec2( context->width - 128, 0 ), ImVec2( 128, 128 ), 0x10101010 );
 
-    float view[16];
-    bx::mtxInverse( view, cam_transform );
-
-    float proj[16];
-    bx::mtxProj(
-        proj, 60.0f, float( context->width ) / float( context->height ), 0.1f,
-        100.0f, bgfx::getCaps( )->homogeneousDepth );
-
-    bgfx::setViewTransform( 0, view, proj );
-    bgfx::setViewTransform( 1, view, proj );
-
+	//uint64_t state =
+	//	BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA | BGFX_STATE_DEPTH_TEST_GEQUAL |
+	//	BGFX_STATE_BLEND_FUNC(
+	//		BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA );
+	//bgfx::setState( state );
     float modelTransform[16];
     float modelRotation[16];
 	float modelRotationY[16];
@@ -389,7 +440,7 @@ void bgfxRender( bgfxContext_t *context ){
 
     bx::mtxMul( tmp, modelScale, modelRotation );
     bx::mtxMul( modelTransform, tmp, modelTranslation );
-	bgfx::setTransform( modelTransform );
+	bgfx::setTransform( identityMatrix );
 	bgfx::setVertexBuffer( 0, context->vbh );
 	bgfx::setIndexBuffer( context->ibh );
 	bgfx::submit( 0, context->program );

@@ -43,7 +43,7 @@ gltf_accessor_component_type_map s_componentTypeMap[] = {
 	"unsigned byte",	5121,	bgfx::AttribType::Uint8, 1 ,
 	"signed short",		5122,	bgfx::AttribType::Int16, 2 ,
 	"unsigned short",	5123,	bgfx::AttribType::Count, 2 ,
-	"unsigned int",		5125,	bgfx::AttribType::Uint8, 4 , 
+	"unsigned int",		5125,	bgfx::AttribType::Count, 4 , 
 	"float",			5126,	bgfx::AttribType::Float, 4 ,
 	"double",			5130,	bgfx::AttribType::Float, 8 ,
 	"",					0,		bgfx::AttribType::Count, 0
@@ -418,7 +418,7 @@ void gltfItem_accessor_sparse_indices::parse( idToken &token ) {
 }
 
 GLTF_Parser::GLTF_Parser()
-	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) , buffersDone(false) { }
+	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) , buffersDone(false), bufferViewsDone( false ) { }
 
 void GLTF_Parser::Parse_ASSET( idToken &token )
 {
@@ -708,18 +708,22 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 	gltfProperty prop = ResolveProp( token );
 
 	bool skipping = false;
-	if (!buffersDone)
+	if (!buffersDone || !bufferViewsDone)
 	{
-		if (prop == BUFFERS)
+		if (prop == BUFFERS && !buffersDone)
 		{
 			Parse_BUFFERS( token );
+			return prop;
+		}
+		if ( prop == BUFFERVIEWS && !bufferViewsDone ) {
+			Parse_BUFFERVIEWS( token );
 			return prop;
 		}
 		skipping = true;
 		common->DPrintf( "Searching for buffer tag. Skipping %s.", token.c_str());
 	}else 
 	{
-		if ( prop == BUFFERS )
+		if (( prop == BUFFERS && buffersDone)  || (prop == BUFFERVIEWS && bufferViewsDone ))
 		{
 			skipping = true;
 			common->DPrintf( "Skipping %s , already done.", token.c_str( ) );
@@ -774,13 +778,16 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 			Parse_ACCESSORS( token );
 			break;
 		case BUFFERVIEWS:
-			Parse_BUFFERVIEWS( token );
+			//Parse_BUFFERVIEWS( token );
+			if ( !bufferViewsDone )
+				common->FatalError( "Bufferviews should already be parsed!" );
 			break;
 		case SAMPLERS:
 			Parse_SAMPLERS( token );
 			break;
 		case BUFFERS:
-			common->FatalError( "Buffers should already be parsed!" );
+			if (!buffersDone)
+				common->FatalError( "Buffers should already be parsed!" );
 			break;
 		case ANIMATIONS:
 			Parse_ANIMATIONS( token );
@@ -912,15 +919,20 @@ bool GLTF_Parser::Parse( ) {
 
 		common->Printf( token.c_str( ) );
 		gltfProperty prop = ParseProp( token );
-		if ( prop == BUFFERS  )
+
+		if (( prop == BUFFERS && !buffersDone ))
 		{
-			if ( !buffersDone )
-			{
-				parser.Reset();
-				parser.ExpectTokenString( "{" );
-				buffersDone = true;
-				continue;
-			}
+			parser.Reset();
+			parser.ExpectTokenString( "{" );
+			buffersDone = true;
+			continue;
+		}
+		if ((prop == BUFFERVIEWS && !bufferViewsDone)) 
+		{
+			parser.Reset( );
+			parser.ExpectTokenString( "{" );
+			bufferViewsDone = true;
+			continue;
 		}
 		common->Printf( "\n" );
 		parsing = parser.PeekTokenString( "," );
@@ -937,6 +949,7 @@ bool GLTF_Parser::Parse( ) {
 		common->FatalError( "%s not fully loaded.", currentFile );
 	
 	buffersDone = false;
+	bufferViewsDone = false;
 	return true;
 }
 	
@@ -1004,12 +1017,18 @@ void GLTF_Parser::CreateBgfxData( )
 			gltfAccessor * accessor = currentAsset->AccessorList( )[prim->indices];
 			gltfBufferView *bv = currentAsset->BufferViewList( )[accessor->bufferView];
 			gltfData *data = bv->parent;
+
 			gltfBuffer *buff = data->BufferList( )[bv->buffer];
-			uint16_t * indices = ( uint16_t *)Mem_ClearedAlloc( accessor->typeSize * accessor->count );
-			idFile_Memory idxBin = idFile_Memory( "gltfChunkIndices", ( const char * ) data->GetData( bv->buffer ) + bv->byteOffset + bv->byteStride, bv->byteLength );
-			for (int i = accessor->count-1; i >= 0 ; i-- )
-				idxBin.ReadUnsignedShort( indices[i] );
-			prim->indexBufferHandle = bgfx::createIndexBuffer(bgfx::copy( indices, accessor->typeSize * accessor->count ));
+			uint idxDataSize = sizeof( uint ) * accessor->count;
+			uint * indices = ( uint *)Mem_ClearedAlloc( idxDataSize );
+			idFile_Memory idxBin = idFile_Memory( "gltfChunkIndices", ( const char * ) ((data->GetData( bv->buffer ) + bv->byteOffset + accessor->byteOffset )), bv->byteLength );
+			for ( int i = 0; i < accessor->count; i++ ) {
+				idxBin.Read( ( void * ) ( &indices[i] ), accessor->typeSize );
+				if ( bv->byteStride )
+					idxBin.Seek( bv->byteStride - accessor->typeSize, FS_SEEK_CUR );
+			}
+			prim->indexBufferHandle = bgfx::createIndexBuffer(bgfx::copy( indices,idxDataSize ),BGFX_BUFFER_INDEX32);
+
 			Mem_Free( indices );
 
 			//vertex attribs  
@@ -1024,7 +1043,7 @@ void GLTF_Parser::CreateBgfxData( )
 				gltfData *attrData = attrBv->parent;
 				gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
 
-				idFile_Memory bin = idFile_Memory( "gltfChunkPosition", ( const char * ) data->GetData( attrBv->buffer ) + attrBv->byteOffset + attrBv->byteStride, attrBv->byteLength );
+				idFile_Memory bin = idFile_Memory( "gltfChunkPosition", ( const char * )(( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + attrAcc->byteOffset )) , attrBv->byteLength );
 
 				if ( vtxData == nullptr ) {
 					vtxDataSize = sizeof( PosColorVertex ) * attrAcc->count;
@@ -1036,16 +1055,16 @@ void GLTF_Parser::CreateBgfxData( )
 						bin.Read( ( void * ) ( &vtxData[i].x ), attrAcc->typeSize );
 						bin.Read( ( void * ) ( &vtxData[i].y ), attrAcc->typeSize );
 						bin.Read( ( void * ) ( &vtxData[i].z ), attrAcc->typeSize );
-						bin.Seek( bv->byteStride, FS_SEEK_CUR );
-						
+						if ( attrBv->byteStride )
+							bin.Seek( attrBv->byteStride - (3 * attrAcc->typeSize), FS_SEEK_CUR );
+
 						idRandom rnd(i);
 						int r = rnd.RandomInt(255), g = rnd.RandomInt(255), b = rnd.RandomInt(255);
 
 						vtxData[i].abgr = 0xff000000 + ( b << 16 ) + ( g << 8 ) + r;
 					}
-					vtxLayout.add( attrib->bgfxType, attrib->elementSize, attrAcc->bgfxType, attrAcc->normalized );
+					vtxLayout.add( attrib->bgfxType, attrib->elementSize,bgfx::AttribType::Float, attrAcc->normalized );
 				}
-				
 			}
 
 			vtxLayout.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true );

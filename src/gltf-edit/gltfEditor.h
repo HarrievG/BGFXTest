@@ -47,6 +47,9 @@ private:
 	//
 	bgfxMaterialList materialList;
 	idHashIndex materialIndices;
+
+	idMat4 cameraView;
+	idMat4 cameraProjection;
 };
 extern gltfSceneEditor * sceneEditor;
 
@@ -68,6 +71,10 @@ private:
 	int selectedFileHash;
 	gltfImage * selectedImage;
 	gltfMesh * selectedMesh;
+
+	idMat4 cameraView;
+	idMat4 cameraProjection;
+
 };
 
 extern gltfAssetExplorer * assetExplorer;
