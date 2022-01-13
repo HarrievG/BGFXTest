@@ -28,6 +28,8 @@ gltfAssetExplorer *assetExplorer = &localAssetExplorer;
 
 static GLTF_Parser * gltfParser;
 
+idCVar r_gltfEditRenderWidth( "r_SceneEditRenderWidth", "1024", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "gltfEditor render view width. set r_mode to -1 to use backbuffer size" );
+idCVar r_gltfEditRenderHeight( "r_SceneEditRenderHeight", "768", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "gltfEditor render view height.set r_mode to -1 to use backbuffer size" );
 
 void gltfSceneEditor::Shutdown( )
 {
@@ -92,6 +94,10 @@ void gltfSceneEditor::Init( )
 	gltfParser->Init();
 	assetExplorer->Init();
 	static auto *thisPtr = this;
+	selectedScene = nullptr;
+	currentData	 = nullptr;
+	selectedNode = nullptr;
+
 #pragma region SystemCommands
 	cmdSystem->AddCommand( "gltf_loadFile", []( const idCmdArgs &args ) 
 		-> auto {
@@ -194,7 +200,7 @@ void gltfSceneEditor::Init( )
 bool gltfSceneEditor::Render( bgfxContext_t *context ) {
 
 
-	bgfx::setViewTransform( 1, context->cameraView.ToFloatPtr( ), context->cameraProjection.ToFloatPtr( ) );
+	//bgfx::setViewTransform( 1, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 
 	//float model[16];
 	//bx::mtxIdentity( model );
@@ -208,10 +214,8 @@ bool gltfSceneEditor::Render( bgfxContext_t *context ) {
 }
 extern const float identityMatrix[16];
 bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
-
-
 	auto curCtx = ImGui::GetCurrentContext();
-	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
+	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_FirstUseEver );
 
 	//ImGui::Begin( "Gizmo", 0, ImGuiWindowFlags_NoMove );
 	ImGuiIO &io = ImGui::GetIO( );
@@ -229,7 +233,7 @@ bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 	if ( gizmoHover )
 		flags |= ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
-	if (ImGui::Begin("GLTF SCENE",&windowOpen, flags ))
+	if (ImGui::Begin("GLTF SCENE",&sceneViewOpen, flags ))
 	{
 		localWindowPos = ImGui::GetWindowPos( );
 		localWindowSize = ImGui::GetWindowSize();
@@ -246,7 +250,6 @@ bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 		gizmoHover = localMousePos.x > (localWindowSize.x - viewGizmoSize.x - 50);
 		gizmoHover &= localMousePos.y < (viewGizmoSize.y + 50);
 		gizmoHover |= ImGui::IsItemActive( );
-
 		if ( ImGui::BeginMenuBar( ) ) {
 			if ( ImGui::BeginMenu( "File" ) ) {
 				if ( ImGui::MenuItem( "Close" ) )
@@ -263,45 +266,97 @@ bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 			}
 			ImGui::EndMenuBar( );
 		}
-		{ImGui::PushID("SceneView");
-		ImGui::BeginChild( "left pane", idVec2( 150, 0 ), true );
-		for (auto &asset : GetLoadedAssets())
-		{
-			for (auto& mesh : asset.meshes )
-			{
-				if (ImGui::Selectable( mesh.name.c_str(),  false, ImGuiSelectableFlags_AllowDoubleClick))
-				{}
-			}
-				//common->Printf( "  %-21s : %-21s\n", mesh.name.c_str(),
-				//	mesh.extras_json_string.c_str() );
-		}
-		if ( ImGui::BeginPopupContextWindow( ) ) 	{//add primitive
-			if ( ImGui::MenuItem( "Add Primitive" ) ) {
-
-			}
-			ImGui::EndPopup( );
-		}
-		ImGui::EndChild( );
-		ImGui::SameLine( );
-
-		if ( bgfx::isValid( context->rb ) ) 
-		{
-			ImGui::Image( ( void * ) ( intptr_t ) context->rb.idx, idVec2( ( float ) context->width / 2, ( float ) context->height / 2 ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
-			float windowWidth = ( float ) ImGui::GetWindowWidth( );
-			float windowHeight = ( float ) ImGui::GetWindowHeight( );
-			ImGuizmo::SetRect( ImGui::GetWindowPos( ).x, ImGui::GetWindowPos( ).y, windowWidth, windowHeight );
-			ImGuizmo::SetDrawlist( );
-			if ( !scrolling && ImGui::IsWindowFocused( ) )
-				ImGuizmo::ViewManipulate( context->cameraView.ToFloatPtr( ), 10, viewGizmoPos, viewGizmoSize, 0x10101010 );
-
-			
-		}
-		//idVec2 ImGui::GetWindow
-		ImGui::Text( "X: %f Y: %f %s %f %s", localMousePos.x, localMousePos.y, gizmoHover ? "Gizmo Hover" : "" , ImGui::GetScrollY( ), scrolling ? "scrolling":"" );
-		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();
+	DrawSceneList();
 	return true;
+}
+void gltfSceneEditor::DrawSceneList()
+{
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
+	if ( ImGui::Begin( "GLTF SCENE LIST", &windowOpen, flags ) )
+	{
+		{
+			ImGui::PushID( "SceneView" );
+			static const idVec2 left_pane_size = idVec2( 250, 0 );
+
+			int sceneCount = 0;
+			auto &dataList = gltfData::DataList( );
+			auto &imStyle = ImGui::GetStyle( );
+			ImGui::SetNextItemWidth( ImGui::GetWindowSize().x - ( imStyle.WindowPadding.x * 2 ) );
+			if ( ImGui::BeginCombo( "##scenes", selectedScene ? selectedScene->name.c_str( ) : "<Scene>" ) ) 		{
+				for ( auto &data : dataList ) 			{
+
+					int sceneCount = 0;
+					auto &scenes = data->SceneList( );
+					for ( auto &scene : scenes ) 				{
+						bool selected = selectedScene == scene;
+						if ( ImGui::Selectable( scene->name.Length( ) ? scene->name.c_str( ) : data->FileName( ).c_str( ), selected ) )
+						{
+							currentData = data;
+							selectedScene = scene;
+						}
+						if ( selected )
+							ImGui::SetItemDefaultFocus( );
+					}
+				}
+				ImGui::EndCombo( );
+			}
+
+			//draw scene nodes
+			if ( selectedScene && currentData ) 		{
+				auto &nodes = currentData->NodeList( );
+				for ( auto &child : selectedScene->nodes )
+					DrawSceneNode( nodes[child], nodes );
+			}
+			//common->Printf( "  %-21s : %-21s\n", mesh.name.c_str(),
+			//	mesh.extras_json_string.c_str() );
+			if ( ImGui::BeginPopupContextWindow( ) ) {//add primitive
+				if ( ImGui::MenuItem( "Add Node" ) ) {
+
+				}
+				ImGui::EndPopup( );
+			}
+			ImGui::SameLine( );
+
+			//if ( bgfx::isValid( context->rb ) ) 
+			//{
+			//	
+			//	float windowWidth = ( float ) ImGui::GetWindowWidth( );
+			//	float windowHeight = ( float ) ImGui::GetWindowHeight( );
+			//	ImGuizmo::SetRect( ImGui::GetWindowPos( ).x, ImGui::GetWindowPos( ).y, windowWidth, windowHeight );
+			//	ImGuizmo::SetDrawlist( );
+			//	if ( !scrolling && ImGui::IsWindowFocused( ) )
+			//		ImGuizmo::ViewManipulate( context->cameraView.ToFloatPtr( ), 10, viewGizmoPos, viewGizmoSize, 0x10101010 );
+			//}
+			//idVec2 ImGui::GetWindow
+			//ImGui::Text( "X: %f Y: %f %s %f %s", localMousePos.x, localMousePos.y, gizmoHover ? "Gizmo Hover" : "" , ImGui::GetScrollY( ), scrolling ? "scrolling":"" );
+		}ImGui::PopID(/*SceneView*/ );
+	}
+	ImGui::End();
+}
+bool gltfSceneEditor::DrawSceneNode( gltfNode *node,const  idList<gltfNode *> &nodeList )
+{
+	//nodeList.Remove(node);
+	if ( node->children.Num( ) ) 
+	{
+		if (ImGui::TreeNode( node->name.Length( ) ? node->name.c_str( ) : "<Node>" ))
+		{
+			for ( auto &child : node->children ) 
+			{
+				if ( nodeList[child]->children.Num( ) )
+					DrawSceneNode( nodeList[child], nodeList );
+			}
+			ImGui::TreePop( );
+		}
+	}else 
+	{
+		//ImGui::PushID( ( idStr( "image" ) + imageCount ).c_str( ) );
+		if ( ImGui::Selectable( node->name.Length( ) ? node->name.c_str( ) : "<Node>", selectedNode == node, ImGuiSelectableFlags_AllowDoubleClick ) ) 
+			selectedNode = node;
+	}
+
+	return false;
 }
 int gltfSceneEditor::IsFileLoaded(const char *file )
 {
@@ -539,25 +594,42 @@ bgfxModel * gltfSceneEditor::GetRenderModel(const idStr & meshName, const idStr 
 	return &out;
 }
 
-
 gltfAssetExplorer::gltfAssetExplorer( )  
 {
-	guiVisible = false;
+	guiVisible = true;
 	selectedFileHash = 0;
 	selectedImage = nullptr;
 	selectedMesh = nullptr;
+
 } 
 gltfAssetExplorer::~gltfAssetExplorer( ) 
 {
 }
 void gltfAssetExplorer::Init()
 {
+	renderTarget.width = r_gltfEditRenderWidth.GetInteger();
+	renderTarget.height = r_gltfEditRenderHeight.GetInteger( );
+	renderTarget.viewId = 10;
+
 	static auto * thisPtr = this;
 	bgfxRegisterCallback([](bgfxContext_t * context ) 
 		-> auto {
 		thisPtr->imDraw(context);
 		thisPtr->Render(context);
 	} );
+
+	float fov = 27.f;
+	float camYAngle = 165.f / 180.f * 3.14159f;
+	float camXAngle = 32.f / 180.f * 3.14159f;
+	bx::Vec3 eye = { cosf( camYAngle ) * cosf( camXAngle ) * 10, sinf( camXAngle ) * 10, sinf( camYAngle ) * cosf( camXAngle ) * 10 };
+	bx::Vec3 at = { 0.f, 0.f, 0.f };
+	bx::Vec3 up = { 0.f, 1.f, 0.f };
+	bx::mtxLookAt( cameraView.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
+	bx::mtxProj(
+		cameraProjection.ToFloatPtr( ), 30.0, float( 800 ) / float( 600 ), 0.1f,
+		10000.0f, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
+
+	camPos = idVec3(eye.x,eye.y,eye.z);
 }
 bool gltfAssetExplorer::Show(bool visible )
 {
@@ -570,10 +642,16 @@ bool gltfAssetExplorer::Show(bool visible )
 }
 bool gltfAssetExplorer::Render( bgfxContext_t *context ) 
 {
-	static bgfx::UniformHandle  g_AttribLocationTex =
-		bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
+	if (!bgfx::isValid( renderTarget.fbh ))
+		bgfxCreateMrtTarget( renderTarget, "AssetExplorerView" );
+
+	bgfx::touch( renderTarget.viewId );
+	static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
 	if (selectedMesh != nullptr )
 	{
+		bgfx::touch( renderTarget.viewId );
+		bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
+
 		float modelTransform[16];
 		bx::mtxIdentity( modelTransform );
 		//bx::mtxMul( tmp, modelScale, xtmp );
@@ -593,13 +671,17 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 			float * modelTransform = rotmat.ToFloatPtr( );
 			bx::mtxMul( tmp, modelScale, modelTransform );
 			//bgfx::setTransform( tmp );
+			
 			if ( selectedImage )
 				bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
+
 			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
 			bgfx::setIndexBuffer( prim->indexBufferHandle );
-			bgfx::submit( 1, context->program );
+			bgfx::submit( renderTarget.viewId, context->program );
 		}
 
+		if ( bgfx::isValid( renderTarget.rb ) )
+			bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
 	    
 	}
 	return false;
@@ -615,9 +697,41 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context )
 		selectedFileHash = idStr::Hash(fileList.begin().p->c_str());
 	
 	auto curCtx = ImGui::GetCurrentContext();
-	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_Once );
-	if (ImGui::Begin("Asset Explorer",&guiVisible, ImGuiWindowFlags_MenuBar))
+	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_FirstUseEver );
+
+	ImGuiIO &io = ImGui::GetIO( );
+
+	static idVec2 localMousePos;
+	static const idVec2 viewGizmoSize = idVec2( 125.f, 125.f );
+	static idVec2 localWindowPos, localWindowSize;
+
+	idVec2 viewGizmoPos;
+
+	static bool gizmoHover = false;
+	static bool scrolling = false;
+	static int localScrolY = 0;
+	ImGuiWindowFlags flags = ImGuiWindowFlags_MenuBar;
+	if ( gizmoHover )
+		flags |= ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+
+	if (ImGui::Begin("Asset Explorer",&guiVisible, flags ))
 	{
+		localWindowPos = ImGui::GetWindowPos( );
+		localWindowSize = ImGui::GetWindowSize( );
+		localMousePos = idVec2( io.MousePos.x - ImGui::GetWindowPos( ).x, io.MousePos.y - ImGui::GetWindowPos( ).y );
+		viewGizmoPos = ImVec2( localWindowPos.x + localWindowSize.x - ( viewGizmoSize.x + 20 ), localWindowPos.y + 20 );
+
+		if ( !scrolling && io.MouseDown[0] )
+			scrolling = localScrolY != ImGui::GetScrollY( );
+		else if ( io.MouseReleased[0] )
+			scrolling = false;
+
+		localScrolY = ImGui::GetScrollY( );
+
+		gizmoHover = localMousePos.x > ( localWindowSize.x - viewGizmoSize.x - 50 );
+		gizmoHover &= localMousePos.y < ( viewGizmoSize.y + 50 );
+		gizmoHover |= ImGui::IsItemActive( );
+
 		if ( ImGui::BeginMenuBar( ) ) {
 			if ( ImGui::BeginMenu( "File" ) ) {
 				if ( ImGui::MenuItem( "Close" ) )
@@ -661,8 +775,37 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context )
 		}
 		ImGui::EndChild( );
 		ImGui::SameLine();
-		if ( selectedImage != nullptr )
+
+		if ( selectedMesh != nullptr )
+		{
+			if (io.MouseDown[1] )
+			{
+				if ( ImGui::IsKeyDown( SDL_SCANCODE_W ) )
+				{
+					camPos += camAngle.ToForward() * com_frameTime;
+				}
+				if ( ImGui::IsKeyDown( SDL_SCANCODE_W ) )
+				{
+					camPos -= camAngle.ToForward( ) * com_frameTime;
+				}
+			}
+			ImGui::Image((void*)(intptr_t)renderTarget.rb.idx, idVec2( ( float ) renderTarget.width / 2, ( float ) renderTarget.height / 2 ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
+
+			float windowWidth = ( float ) ImGui::GetWindowWidth( );
+			float windowHeight = ( float ) ImGui::GetWindowHeight( );
+			ImGuizmo::SetDrawlist();
+			ImGuizmo::AllowAxisFlip( false );
+			ImGuizmo::SetOrthographic( false );
+			ImGuizmo::SetRect( ImGui::GetWindowPos( ).x, ImGui::GetWindowPos( ).y, windowWidth, windowHeight );
+			if ( !scrolling && ImGui::IsWindowFocused( ) )
+				ImGuizmo::ViewManipulate( cameraView.ToFloatPtr( ), 10, viewGizmoPos, viewGizmoSize, 0x10101010 );
+
+			
+		}
+		else if ( selectedImage != nullptr )
 			ImGui::Image((void*)(intptr_t) selectedImage->bgfxTexture.handle.idx, idVec2((float)context->width/4, (float)context->height/4), idVec2(0.0f, 0.0f), idVec2(1.0f, 1.0f));
+		
+		
 		}ImGui::PopID(/*SceneView*/);
 	}
 	ImGui::End();
@@ -692,6 +835,7 @@ void gltfAssetExplorer::DrawImAssetTree( )
 			{
 				for (auto image : images )
 				{
+					imageCount++;
 					int fileHash = data->FileNameHash( );
 					if (selectedFileHash == fileHash)
 					{

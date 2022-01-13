@@ -38,8 +38,16 @@ public:
 	//				otherwise only in given assetfile.
 	bgfxModel* GetRenderModel(const idStr & meshName, const idStr & assetName );
 private:
+	void DrawSceneList ();
+	bool DrawSceneNode ( gltfNode *node, const idList<gltfNode *> &nodeList );
 	bool windowOpen;
-	idStrList loadedFiles;
+	bool sceneViewOpen;
+	bool sceneListOpen;
+	idStrList	loadedFiles;
+	gltfScene *	selectedScene;
+	gltfData *	currentData;
+	gltfNode *	selectedNode;
+
 	gltfAssetList loadedAssets;
 	//HVG_TODO -> Use hash index
 	bgfxModelList renderModels; 
@@ -69,12 +77,15 @@ private:
 	bool guiVisible;
 
 	int selectedFileHash;
-	gltfImage * selectedImage;
-	gltfMesh * selectedMesh;
+	gltfImage	*	selectedImage;
+	gltfMesh	*	selectedMesh;
+	idMat4			cameraView;
+	idMat4			cameraProjection;
 
-	idMat4 cameraView;
-	idMat4 cameraProjection;
+	idVec3		camPos;
+	idAngles	camAngle;
 
+	bgfxMrtContext_t renderTarget;
 };
 
 extern gltfAssetExplorer * assetExplorer;

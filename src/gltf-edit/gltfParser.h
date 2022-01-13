@@ -63,9 +63,14 @@ gltfItemClassParser( mesh_primitive,				idList<gltfMesh_Primitive *>);
 gltfItemClassParser( mesh_primitive_attribute,		idList<gltfMesh_Primitive_Attribute *> );
 gltfItemClassParser( integer_array,					idList<int>);
 gltfItemClassParser( number_array,					idList<double>);
+gltfItemClassParser( mat4,							idMat4 );
+gltfItemClassParser( vec4,							idVec4 );
+gltfItemClassParser( vec3,							idVec3 );
+gltfItemClassParser( quat,							idQuat );
 gltfItemClassParser( accessor_sparse,				gltfAccessor_Sparse );
 gltfItemClassParser( accessor_sparse_indices,		gltfAccessor_Sparse_Indices );
 gltfItemClassParser( accessor_sparse_values,		gltfAccessor_Sparse_Values );
+
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token

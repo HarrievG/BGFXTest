@@ -70,7 +70,7 @@ bgfx::AttribType::Enum GetComponentTypeEnum( int id  , uint * sizeInBytes = null
 //NOTE: gltfItems that deviate from the default SET(T*) function cannot be handled with itemref macro.
 // target must be an gltfArrayItem.
 // type with name will be added to the array.
-#define GLTFARRAYITEM(target,name,type) auto name = new type (#name); target.AddItemDef((parsable*)name)
+#define GLTFARRAYITEM(target,name,type) auto * name = new type (#name); target.AddItemDef((parsable*)name)
 // name must point to an existing valid entry
 // name->Set		(&target->name);
 #define GLTFARRAYITEMREF(target,name) name->Set(&target->name)
@@ -187,7 +187,6 @@ void gltfItemArray::Parse(idLexer * lexer) {
 				item->parse( token );
 				break;
 			}
-
 		}
 		parsing = lexer->PeekTokenString( "," );
 		if ( parsing )
@@ -357,6 +356,59 @@ void gltfItem_number_array::parse( idToken &token ) {
 	parser->ExpectTokenString( "]" );
 }
 
+void gltfItem_vec4::parse( idToken &token ) { 	
+
+	auto *numbers = new gltfItem_number_array( "" );
+	idList<double> numberarray;
+	numbers->Set( &numberarray, parser );
+	numbers->parse( token );
+	if ( numbers->item->Num( ) != 4 )
+		common->FatalError( "gltfItem_vec4 : missing arguments, expectd 4, got %i", numbers->item->Num( ) );
+
+	double *val = numbers->item->Ptr( );
+	*item = idVec4( val[0], val[1], val[2], val[3] );
+}
+
+void gltfItem_vec3::parse( idToken &token ) { 	
+	auto *numbers = new gltfItem_number_array( "" );
+	idList<double> numberarray;
+	numbers->Set( &numberarray, parser );
+	numbers->parse( token );
+	if ( numbers->item->Num( ) != 3 )
+		common->FatalError( "gltfItem_vec3 : missing arguments, expectd 3, got %i", numbers->item->Num( ) );
+
+	double *val = numbers->item->Ptr( );
+	*item = idVec3( val[0], val[1], val[2] );
+}
+void gltfItem_quat::parse( idToken &token ) { 	
+	auto * numbers = new gltfItem_number_array("");
+	idList<double> numberarray;
+	numbers->Set( &numberarray, parser );
+	numbers->parse( token );
+	if (numbers->item->Num() != 4 )
+		common->FatalError("gltfItem_quat : missing arguments, expectd 4, got %i", numbers->item->Num( ) );
+
+	double * val = numbers->item->Ptr();
+	*item = idQuat( val[0] , val[1] , val[2] , val[3] );
+}
+
+void gltfItem_mat4::parse( idToken &token ) {
+	auto *numbers = new gltfItem_number_array( "" );
+	idList<double> numberarray;
+	numbers->Set( &numberarray, parser );
+	numbers->parse( token );
+	if ( numbers->item->Num( ) != 16 )
+		common->FatalError( "gltfItem_mat4 : missing arguments, expectd 16, got %i", numbers->item->Num( ) );
+
+	double *val = numbers->item->Ptr( );
+	*item = idMat4( 
+		val[0], val[1], val[2], val[3],
+		val[4], val[5], val[6], val[7],
+		val[8], val[9], val[10], val[11],
+		val[12], val[13], val[14], val[15]
+	);
+}
+
 void gltfItem_accessor_sparse::parse( idToken &token ) {
 	parser->Warning("%s is untested!", "gltfItem_accessor_sparse" );
 
@@ -417,6 +469,7 @@ void gltfItem_accessor_sparse_indices::parse( idToken &token ) {
 		common->Printf( "%s", token.c_str( ) );
 }
 
+
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) , buffersDone(false), bufferViewsDone( false ) { }
 
@@ -428,21 +481,82 @@ void GLTF_Parser::Parse_ASSET( idToken &token )
 }
 void GLTF_Parser::Parse_SCENE( idToken &token )
 {
-	common->Printf( " ^1 SCENE ^6 : ^8 %i",parser.ParseInt());
+	currentAsset->DefaultScene( ) = parser.ParseInt( );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( " ^1 %s scene ^6 : ^8 %i", token.c_str( ),currentAsset->DefaultScene( ) );
 }
 void GLTF_Parser::Parse_SCENES( idToken &token )
 {
+	gltfItemArray scene;
+	GLTFARRAYITEM( scene, nodes, gltfItem_integer_array ); 
+	GLTFARRAYITEM( scene, name, gltfItem );
+	GLTFARRAYITEM( scene, extensions, gltfItem );
+	GLTFARRAYITEM( scene, extras, gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray(&parser);
 	for (auto & prop : array )
-		common->Printf("%s", prop.item.c_str() );
+	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfScene", 0 );
+
+		gltfScene * gltfscene = currentAsset->Scene();
+		nodes->Set( &gltfscene->nodes, &lexer );
+		GLTFARRAYITEMREF( gltfscene, name );
+		GLTFARRAYITEMREF( gltfscene, extensions );
+		GLTFARRAYITEMREF( gltfscene, extras );
+		scene.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf("%s", prop.item.c_str());
+	}
 	parser.ExpectTokenString( "]" );
 }
+
 void GLTF_Parser::Parse_NODES( idToken &token ) 
 {
+	
+	gltfItemArray node;
+	GLTFARRAYITEM( node, camera,		gltfItem_integer );
+	GLTFARRAYITEM( node, children,		gltfItem_integer_array );
+	GLTFARRAYITEM( node, skin,			gltfItem_integer );
+	GLTFARRAYITEM( node, matrix,		gltfItem_mat4 );
+	GLTFARRAYITEM( node, mesh,			gltfItem_integer );
+	GLTFARRAYITEM( node, rotation,		gltfItem_quat );
+	GLTFARRAYITEM( node, scale,			gltfItem_vec3 );
+	GLTFARRAYITEM( node, translation,	gltfItem_vec3 );
+	GLTFARRAYITEM( node, weights,		gltfItem_number_array );
+	GLTFARRAYITEM( node, name,			gltfItem );
+	GLTFARRAYITEM( node, extensions,	gltfItem );
+	GLTFARRAYITEM( node, extras,		gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
-	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	for ( auto &prop : array ) 	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfNode", 0 );
+
+		gltfNode *gltfnode = currentAsset->Node( );
+		
+		GLTFARRAYITEMREF( gltfnode, camera );
+		matrix->Set		( &gltfnode->matrix,&lexer);
+		children->Set	( &gltfnode->children,&lexer);
+		GLTFARRAYITEMREF( gltfnode, skin );
+		matrix->Set		( &gltfnode->matrix,&lexer);
+		GLTFARRAYITEMREF( gltfnode, mesh );
+		rotation->Set	( &gltfnode->rotation, &lexer );
+		scale->Set		( &gltfnode->scale,&lexer);
+		translation->Set( &gltfnode->translation, &lexer );
+		weights->Set	( &gltfnode->weights,&lexer);
+		GLTFARRAYITEMREF( gltfnode, name );
+		GLTFARRAYITEMREF( gltfnode, extensions );
+		GLTFARRAYITEMREF( gltfnode, extras );
+		node.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
+
 }
 void GLTF_Parser::Parse_MATERIALS( idToken &token ) 
 {
@@ -465,13 +579,13 @@ void GLTF_Parser::Parse_MESHES( idToken &token )
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfMesh", 0 );
 
-		gltfMesh *gltfMesh = currentAsset->Mesh( );
+		gltfMesh *gltfmesh = currentAsset->Mesh( );
 
-		primitives->Set	( &gltfMesh->primitives, &lexer);
-		weights->Set	( &gltfMesh->weights, &lexer );
-		GLTFARRAYITEMREF( gltfMesh,  name );
-		GLTFARRAYITEMREF( gltfMesh,  extensions );
-		GLTFARRAYITEMREF( gltfMesh,  extras );
+		primitives->Set	( &gltfmesh->primitives, &lexer);
+		weights->Set	( &gltfmesh->weights, &lexer );
+		GLTFARRAYITEMREF( gltfmesh,  name );
+		GLTFARRAYITEMREF( gltfmesh,  extensions );
+		GLTFARRAYITEMREF( gltfmesh,  extras );
 		mesh.Parse( &lexer );
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );

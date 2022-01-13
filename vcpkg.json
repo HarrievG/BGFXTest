@@ -5,7 +5,11 @@
   "dependencies": [
     "bgfx",
     "sdl2",
-    "imgui",
+    {
+      "name": "imgui",
+      "default-features": false,
+      "features": [ "docking-experimental" ]
+    },
     "imguizmo",
     "zlib",
     "nlohmann-json",

@@ -41,18 +41,29 @@ void main_loop( void *data ) {
     ImGui_ImplSDL2_NewFrame( context->window );
     common->Frame();
     ImGui::NewFrame( );
+    ImGui::DockSpaceOverViewport( ImGui::GetMainViewport( ), ImGuiDockNodeFlags_PassthruCentralNode );
+    
     ImGuizmo::BeginFrame( );
 
     //ImGuizmo::ViewManipulate( )
-    //ImGui::ShowDemoWindow( ); // your drawing here
+    ImGui::ShowDemoWindow( ); // your drawing here
 	imConsole->Draw( );
     
     bgfxRender( context );
 
     ImGui::Render( );
-
     ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
+
+
+    ImGuiIO &io = ImGui::GetIO( );
+    // Update and Render additional Platform Windows
+        // Update and Render additional Platform Windows
+    if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
+        ImGui::UpdatePlatformWindows( );
+        ImGui::RenderPlatformWindowsDefault( );
+    }
     bgfx::frame( );
+
     
 #if BX_PLATFORM_EMSCRIPTEN
     if ( context->quit ) {
@@ -60,6 +71,7 @@ void main_loop( void *data ) {
     }
 #endif
 }
+
 
 int main( int argc, char **argv )
 {
@@ -111,9 +123,8 @@ int main( int argc, char **argv )
 
     const int width = WINDOW_WIDTH;
     const int height = WINDOW_HEIGHT;
-    SDL_Window *window = SDL_CreateWindow(
-        argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
-        height, SDL_WINDOW_SHOWN );
+    SDL_Window *window = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
+        height, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI );
 
     if ( window == nullptr ) {
         common->FatalError("Window could not be created. SDL_Error: %s\n", SDL_GetError( ) );
@@ -161,6 +172,15 @@ int main( int argc, char **argv )
 
     ImGui::CreateContext( );
     ImGuiIO &io = ImGui::GetIO( );
+    io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports | ImGuiBackendFlags_RendererHasViewports;
+
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows still not really functional.
+    //io.ConfigViewportsNoAutoMerge = false;
+
+    ImGui::StyleColorsDark( );
     ImGui_Implbgfx_Init( 255 );
 
 #if BX_PLATFORM_WINDOWS

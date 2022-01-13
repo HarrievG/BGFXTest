@@ -23,189 +23,8 @@ idCVar r_customHeight( "r_customHeight", "1080", CVAR_RENDERER | CVAR_ARCHIVE | 
 idCVar r_aspectRatio( "r_aspectRatio", "-1", CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "aspect ratio of view:\n0 = 4:3\n1 = 16:9\n2 = 16:10\n-1 = auto (guess from resolution)", -1, 2 );
 idCVar r_mode( "r_mode", "-1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "video mode number" );
 
-/*
-======================
-idScreenRect::Clear
-======================
-*/
-void idScreenRect::Clear() {
-	x1 = y1 = 32000;
-	x2 = y2 = -32000;
-	zmin = 0.0f; zmax = 1.0f;
-}
-
-/*
-======================
-idScreenRect::AddPoint
-======================
-*/
-void idScreenRect::AddPoint( float x, float y ) {
-	int	ix = idMath::FtoiFast( x );
-	int iy = idMath::FtoiFast( y );
-
-	if ( ix < x1 ) {
-		x1 = ix;
-	}
-	if ( ix > x2 ) {
-		x2 = ix;
-	}
-	if ( iy < y1 ) {
-		y1 = iy;
-	}
-	if ( iy > y2 ) {
-		y2 = iy;
-	}
-}
-
-/*
-======================
-idScreenRect::Expand
-======================
-*/
-void idScreenRect::Expand() {
-	x1--;
-	y1--;
-	x2++;
-	y2++;
-}
-
-/*
-======================
-idScreenRect::Intersect
-======================
-*/
-void idScreenRect::Intersect( const idScreenRect &rect ) {
-	if ( rect.x1 > x1 ) {
-		x1 = rect.x1;
-	}
-	if ( rect.x2 < x2 ) {
-		x2 = rect.x2;
-	}
-	if ( rect.y1 > y1 ) {
-		y1 = rect.y1;
-	}
-	if ( rect.y2 < y2 ) {
-		y2 = rect.y2;
-	}
-}
-
-/*
-======================
-idScreenRect::Union
-======================
-*/
-void idScreenRect::Union( const idScreenRect &rect ) {
-	if ( rect.x1 < x1 ) {
-		x1 = rect.x1;
-	}
-	if ( rect.x2 > x2 ) {
-		x2 = rect.x2;
-	}
-	if ( rect.y1 < y1 ) {
-		y1 = rect.y1;
-	}
-	if ( rect.y2 > y2 ) {
-		y2 = rect.y2;
-	}
-}
-
-/*
-======================
-idScreenRect::Equals
-======================
-*/
-bool idScreenRect::Equals( const idScreenRect &rect ) const {
-	return ( x1 == rect.x1 && x2 == rect.x2 && y1 == rect.y1 && y2 == rect.y2 );
-}
-
-/*
-======================
-idScreenRect::IsEmpty
-======================
-*/
-bool idScreenRect::IsEmpty() const {
-	return ( x1 > x2 || y1 > y2 );
-}
-
-void bgfxRenderViewToViewport(bgfxContext_t context, idScreenRect *viewport ) {
-
-    float wRatio = ( float ) context.width / SCREEN_WIDTH;
-    float hRatio = ( float ) context.height / SCREEN_HEIGHT;
-
-    viewport->x1 = idMath::Ftoi( context.x * wRatio );
-    viewport->x2 = idMath::Ftoi( floor( ( context.x + context.width ) * wRatio + 0.5f ) - 1 );
-    viewport->y1 = idMath::Ftoi( context.height - floor( ( context.y + context.height ) * hRatio + 0.5f ) );
-    viewport->y2 = idMath::Ftoi( context.height - floor( context.y * hRatio + 0.5f ) - 1 );
-}
-
-void bgfxCalcFov( float base_fov, float &fov_x, float &fov_y ) {
-	float	x;
-	float	y;
-	float	ratio_x;
-	float	ratio_y;
-
-	// first, calculate the vertical fov based on a 640x480 view
-	x = 640.0f / tan( base_fov / 360.0f * idMath::PI );
-	y = atan2( 480.0f, x );
-	fov_y = y * 360.0f / idMath::PI;
-
-	// FIXME: somehow, this is happening occasionally
-	assert( fov_y > 0 );
-	if ( fov_y <= 0 ) {
-		common->Error( "idGameLocal::CalcFov: bad result, fov_y == %f, base_fov == %f", fov_y, base_fov );
-	}
-
-	switch( r_aspectRatio.GetInteger() ) {
-	default :
-	case -1 :
-		// auto mode => use aspect ratio from resolution, assuming screen's pixels are squares
-		ratio_x = r_customWidth.GetInteger();
-		ratio_y = r_customHeight.GetInteger( );
-		if(ratio_x <= 0.0f || ratio_y <= 0.0f)
-		{
-			// for some reason (maybe this is a dedicated server?) GetScreenWidth()/Height()
-			// returned 0. Assume default 4:3 to avoid assert()/Error() below.
-			fov_x = base_fov;
-			return;
-		}
-		break;
-	case 0 :
-		// 4:3
-		fov_x = base_fov;
-		return;
-		break;
-
-	case 1 :
-		// 16:9
-		ratio_x = 16.0f;
-		ratio_y = 9.0f;
-		break;
-
-	case 2 :
-		// 16:10
-		ratio_x = 16.0f;
-		ratio_y = 10.0f;
-		break;
-	}
-
-	y = ratio_y / tan( fov_y / 360.0f * idMath::PI );
-	fov_x = atan2( ratio_x, y ) * 360.0f / idMath::PI;
-
-	if ( fov_x < base_fov ) {
-		fov_x = base_fov;
-		x = ratio_x / tan( fov_x / 360.0f * idMath::PI );
-		fov_y = atan2( ratio_y, x ) * 360.0f / idMath::PI;
-	}
-
-	// FIXME: somehow, this is happening occasionally
-	assert( ( fov_x > 0 ) && ( fov_y > 0 ) );
-	if ( ( fov_y <= 0 ) || ( fov_x <= 0 ) ) {
-		common->Error( "idGameLocal::CalcFov: bad result" );
-	}
-}
-
 idList<bgfxCallback> bgfxCallbackList;
- //"shaders/v_simple.bin"
+
 static bgfx::ShaderHandle createShader( const char * shaderFile, const char *name ) {
     int fSize = 0;
     const char *buffer = NULL;
@@ -229,38 +48,6 @@ void bgfxShutdown( bgfxContext_t *context ) {
     bgfxCallbackList.Clear( );
 
     bgfx::shutdown( );
-}
-
-
-void Frustum( float left, float right, float bottom, float top, float znear, float zfar, float *m16 ) {
-	float temp, temp2, temp3, temp4;
-	temp = 2.0f * znear;
-	temp2 = right - left;
-	temp3 = top - bottom;
-	temp4 = zfar - znear;
-	m16[0] = temp / temp2;
-	m16[1] = 0.0;
-	m16[2] = 0.0;
-	m16[3] = 0.0;
-	m16[4] = 0.0;
-	m16[5] = temp / temp3;
-	m16[6] = 0.0;
-	m16[7] = 0.0;
-	m16[8] = ( right + left ) / temp2;
-	m16[9] = ( top + bottom ) / temp3;
-	m16[10] = ( -zfar - znear ) / temp4;
-	m16[11] = -1.0f;
-	m16[12] = 0.0;
-	m16[13] = 0.0;
-	m16[14] = ( -temp * zfar ) / temp4;
-	m16[15] = 0.0;
-}
-
-void Perspective( float fovyInDegrees, float aspectRatio, float znear, float zfar, float *m16 ) {
-	float ymax, xmax;
-	ymax = znear * tanf( fovyInDegrees * 3.141592f / 180.0f );
-	xmax = ymax * aspectRatio;
-	Frustum( -xmax, xmax, -ymax, ymax, znear, zfar, m16 );
 }
 
 void bgfxInitShaders( bgfxContext_t *context ) {
@@ -297,8 +84,6 @@ void bgfxInitShaders( bgfxContext_t *context ) {
 		context->cameraProjection.ToFloatPtr(), 30.0, float( context->width ) / float( context->height ), 0.1f,
 		10000.0f, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
 
-
-
 	//float tmp[16];
 	//float trans[16];
 	//bx::mtxIdentity( tmp );
@@ -320,11 +105,52 @@ void bgfxInitShaders( bgfxContext_t *context ) {
     }   
 
 }
-static const float identityMatrix[16] =
-{ 1.f, 0.f, 0.f, 0.f,
-	0.f, 1.f, 0.f, 0.f,
-	0.f, 0.f, 1.f, 0.f,
-	0.f, 0.f, 0.f, 1.f };
+
+void bgfxCreateMrtTarget(bgfxMrtContext_t & context,const char * name)
+{
+	if ( ( BGFX_CAPS_TEXTURE_BLIT | BGFX_CAPS_TEXTURE_READ_BACK ) == ( bgfx::getCaps( )->supported & ( BGFX_CAPS_TEXTURE_BLIT | BGFX_CAPS_TEXTURE_READ_BACK ) ) ) {
+		context.rb = bgfx::createTexture2D( context.width, context.height, false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_BLIT_DST );
+	}
+
+	if ( bgfx::isValid( context.fbh ) ) {
+		common->DWarning("Destroying framebuffer %i",context.fbh.idx );
+		bgfx::destroy( context.fbh );
+	}else
+	{
+		context.fbTextureHandles[0] = bgfx::createTexture2D(
+			uint16_t( context.width )
+			, uint16_t( context.height )
+			, false
+			, 1
+			, bgfx::TextureFormat::BGRA8
+			, BGFX_TEXTURE_RT | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP
+		);
+
+		const uint64_t textureFlags = BGFX_TEXTURE_RT_WRITE_ONLY | BGFX_TEXTURE_RT;
+
+		bgfx::TextureFormat::Enum depthFormat =
+			bgfx::isTextureValid( 0, false, 1, bgfx::TextureFormat::D16, textureFlags ) ? bgfx::TextureFormat::D16
+			: bgfx::isTextureValid( 0, false, 1, bgfx::TextureFormat::D24S8, textureFlags ) ? bgfx::TextureFormat::D24S8
+			: bgfx::TextureFormat::D32;
+
+		context.fbTextureHandles[1] = bgfx::createTexture2D(
+			uint16_t( context.width )
+			, uint16_t( context.height )
+			, false
+			, 1
+			, depthFormat
+			, textureFlags
+		);
+
+		context.fbh = bgfx::createFrameBuffer( BX_COUNTOF( context.fbTextureHandles ), context.fbTextureHandles, true );
+		bgfx::ViewId rttView = 1;
+		bgfx::setViewName( context.viewId, name );
+		bgfx::setViewRect( context.viewId, 0, 0, bgfx::BackbufferRatio::Equal );
+		bgfx::setViewFrameBuffer( context.viewId, context.fbh );
+		bgfx::setViewClear( context.viewId, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495FFFF, 1.0f, 0 );
+	}
+}
+
 void bgfxRender( bgfxContext_t *context ){
 
 	
@@ -382,18 +208,7 @@ void bgfxRender( bgfxContext_t *context ){
 		bx::mtxLookAt( context->cameraView.ToFloatPtr( ) ,eye,at,up, bx::Handness::Right);
     }
 
-    bgfx::setViewTransform( 0, context->cameraView.ToFloatPtr( ), context->cameraProjection.ToFloatPtr( ) );
-
-	ImGuizmo::SetOrthographic( false );
-	ImGuizmo::SetRect( 0, 0, context->width,context->height);
-
-	ImGuizmo::DrawGrid( context->cameraView.ToFloatPtr() , context->cameraProjection.ToFloatPtr(), identityMatrix, 100.f );
-	//ImGuizmo::DrawCubes( context->cameraView.ToFloatPtr( ), context->cameraProjection.ToFloatPtr( ), identityMatrix, 1 );
-	//ImGuizmo::Manipulate( cameraView, cameraProjection, mCurrentGizmoOperation, mCurrentGizmoMode, matrix, NULL, useSnap ? &snap[0] : NULL, boundSizing ? bounds : NULL, boundSizingSnap ? boundsSnap : NULL );
-
-	ImGuizmo::ViewManipulate( context->cameraView.ToFloatPtr( ), 10, ImVec2( context->width - 128, 0 ), ImVec2( 128, 128 ), 0x10101010 );
-
-	//uint64_t state =
+	bgfx::setViewTransform( 0, context->cameraView.ToFloatPtr( ), context->cameraProjection.ToFloatPtr( ) );
 	//	BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA | BGFX_STATE_DEPTH_TEST_GEQUAL |
 	//	BGFX_STATE_BLEND_FUNC(
 	//		BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA );
@@ -440,11 +255,12 @@ void bgfxRender( bgfxContext_t *context ){
 
     bx::mtxMul( tmp, modelScale, modelRotation );
     bx::mtxMul( modelTransform, tmp, modelTranslation );
-	bgfx::setTransform( identityMatrix );
+
+	bx::mtxIdentity(modelTransform);
+	bgfx::setTransform( modelTransform );
 	bgfx::setVertexBuffer( 0, context->vbh );
 	bgfx::setIndexBuffer( context->ibh );
 	bgfx::submit( 0, context->program );
-
 	//bx::mtxIdentity( modelTranslation );
 	//bx::mtxMul( tmp, modelScale, xtmp );
 	//bx::mtxMul( modelTransform, tmp, modelTranslation );

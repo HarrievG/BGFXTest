@@ -14,25 +14,24 @@
 #include <bx/rng.h>
 
 
+extern idCVar		r_SceneEditRenderWidth;
+extern idCVar		r_SceneEditRenderHeight;
+
 // all drawing is done to a 640 x 480 virtual screen size
 // and will be automatically scaled to the real resolution
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
-// idScreenRect gets carried around with each drawSurf, so it makes sense
-// to keep it compact, instead of just using the idBounds class
-class idScreenRect {
-public:
-	short		x1, y1, x2, y2;							// inclusive pixel bounds inside viewport
-	float       zmin, zmax;								// for depth bounds test
+struct bgfxMrtContext_t{
+    bgfx::TextureHandle fbTextureHandles[2] = { BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE };
+    bgfx::FrameBufferHandle fbh = BGFX_INVALID_HANDLE;;
+    bgfx::TextureHandle rb = BGFX_INVALID_HANDLE;;
 
-	void		Clear();								// clear to backwards values
-	void		AddPoint( float x, float y );			// adds a point
-	void		Expand();								// expand by one pixel each way to fix roundoffs
-	void		Intersect( const idScreenRect &rect );
-	void		Union( const idScreenRect &rect );
-	bool		Equals( const idScreenRect &rect ) const;
-	bool		IsEmpty() const;
+    bgfx::UniformHandle colorUniformHandle = BGFX_INVALID_HANDLE;;
+
+    int width = 0;
+    int height = 0;
+    bgfx::ViewId viewId;
 };
 
 struct bgfxContext_t {
@@ -189,6 +188,7 @@ void bgfxShutdown( bgfxContext_t *context);
 void bgfxInitShaders( bgfxContext_t *context );
 void bgfxRender( bgfxContext_t* context );
 void bgfxRegisterCallback( bgfxCallback callback );
+void bgfxCreateMrtTarget( bgfxMrtContext_t &context, const char *name );
 
 bgfxModel loadGltfModel( const idStr &fileName );
 

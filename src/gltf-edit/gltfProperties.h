@@ -3,6 +3,7 @@
 #include "idFramework/idlib/containers/StrList.h"
 #include <functional>
 #include "bgfx-stubs/bgfxRender.h"
+#include "idFramework/idlib/math/Quat.h"
 
 enum gltfProperty {
 	INVALID, 
@@ -41,7 +42,35 @@ struct gltf_accessor_component_type_map {
 
 
 // todo:
-//materials, meshes , nodes
+//materials,
+
+class gltfNode {
+public:
+	gltfNode( ) :	camera(-1),skin(-1),matrix(mat4_zero),
+					mesh(-1),rotation(0.f,0.f,0.f,0.f),scale(vec3_zero),
+					translation( vec3_zero){ }
+	int				camera;
+	idList<int>		children;
+	int				skin;
+	idMat4			matrix;
+	int				mesh;
+	idQuat			rotation;
+	idVec3			scale;
+	idVec3			translation;
+	idList<double>	weights;
+	idStr			name;
+	idStr			extensions;
+	idStr			extras;
+};
+
+class gltfScene {
+public:
+	gltfScene( ) { }
+	idList<int> nodes;
+	idStr name;
+	idStr extensions;
+	idStr extras;
+};
 
 class gltfMesh_Primitive_Attribute {
 public:
@@ -292,7 +321,7 @@ public:
 //// For these to function you need to add an private idList<gltf{name}*> {target}
 #define GLTFCACHEITEM(name,target) \
 gltf##name * name ( ) { target.AssureSizeAlloc( target.Num()+1,idListNewElement<gltf##name>); return target[target.Num()-1];} \
-const idList<gltf##name*> & ##name##List() { return target; }
+const inline idList<gltf##name*> & ##name##List() { return target; }
 
 
 // URI's are resolbed during parsing so that
@@ -315,6 +344,7 @@ public:
 	static gltfData *Data( ) { dataList.AssureSizeAlloc( dataList.Num( ) + 1, idListNewElement<gltfData> ); return dataList[dataList.Num( ) - 1]; }
 	static const idList<gltfData *> &DataList( ) { return dataList; }
 	static void ClearData( ) { common->Warning("TODO! DATA NOT FREED");}
+	int & DefaultScene() { return scene; }
 
 	GLTFCACHEITEM( Buffer, buffers ) 
 	GLTFCACHEITEM( Sampler, samplers )
@@ -324,7 +354,8 @@ public:
 	GLTFCACHEITEM( Accessor, accessors )
 	GLTFCACHEITEM( ExtensionsUsed, extensionsUsed )
 	GLTFCACHEITEM( Mesh, meshes )
-
+	GLTFCACHEITEM( Scene, scenes )
+	GLTFCACHEITEM( Node, nodes )
 private:
 	idStr fileName;
 	int	fileNameHash;
@@ -343,6 +374,8 @@ private:
 	idList<gltfAccessor *>					accessors;
 	idList<gltfExtensionsUsed *>			extensionsUsed;
 	idList<gltfMesh *>						meshes;
-
+	int										scene;
+	idList<gltfScene *>						scenes;
+	idList<gltfNode *>						nodes;
 };
 #undef GLTFCACHEITEM
