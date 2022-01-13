@@ -469,6 +469,36 @@ void gltfItem_accessor_sparse_indices::parse( idToken &token ) {
 		common->Printf( "%s", token.c_str( ) );
 }
 
+void gltfItem_camera_orthographic::parse( idToken &token )
+{
+	gltfPropertyArray array = gltfPropertyArray( parser );
+	for ( auto &prop : array )
+		common->Printf( "%s", prop.item.c_str( ) );
+	parser->ExpectTokenString( "]" );
+}
+
+void gltfItem_camera_perspective::parse( idToken &token )
+{
+	gltfItemArray cameraPerspective;
+	GLTFARRAYITEM( cameraPerspective, aspectRatio, gltfItem_number );
+	GLTFARRAYITEM( cameraPerspective, yfov, gltfItem_number );
+	GLTFARRAYITEM( cameraPerspective, zfar, gltfItem_number );
+	GLTFARRAYITEM( cameraPerspective, znear, gltfItem_number );
+	GLTFARRAYITEM( cameraPerspective, extensions, gltfItem );
+	GLTFARRAYITEM( cameraPerspective, extras, gltfItem );
+
+	GLTFARRAYITEMREF( item, aspectRatio );
+	GLTFARRAYITEMREF( item, yfov );
+	GLTFARRAYITEMREF( item, zfar );
+	GLTFARRAYITEMREF( item, znear );
+	GLTFARRAYITEMREF( item, extensions );
+	GLTFARRAYITEMREF( item, extras );
+	cameraPerspective.Parse( parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
+
 
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) , buffersDone(false), bufferViewsDone( false ) { }
@@ -513,6 +543,30 @@ void GLTF_Parser::Parse_SCENES( idToken &token )
 	parser.ExpectTokenString( "]" );
 }
 
+void GLTF_Parser::Parse_CAMERA( idToken &token )
+{
+	gltfItemArray camera;
+	GLTFARRAYITEM( camera, orthographic, gltfItem_camera_orthographic );
+	GLTFARRAYITEM( camera, perspective, gltfItem_camera_perspective );
+	GLTFARRAYITEM( camera, type, gltfItem );
+	GLTFARRAYITEM( camera, name, gltfItem );
+	GLTFARRAYITEM( camera, extensions, gltfItem );
+	GLTFARRAYITEM( camera, extras, gltfItem );
+
+	gltfCamera * item = currentAsset->Camera();
+	orthographic->Set( &item->orthographic, &parser );
+	perspective->Set( &item->perspective, &parser );
+
+	GLTFARRAYITEMREF( item, type );
+	GLTFARRAYITEMREF( item, name );
+	GLTFARRAYITEMREF( item, extensions );
+	GLTFARRAYITEMREF( item, extras );
+
+	camera.Parse( &parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
 void GLTF_Parser::Parse_NODES( idToken &token ) 
 {
 	
@@ -1053,7 +1107,29 @@ bool GLTF_Parser::Parse( ) {
 		if ( parsing )
 			parser.ExpectTokenString( "," );
 		else
+		{
+			//we are at the end, and no bufferview or buffer has been found.
+			if ( !buffersDone || !buffersDone )
+			{
+				if ( !buffersDone ) 
+				{
+					buffersDone = true;
+					common->Printf( "no %s found", "buffers" );
+				}
+				if ( !bufferViewsDone ) 
+				{	
+					common->Printf( "no %s found", "bufferviews" );
+					bufferViewsDone = true;
+				}
+				parser.Reset( );
+				parser.ExpectTokenString( "{" );
+				parsing = true;
+				continue;
+			}
+
+
 			parser.ExpectTokenString( "}" );
+		}
 	}
 	//parser should be at end.
 	parser.ReadToken( &token );

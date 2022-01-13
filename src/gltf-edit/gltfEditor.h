@@ -58,6 +58,8 @@ private:
 
 	idMat4 cameraView;
 	idMat4 cameraProjection;
+
+	bgfxMrtContext_t renderTarget;
 };
 extern gltfSceneEditor * sceneEditor;
 

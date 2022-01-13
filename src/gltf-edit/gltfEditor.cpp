@@ -98,6 +98,10 @@ void gltfSceneEditor::Init( )
 	currentData	 = nullptr;
 	selectedNode = nullptr;
 
+	renderTarget.width = r_gltfEditRenderWidth.GetInteger( );
+	renderTarget.height = r_gltfEditRenderHeight.GetInteger( );
+	renderTarget.viewId = 20;
+
 #pragma region SystemCommands
 	cmdSystem->AddCommand( "gltf_loadFile", []( const idCmdArgs &args ) 
 		-> auto {
@@ -189,6 +193,9 @@ void gltfSceneEditor::Init( )
 		thisPtr->Render(context);
 	} );
 
+	//load default assets
+	thisPtr->LoadFile( "blender/SceneExplorerAssets.glb" );
+
 	float fov = 27.f;
 	float camYAngle = 165.f / 180.f * 3.14159f;
 	float camXAngle = 32.f / 180.f * 3.14159f;
@@ -197,8 +204,10 @@ void gltfSceneEditor::Init( )
 	bx::Vec3 up = { 0.f, 1.f, 0.f };
 	bx::mtxLookAt( cameraView.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
 }
-bool gltfSceneEditor::Render( bgfxContext_t *context ) {
-
+bool gltfSceneEditor::Render( bgfxContext_t *context ) 
+{
+	if ( !bgfx::isValid( renderTarget.fbh ) )
+		bgfxCreateMrtTarget( renderTarget, "SceneEditorView" );
 
 	//bgfx::setViewTransform( 1, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 

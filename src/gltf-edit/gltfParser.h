@@ -70,7 +70,8 @@ gltfItemClassParser( quat,							idQuat );
 gltfItemClassParser( accessor_sparse,				gltfAccessor_Sparse );
 gltfItemClassParser( accessor_sparse_indices,		gltfAccessor_Sparse_Indices );
 gltfItemClassParser( accessor_sparse_values,		gltfAccessor_Sparse_Values );
-
+gltfItemClassParser( camera_perspective,			gltfCamera_Perspective );
+gltfItemClassParser( camera_orthographic,			gltfCamera_Orthographic );
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token
@@ -168,6 +169,7 @@ private:
 	void Parse_SKINS( idToken &token );
 	void Parse_EXTENSIONS_USED( idToken &token );
 	void Parse_EXTENSIONS_REQUIRED( idToken &token );
+	void Parse_CAMERA( idToken &token );
 
 	gltfProperty ParseProp( idToken &token );
 	gltfProperty ResolveProp( idToken &token );

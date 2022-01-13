@@ -132,8 +132,8 @@ class gltfCamera_Perspective{
 class gltfCamera{
 public:
 	gltfCamera( ) { };
-	idStr orthographic;
-	idStr perspective;
+	gltfCamera_Orthographic orthographic;
+	gltfCamera_Perspective perspective;
 	idStr type;
 	idStr name;
 	idStr extensions;
@@ -356,6 +356,7 @@ public:
 	GLTFCACHEITEM( Mesh, meshes )
 	GLTFCACHEITEM( Scene, scenes )
 	GLTFCACHEITEM( Node, nodes )
+	GLTFCACHEITEM( Camera, cameras )
 private:
 	idStr fileName;
 	int	fileNameHash;
@@ -377,5 +378,6 @@ private:
 	int										scene;
 	idList<gltfScene *>						scenes;
 	idList<gltfNode *>						nodes;
+	idList<gltfCamera *>					cameras;
 };
 #undef GLTFCACHEITEM
