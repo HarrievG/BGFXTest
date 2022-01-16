@@ -9,6 +9,7 @@ enum gltfProperty {
 	INVALID, 
 	ASSET,
 	ACCESSOR,
+	CAMERAS,
 	SCENE,
 	SCENES,
 	NODES,
@@ -47,8 +48,8 @@ struct gltf_accessor_component_type_map {
 class gltfNode {
 public:
 	gltfNode( ) :	camera(-1),skin(-1),matrix(mat4_zero),
-					mesh(-1),rotation(0.f,0.f,0.f,0.f),scale(vec3_zero),
-					translation( vec3_zero){ }
+					mesh(-1),rotation(0.f,0.f,0.f,0.f),scale(1.f,1.f,1.f),
+					translation(vec3_zero),parent(nullptr){ }
 	int				camera;
 	idList<int>		children;
 	int				skin;
@@ -61,6 +62,9 @@ public:
 	idStr			name;
 	idStr			extensions;
 	idStr			extras;
+
+	//
+	gltfNode *		parent;
 };
 
 class gltfScene {
@@ -331,21 +335,45 @@ const inline idList<gltf##name*> & ##name##List() { return target; }
 
 class gltfData {
 public:
-	gltfData( ) : json( nullptr ), data( nullptr ), totalChunks( -1 ) { };
+	gltfData( ) : fileNameHash(0),json( nullptr ), data( nullptr ), totalChunks( -1 ) { };
 	~gltfData( );
 	byte *AddData( int size, int *bufferID = nullptr );
 	byte *GetJsonData(int & size ) { size = jsonDataLength; return json; }
 	byte *GetData( int index ) { return data[index]; }
-	void FileName( const idStr &file ) { fileName = file; fileNameHash = idStr::Hash( file.c_str( ) ); }
+	void FileName( const idStr &file ) { fileName = file; fileNameHash = fileDataHash.GenerateKey( file.c_str( ) ); }
 	int FileNameHash( ) { return fileNameHash; }
 	idStr &FileName( ) { return fileName; }
 
-	static idList<gltfData *> dataList;
-	static gltfData *Data( ) { dataList.AssureSizeAlloc( dataList.Num( ) + 1, idListNewElement<gltfData> ); return dataList[dataList.Num( ) - 1]; }
+	static idHashIndex			fileDataHash;
+	static idList<gltfData *>	dataList;
+	//add data from filename
+	static gltfData *Data(idStr &fileName ) { 
+		dataList.AssureSizeAlloc( dataList.Num( ) + 1, idListNewElement<gltfData> );
+		dataList[dataList.Num( ) - 1]->FileName( fileName );
+		fileDataHash.Add( fileDataHash.GenerateKey( fileName ), dataList.Num( ) - 1);
+		return dataList[dataList.Num( ) - 1]; }
+	//find data;
+	static gltfData *Data(const char * filename ) { return dataList[fileDataHash.First(fileDataHash.GenerateKey(filename))]; }
 	static const idList<gltfData *> &DataList( ) { return dataList; }
 	static void ClearData( ) { common->Warning("TODO! DATA NOT FREED");}
-	int & DefaultScene() { return scene; }
+	
+	static void ResolveNodeMatrix (gltfNode * node, idMat4 * mat )
+	{
+		if (node->matrix == mat4_zero )
+		{
+			node->matrix = mat4_identity;
+			//node->matrix *= ToMat4();
+			node->matrix *= idMat4( node->rotation.ToMat3(),node->translation);
+			//// =  idMat4((node->scale.ToMat3( ) * node->rotation.ToMat3( )),node->translation);
+			//idVec3 rm; rm.ToFloatPtr() = node->rotation.ToAngles().ToFloatPtr();
+			//bx::mtxSRT( node->matrix.ToFloatPtr(),
+			//	node->scale.x, node->scale.y, node->scale.z,
+			//	rm.x, rm.y, rm.z, 
+			//	node->translation.x, node->translation.y, node->translation.z);
+		}
+	}
 
+	int & DefaultScene() { return scene; }
 	GLTFCACHEITEM( Buffer, buffers ) 
 	GLTFCACHEITEM( Sampler, samplers )
 	GLTFCACHEITEM( BufferView, bufferViews )

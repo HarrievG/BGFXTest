@@ -2,7 +2,6 @@ syntax: glob
 
 #Assets
 #GLTF
-*.glb
 vcpkg_installed/
 [Bb]inaries/
 

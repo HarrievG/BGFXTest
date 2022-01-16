@@ -164,6 +164,7 @@ typedef std::vector<std::pair<PBRMaterial, TransparencyMode>> MaterialsList;
 //}
 //
 //AABB getBoundingBox(tinygltf::Model& gltf_model, const tinygltf::Primitive& primitive)
+//AABB getBoundingBox(tinygltf::Model& gltf_model, const tinygltf::Primitive& primitive)
 //{
 //    AABB boundingBox{};
 //

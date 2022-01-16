@@ -80,7 +80,8 @@ bgfx::AttribType::Enum GetComponentTypeEnum( int id  , uint * sizeInBytes = null
 //	images.DeleteContents(true);
 //}
 
-idList<gltfData *> gltfData::dataList;
+idList<gltfData *>	gltfData::dataList;
+idHashIndex			gltfData::fileDataHash;
 
 idCVar gltf_parseVerbose( "gltf_parseVerbose", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "print gltf json data while parsing" );
 
@@ -479,6 +480,7 @@ void gltfItem_camera_orthographic::parse( idToken &token )
 
 void gltfItem_camera_perspective::parse( idToken &token )
 {
+	parser->UnreadToken( &token );
 	gltfItemArray cameraPerspective;
 	GLTFARRAYITEM( cameraPerspective, aspectRatio, gltfItem_number );
 	GLTFARRAYITEM( cameraPerspective, yfov, gltfItem_number );
@@ -543,7 +545,7 @@ void GLTF_Parser::Parse_SCENES( idToken &token )
 	parser.ExpectTokenString( "]" );
 }
 
-void GLTF_Parser::Parse_CAMERA( idToken &token )
+void GLTF_Parser::Parse_CAMERAS( idToken &token )
 {
 	gltfItemArray camera;
 	GLTFARRAYITEM( camera, orthographic, gltfItem_camera_orthographic );
@@ -553,19 +555,27 @@ void GLTF_Parser::Parse_CAMERA( idToken &token )
 	GLTFARRAYITEM( camera, extensions, gltfItem );
 	GLTFARRAYITEM( camera, extras, gltfItem );
 
-	gltfCamera * item = currentAsset->Camera();
-	orthographic->Set( &item->orthographic, &parser );
-	perspective->Set( &item->perspective, &parser );
+	gltfPropertyArray array = gltfPropertyArray( &parser );
+	for ( auto &prop : array ) 
+	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfCamera", 0 );
 
-	GLTFARRAYITEMREF( item, type );
-	GLTFARRAYITEMREF( item, name );
-	GLTFARRAYITEMREF( item, extensions );
-	GLTFARRAYITEMREF( item, extras );
+		gltfCamera *item = currentAsset->Camera( );
+		orthographic->Set( &item->orthographic, &lexer );
+		perspective->Set( &item->perspective, &lexer );
 
-	camera.Parse( &parser );
+		GLTFARRAYITEMREF( item, type );
+		GLTFARRAYITEMREF( item, name );
+		GLTFARRAYITEMREF( item, extensions );
+		GLTFARRAYITEMREF( item, extras );
 
-	if ( gltf_parseVerbose.GetBool( ) )
-		common->Printf( "%s", token.c_str( ) );
+		camera.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", token.c_str( ) );
+	}
+	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_NODES( idToken &token ) 
 {
@@ -610,6 +620,8 @@ void GLTF_Parser::Parse_NODES( idToken &token )
 			common->Printf( "%s", prop.item.c_str( ) );
 	}
 	parser.ExpectTokenString( "]" );
+
+	
 
 }
 void GLTF_Parser::Parse_MATERIALS( idToken &token ) 
@@ -921,6 +933,9 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 		case ASSET:
 			Parse_ASSET( token );
 			break;
+		case CAMERAS:
+			Parse_CAMERAS( token );
+			break;
 		case SCENE:
 			Parse_SCENE( token );
 			break;
@@ -978,6 +993,8 @@ gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 {
 		if ( !idStr::Icmp( token.c_str( ), "asset"       ) )
 		return gltfProperty::ASSET;
+	else if ( !idStr::Icmp( token.c_str( ), "cameras"       ) )
+		return gltfProperty::CAMERAS;
 	else if ( !idStr::Icmp( token.c_str( ), "scene"       ) )
 		return gltfProperty::SCENE;
 	else if ( !idStr::Icmp( token.c_str( ), "scenes"      ) )
@@ -1045,7 +1062,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 	unsigned int chunk_type=0;	// 4 bytes
 	unsigned int chunk_length=0;	// 4 bytes
 	byte * data = nullptr;
-	gltfData *dataCache = gltfData::Data( );
+	gltfData *dataCache = gltfData::Data( filename );
 	currentAsset = dataCache;
 
 	int chunkCount = 0;
@@ -1054,7 +1071,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 		length -= file->ReadUnsignedInt( chunk_length );
 		length -= file->ReadUnsignedInt( chunk_type );
 		
-		data = dataCache->AddData(chunk_length);
+		data = dataCache->AddData( chunk_length );
 		dataCache->FileName(filename);
 
 		int read = file->Read((void*)data, chunk_length );
@@ -1063,7 +1080,7 @@ bool GLTF_Parser::loadGLB(idStr filename )
 		length -= read;
 		if (chunk_type == gltfChunk_Type_JSON)
 		{
-			currentFile = filename + " [JSON CHUNK]";
+			currentFile = filename + "[JSON CHUNK]";
 			parser.LoadMemory((const char*)data,chunk_length,"gltfJson",0);
 		}else if ( !chunkCount )
 			common->FatalError("first chunk was not a json chunk");
@@ -1157,7 +1174,7 @@ bool GLTF_Parser::Load(idStr filename )
 	}
 	else if ( filename.CheckExtension( ".gltf" ) ) {
 		int length = fileSystem->ReadFile(filename,NULL);
-		gltfData * data = gltfData::Data();
+		gltfData * data = gltfData::Data( filename );
 		data->FileName(filename);
 		byte* dataBuff = data->AddData(length);
 		currentAsset = data;
@@ -1179,6 +1196,13 @@ bool GLTF_Parser::Load(idStr filename )
 	parser.Reset();
 	parser.FreeSource();
 	common->SetRefreshOnPrint( false );
+	
+	//fix up node hierachy
+	auto &nodeList = currentAsset->NodeList( );
+	for ( auto &scene : currentAsset->SceneList( ) )
+		for ( auto &node : scene->nodes )
+			SetNodeParent( nodeList[node] );
+
 	CreateBgfxData();
 	return true;
 }
@@ -1195,9 +1219,15 @@ void GLTF_Parser::Init( ) {
 
 }
 
+void GLTF_Parser::SetNodeParent( gltfNode *node, gltfNode *parent)
+{
+	node->parent = parent;
+	for ( auto & child : node->children )
+		SetNodeParent( currentAsset->NodeList()[child], node );
+}
+
 void GLTF_Parser::CreateBgfxData( )
 {
-
 	//buffers
 	for ( auto mesh : currentAsset->MeshList( ) ) 
 	{
@@ -1240,6 +1270,9 @@ void GLTF_Parser::CreateBgfxData( )
 					vtxData = ( PosColorVertex * ) Mem_ClearedAlloc( vtxDataSize );
 				}
 
+				if ( attrib->bgfxType == bgfx::Attrib::Enum::Color0 ) {
+					int a = 0;
+				}
 				if ( attrib->bgfxType == bgfx::Attrib::Enum::Position ) {
 					for ( int i = 0; i < attrAcc->count; i++ ) {
 						bin.Read( ( void * ) ( &vtxData[i].x ), attrAcc->typeSize );

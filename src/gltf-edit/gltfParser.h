@@ -151,9 +151,11 @@ public:
 	//current/last loaded gltf asset and index offsets
 	gltfData *currentAsset;
 private:
+	void SetNodeParent( gltfNode *node, gltfNode *parent = nullptr );
 	void CreateBgfxData( );
 
 	void Parse_ASSET( idToken &token );
+	void Parse_CAMERAS( idToken &token );
 	void Parse_SCENE( idToken &token );
 	void Parse_SCENES( idToken &token );
 	void Parse_NODES( idToken &token );
@@ -169,7 +171,7 @@ private:
 	void Parse_SKINS( idToken &token );
 	void Parse_EXTENSIONS_USED( idToken &token );
 	void Parse_EXTENSIONS_REQUIRED( idToken &token );
-	void Parse_CAMERA( idToken &token );
+	
 
 	gltfProperty ParseProp( idToken &token );
 	gltfProperty ResolveProp( idToken &token );

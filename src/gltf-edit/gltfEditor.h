@@ -4,15 +4,6 @@
 #include "bgfx-stubs/bgfxRender.h"
 #include "gltfProperties.h"
 
-namespace tinygltf {
-	class Model;
-	class Image;
-};
-
-typedef idList<tinygltf::Model> gltfAssetList;
-typedef idList<tinygltf::Model *> gltfAssetPtrList;
-typedef tinygltf::Model *gltfAssetPtr;
-
 typedef idList<bgfxModel> bgfxModelList;
 typedef idList<bgfxMaterial> bgfxMaterialList;
 
@@ -31,7 +22,6 @@ public:
 	int IsFileLoaded( const char *file );
 
 	idStrList& GetLoadedFiles( ) {return loadedFiles; }
-	gltfAssetList& GetLoadedAssets( ) { return loadedAssets; }
 	//return BgfxModel if loaded 
 	// meshName : the gltf Mesh to return as rendermodel
 	// assetName : if emtpy, searches all loaded gltf asset files,
@@ -40,6 +30,7 @@ public:
 private:
 	void DrawSceneList ();
 	bool DrawSceneNode ( gltfNode *node, const idList<gltfNode *> &nodeList );
+	void RenderSceneNode( bgfxContext_t *context , gltfNode *node, idMat4 trans, const idList<gltfNode *> &nodeList );
 	bool windowOpen;
 	bool sceneViewOpen;
 	bool sceneListOpen;
@@ -47,8 +38,9 @@ private:
 	gltfScene *	selectedScene;
 	gltfData *	currentData;
 	gltfNode *	selectedNode;
+	
+	gltfData *	editorData;
 
-	gltfAssetList loadedAssets;
 	//HVG_TODO -> Use hash index
 	bgfxModelList renderModels; 
 	idStrList modelNames;
@@ -60,6 +52,11 @@ private:
 	idMat4 cameraProjection;
 
 	bgfxMrtContext_t renderTarget;
+
+	idQuat anglesQ;
+	idAngles anglesX;
+	idVec3 pos;
+	idMat4 curtrans;
 };
 extern gltfSceneEditor * sceneEditor;
 

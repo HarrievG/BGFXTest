@@ -118,32 +118,16 @@ void gltfSceneEditor::Init( )
 			common->Printf( "  %-21s \n", file.c_str());
 	}, CMD_FL_SYSTEM, "lists all loaded .gltf and .glb files" );
 
-	cmdSystem->AddCommand( "gltf_listAssets", []( const idCmdArgs &args )
-		-> auto {
-		common->Printf("%i glTF assets\n", thisPtr->GetLoadedAssets().Num());
-		int cnt = 0;
-		for (auto &asset : thisPtr->GetLoadedAssets())
-		{
-			common->Printf(" - %s",thisPtr->GetLoadedFiles()[cnt++].c_str());
-			if (!asset.asset.extras.Keys().size())
-				common->Printf("  %-21s","<No MetaData>" );
-			else
-				for (auto& key : asset.asset.extras.Keys() )
-				{
-					common->Printf( "  %-21s : %-21s\n", key.c_str(),
-						asset.asset.extras.Get(key).Get<std::string>().c_str() );
-				}
-		}
-	}, CMD_FL_RENDERER, "lists all loaded gltf models" );
-
 	cmdSystem->AddCommand( "gltf_listTextures", []( const idCmdArgs &args )
 		-> auto {
 		common->Printf(" - Textures (^2green ^7= data loaded)\n");
-		for (auto &asset : thisPtr->GetLoadedAssets())
+		auto &dataList = gltfData::DataList( );
+		for ( auto &data : dataList )
 		{
-			for (auto& img : asset.images)
-				common->Printf( "  %-21s : %s%-21s\n", img.name.length() ? img.name.c_str() : "<No Image Name>",
-					img.image.empty()? "^1" : "^2", img.uri.c_str());
+			auto &imgList = data->ImageList( );
+			for (auto& img : imgList )
+				common->Printf( "  %-21s : %i\n", !img->name.IsEmpty() ? img->name.c_str() : "<No Image Name>",
+					img->bgfxTexture.handle.idx != bgfx::kInvalidHandle ? "^1" : "^2", img->bgfxTexture.handle.idx );
 		}
 	}, CMD_FL_RENDERER, "list (loaded) textures" );
 
@@ -151,11 +135,13 @@ void gltfSceneEditor::Init( )
 		-> auto {
 		common->Printf(" - Meshes" );
 		int totalMeshes = 0;
-		for (auto &asset : thisPtr->GetLoadedAssets())
+		auto &dataList = gltfData::DataList( );
+		for ( auto &data : dataList )
 		{
-			totalMeshes += asset.meshes.size();
-			for ( auto &mesh : asset.meshes )
-				common->Printf( "  %-21s \n", mesh.name.length() ? mesh.name.c_str() : "<No Mesh Name>");
+			auto &meshList = data->MeshList( );
+			totalMeshes += meshList.Num();
+			for ( auto &mesh : meshList )
+				common->Printf( "  %-21s \n", !mesh->name.IsEmpty() ? mesh->name.c_str() : "<No Mesh Name>");
 		}
 		common->Printf( "%i glTF meshes total\n", totalMeshes );
 	}, CMD_FL_RENDERER, "list loaded gltf meshes" );
@@ -177,11 +163,13 @@ void gltfSceneEditor::Init( )
 		-> auto {
 		common->Printf( " - Scenes" );
 		int totalScenes = 0;
-		for (auto &asset : thisPtr->GetLoadedAssets())
+		auto &dataList = gltfData::DataList( );
+		for (auto &data : dataList )
 		{
-			totalScenes += asset.scenes.size();
-			for ( auto &scene : asset.scenes )
-				common->Printf( "  %-21s \n", scene.name.length() ? scene.name.c_str() : "<No Scene name>");
+			auto & scenelist = data->SceneList();
+			totalScenes += scenelist.Num();
+			for ( auto &scene : scenelist )
+				common->Printf( "  %-21s \n", !scene->name.IsEmpty() ? scene->name.c_str() : "<No Scene name>");
 		}
 		common->Printf( "%i glTF scenes total\n", totalScenes );
 	}, CMD_FL_TOOL, "" );
@@ -193,32 +181,162 @@ void gltfSceneEditor::Init( )
 		thisPtr->Render(context);
 	} );
 
-	//load default assets
-	thisPtr->LoadFile( "blender/SceneExplorerAssets.glb" );
-
 	float fov = 27.f;
 	float camYAngle = 165.f / 180.f * 3.14159f;
 	float camXAngle = 32.f / 180.f * 3.14159f;
 	bx::Vec3 eye = { cosf( camYAngle ) * cosf( camXAngle ) * 10, sinf( camXAngle ) * 10, sinf( camYAngle ) * cosf( camXAngle ) * 10 };
 	bx::Vec3 at = { 0.f, 0.f, 0.f };
 	bx::Vec3 up = { 0.f, 1.f, 0.f };
-	bx::mtxLookAt( cameraView.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
+	bx::mtxLookAt( cameraView.ToFloatPtr( ), eye, at, up, bx::Handness::Left );
 }
+
+void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, idMat4 trans, const idList<gltfNode *> &nodeList )
+{
+	idMat4 mat;
+	gltfData::ResolveNodeMatrix( node, &mat);
+	if ( node->mesh != -1 ) 		
+	{
+		for ( auto prim : currentData->MeshList()[node->mesh]->primitives )
+		{
+			bgfx::setTransform( (trans * node->matrix).Transpose().ToFloatPtr() );
+
+			//if ( selectedImage )
+			//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
+
+			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
+			bgfx::setIndexBuffer( prim->indexBufferHandle );
+			bgfx::submit( renderTarget.viewId, context->program );
+		}
+	}
+	if (node->camera == 0)
+		cameraView = ( trans * node->matrix );
+	trans *= node->matrix;
+	for ( auto &child : node->children )
+		RenderSceneNode( context, nodeList[child], trans, nodeList );
+
+}
+
+
 bool gltfSceneEditor::Render( bgfxContext_t *context ) 
 {
 	if ( !bgfx::isValid( renderTarget.fbh ) )
+	{
+		//load default assets
+		LoadFile( "blender/SceneExplorerAssets.glb" );
 		bgfxCreateMrtTarget( renderTarget, "SceneEditorView" );
+		editorData =  gltfData::Data( "blender/SceneExplorerAssets.glb" );
+		//for ( auto &data : dataList )
+		//grab first cam?
+		gltfCamera_Perspective & sceneCam = editorData->CameraList()[0]->perspective;
+		bx::mtxProj(cameraProjection.ToFloatPtr(), RAD2DEG(sceneCam.yfov),sceneCam.aspectRatio,sceneCam.znear,sceneCam.zfar, bgfx::getCaps()->homogeneousDepth, bx::Handness::Right );
+		
 
-	//bgfx::setViewTransform( 1, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
+		float xfov = 90;
+		float yfov = 2 * atan( ( float ) context->height / context->width ) * idMath::M_RAD2DEG;
+
+		float	xmin, xmax, ymin, ymax;
+		float	width, height;
+		float	zNear;
+
+		float	*xprojectionMatrix =  cameraProjection.ToFloatPtr( );
+		//
+		// set up projection matrix
+		//
+		zNear = sceneCam.znear;
+
+		ymax = zNear * tan( yfov * idMath::PI / 360.0f );
+		ymin = -ymax;
+
+		xmax = zNear * tan( xfov * idMath::PI / 360.0f );
+		xmin = -xmax;
+
+		width = xmax - xmin;
+		height = ymax - ymin;
+
+		xprojectionMatrix[0] = 2 * zNear / width;
+		xprojectionMatrix[4] = 0;
+		xprojectionMatrix[8] = ( xmax + xmin ) / width;	// normally 0
+		xprojectionMatrix[12] = 0;
+		
+		xprojectionMatrix[1] = 0;
+		xprojectionMatrix[5] = 2 * zNear / height;
+		xprojectionMatrix[9] = ( ymax + ymin ) / height;	// normally 0
+		xprojectionMatrix[13] = 0;
+
+		// this is the far-plane-at-infinity formulation
+		xprojectionMatrix[2] = 0;
+		xprojectionMatrix[6] = 0;
+		xprojectionMatrix[10] = -1;
+		xprojectionMatrix[14] = -2 * zNear;
+		
+		xprojectionMatrix[3] = 0;
+		xprojectionMatrix[7] = 0;
+		xprojectionMatrix[11] = -1;
+		xprojectionMatrix[15] = 0;
+
+		cameraView = mat4_identity;
+		pos = idVec3(0.f,0.f,-5.f );
+
+		currentData = editorData;
+	}
+
+	curtrans = cameraView.Transpose()*(idMat4( anglesX.ToMat3(),pos)).Transpose();
+	//myGlMultMatrix(curtrans.ToFloatPtr(),mat4_identity.ToFloatPtr(), curtrans.ToFloatPtr( ) );
+	//tx = context. cameraView;// * 
+
+	bgfx::touch( renderTarget.viewId );
+//	bgfx::setViewTransform( , cameraView.ToFloatPtr( ), );
+	bgfx::setViewTransform( renderTarget.viewId, curtrans.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
+
+
+	if (selectedScene && currentData)
+	{
+		auto &nodeList = currentData->NodeList( );
+		idMat4 mat;
+		auto &scenes = currentData->SceneList( );
+		for ( auto &scene : scenes )
+			for ( auto &node : scene->nodes)
+			{
+				idMat4 mat = mat4_identity;
+				RenderSceneNode(context, nodeList[node], mat, nodeList);
+			}
+	}
+
 
 	//float model[16];
 	//bx::mtxIdentity( model );
+	////bx::mtxScale( model, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
+
 	//bgfx::setTransform( model );
 
 	//bgfx::setVertexBuffer( 0, context->vbh );
 	//bgfx::setIndexBuffer( context->ibh );
+	//bgfx::submit( renderTarget.viewId, context->program );
 
-	//bgfx::submit( 0, context->program );
+	//bx::mtxScale( model, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
+	//bx::mtxTranslate( model, 0.f,0.f,5.f );// sin( com_frameTime ) );
+	//bgfx::setTransform( model );
+	//bgfx::setVertexBuffer( 0, context->vbh );
+	//bgfx::setIndexBuffer( context->ibh );
+	//bgfx::submit( renderTarget.viewId, context->program );
+
+
+	//bx::mtxScale( model, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
+	//bx::mtxTranslate( model, 0.f, 5.f, -5.f );// sin( com_frameTime ) );
+	//bgfx::setTransform( model );
+	//bgfx::setVertexBuffer( 0, context->vbh );
+	//bgfx::setIndexBuffer( context->ibh );
+	//bgfx::submit( renderTarget.viewId, context->program );
+
+	//bx::mtxScale( model, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
+	//bx::mtxTranslate( model, 5.f, 0.0, -5.f );// sin( com_frameTime ) );
+	//bgfx::setTransform( model );
+	//bgfx::setVertexBuffer( 0, context->vbh );
+	//bgfx::setIndexBuffer( context->ibh );
+	//bgfx::submit( renderTarget.viewId, context->program );
+
+	if ( bgfx::isValid( renderTarget.rb ) )
+		bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
 	return false;
 }
 extern const float identityMatrix[16];
@@ -276,6 +394,10 @@ bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 			ImGui::EndMenuBar( );
 		}
 	}
+	ImGui::Image((void*)(intptr_t)renderTarget.rb.idx, idVec2( ( float ) renderTarget.width / 2, ( float ) renderTarget.height / 2 ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
+	
+	ImGui::DragFloat3("##test",pos.ToFloatPtr());
+	ImGui::DragFloat3( "##test2", anglesX.ToFloatPtr( ) );
 	ImGui::End();
 	DrawSceneList();
 	return true;
@@ -285,8 +407,7 @@ void gltfSceneEditor::DrawSceneList()
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 	if ( ImGui::Begin( "GLTF SCENE LIST", &windowOpen, flags ) )
 	{
-		{
-			ImGui::PushID( "SceneView" );
+		{ImGui::PushID( "SceneView" );
 			static const idVec2 left_pane_size = idVec2( 250, 0 );
 
 			int sceneCount = 0;
@@ -294,11 +415,13 @@ void gltfSceneEditor::DrawSceneList()
 			auto &imStyle = ImGui::GetStyle( );
 			ImGui::SetNextItemWidth( ImGui::GetWindowSize().x - ( imStyle.WindowPadding.x * 2 ) );
 			if ( ImGui::BeginCombo( "##scenes", selectedScene ? selectedScene->name.c_str( ) : "<Scene>" ) ) 		{
-				for ( auto &data : dataList ) 			{
+				for ( auto &data : dataList )
+				{
 
 					int sceneCount = 0;
 					auto &scenes = data->SceneList( );
-					for ( auto &scene : scenes ) 				{
+					for ( auto &scene : scenes )
+					{
 						bool selected = selectedScene == scene;
 						if ( ImGui::Selectable( scene->name.Length( ) ? scene->name.c_str( ) : data->FileName( ).c_str( ), selected ) )
 						{
@@ -352,17 +475,17 @@ bool gltfSceneEditor::DrawSceneNode( gltfNode *node,const  idList<gltfNode *> &n
 		if (ImGui::TreeNode( node->name.Length( ) ? node->name.c_str( ) : "<Node>" ))
 		{
 			for ( auto &child : node->children ) 
-			{
-				if ( nodeList[child]->children.Num( ) )
-					DrawSceneNode( nodeList[child], nodeList );
-			}
+				DrawSceneNode( nodeList[child], nodeList );
 			ImGui::TreePop( );
 		}
 	}else 
 	{
-		//ImGui::PushID( ( idStr( "image" ) + imageCount ).c_str( ) );
+		ImGui::PushID( "##" );
+		ImGui::Indent( ImGui::GetTreeNodeToLabelSpacing( ) );
 		if ( ImGui::Selectable( node->name.Length( ) ? node->name.c_str( ) : "<Node>", selectedNode == node, ImGuiSelectableFlags_AllowDoubleClick ) ) 
 			selectedNode = node;
+		ImGui::Unindent( ImGui::GetTreeNodeToLabelSpacing( ) );
+		ImGui::PopID( );
 	}
 
 	return false;
@@ -383,31 +506,6 @@ bool gltfSceneEditor::LoadFile( const char *binFile )
 	if (!gltfParser->Load( binFile ))
 		return false;
 
-	//std::string ext = tinygltf::GetFilePathExtension( binFile );
-	//tinygltf::Model &model = loadedAssets.Alloc();
-	//std::string err;
-	//std::string warn;
-	//bool ret = false;
-	//if ( ext.compare( "glb" ) == 0 || ext.compare( "bin" ) == 0 ) {
-	//	common->DPrintf( "Loading %s as a binary\n", binFile );
-	//	// assume binary glTF.
-	//	ret = gGLFTLoader.LoadBinaryFromFile( &model, &err, &warn, binFile );
-	//} else {
-	//	// assume ascii glTF.
-	//	common->DPrintf( "Loading %s as a ASCII\n", binFile );
-	//	ret = gGLFTLoader.LoadASCIIFromFile( &model, &err, &warn, binFile );
-	//}
-
-	//if ( !warn.empty( ) ) {
-	//	common->Warning( "%s", warn.c_str( ) );
-	//}
-
-	//if ( !err.empty( ) ) {
-	//	common->Error( "%s", err.c_str( ) );
-	//}
-	//if ( !ret ) {
-	//	common->Error( "Failed to load .glTF : %s\n", binFile );
-	//}
 	loadedFiles.Append(	binFile );
 	common->Printf( "^2Loading %s Done",binFile );
 	common->SetRefreshOnPrint( false );
@@ -436,169 +534,169 @@ bool LoadTextureForModel( bgfxModel & model, const tinygltf::Image & img)
 
 bgfxModel * gltfSceneEditor::GetRenderModel(const idStr & meshName, const idStr & assetName )
 {
-	//return cached model
-	int idx = modelNames.FindIndex(meshName);
-	if ( idx != -1)
-	{
-		common->DPrintf("%s was already cached" , meshName.c_str());
-		return & renderModels[idx];
-	}
-	
-	//find mesh
-	if (1 ) { }
-	// load / get dummy assets
-	int textureDummyIdx = IsFileLoaded( "dummies.gltf" );
-	if ( textureDummyIdx < 0)
-	{
-		if (LoadFile ("dummies.gltf"))
-		{
-			textureDummyIdx = IsFileLoaded( "dummies.gltf" );
-			auto & dummyAsset = GetLoadedAssets()[textureDummyIdx];
-			int newIdx = modelNames.AddUnique( "textureDummy" );
-			bgfxModel &textureDummy = renderModels.Alloc( );
-			for (auto& img : dummyAsset.images)
-			{
-				if (!LoadTextureForModel( textureDummy,img))
-					return false;
-			}
-			textureDummyIdx = newIdx;
-		}
-	}else
-		textureDummyIdx = modelNames.FindIndex("textureDummy");
+	////return cached model
+	//int idx = modelNames.FindIndex(meshName);
+	//if ( idx != -1)
+	//{
+	//	common->DPrintf("%s was already cached" , meshName.c_str());
+	//	return & renderModels[idx];
+	//}
+	//
+	////find mesh
+	//if (1 ) { }
+	//// load / get dummy assets
+	//int textureDummyIdx = IsFileLoaded( "dummies.gltf" );
+	//if ( textureDummyIdx < 0)
+	//{
+	//	if (LoadFile ("dummies.gltf"))
+	//	{
+	//		textureDummyIdx = IsFileLoaded( "dummies.gltf" );
+	//		//auto & dummyAsset = GetLoadedAssets()[textureDummyIdx];
+	//		int newIdx = modelNames.AddUnique( "textureDummy" );
+	//		bgfxModel &textureDummy = renderModels.Alloc( );
+	//		for (auto& img : dummyAsset.images)
+	//		{
+	//			if (!LoadTextureForModel( textureDummy,img))
+	//				return false;
+	//		}
+	//		textureDummyIdx = newIdx;
+	//	}
+	//}else
+	//	textureDummyIdx = modelNames.FindIndex("textureDummy");
 
-	auto & dummyTextures = renderModels[textureDummyIdx].textures;
-	
-	//create new 
-	int newIdx = modelNames.AddUnique( meshName );
+	//auto & dummyTextures = renderModels[textureDummyIdx].textures;
+	//
+	////create new 
+	//int newIdx = modelNames.AddUnique( meshName );
 	bgfxModel& out = renderModels.Alloc();
-	for (auto &asset : GetLoadedAssets())
-	{
-		//always add dummy textures
-		for (auto & dtex : dummyTextures )
-		{
-			auto &texture = out.textures.Alloc();
-			texture = dtex;
-		}
-		//Textures
-		for (auto& img : asset.images)
-		{
-			if (!img.image.empty( ))
-			{
-				auto &texture = out.textures.Alloc();
-				texture.dim = idVec2(img.width,img.height );
-				uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
-				texture.handle = bgfx::createTexture2D(img.width,img.height,false,1, bgfx::TextureFormat::RGBA8, tex_flags,bgfx::copy(img.image.data(), img.width * img.height * 4));
-			}
-		}
-		//Materials 
-		for (auto & mat :  asset.materials )
-		{
-			if (mat.name.empty() )
-				common->FatalError("cant load unnamed gltf materials");
+	//for (auto &asset : GetLoadedAssets())
+	//{
+	//	//always add dummy textures
+	//	for (auto & dtex : dummyTextures )
+	//	{
+	//		auto &texture = out.textures.Alloc();
+	//		texture = dtex;
+	//	}
+	//	//Textures
+	//	for (auto& img : asset.images)
+	//	{
+	//		if (!img.image.empty( ))
+	//		{
+	//			auto &texture = out.textures.Alloc();
+	//			texture.dim = idVec2(img.width,img.height );
+	//			uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
+	//			texture.handle = bgfx::createTexture2D(img.width,img.height,false,1, bgfx::TextureFormat::RGBA8, tex_flags,bgfx::copy(img.image.data(), img.width * img.height * 4));
+	//		}
+	//	}
+	//	//Materials 
+	//	for (auto & mat :  asset.materials )
+	//	{
+	//		if (mat.name.empty() )
+	//			common->FatalError("cant load unnamed gltf materials");
 
-			int nameHash = materialIndices.GenerateKey(mat.name.c_str(),true );
-			//HVG_TODO
-			//NEED TO CHECK TRANSPARANCY MODE
-			int materialIndex = materialIndices.First(nameHash);
+	//		int nameHash = materialIndices.GenerateKey(mat.name.c_str(),true );
+	//		//HVG_TODO
+	//		//NEED TO CHECK TRANSPARANCY MODE
+	//		int materialIndex = materialIndices.First(nameHash);
 
-			if ( materialIndex > 0 )
-			{
-				common->DWarning("skipping gltf material %s (%i), already loaded.",mat.name.c_str(), nameHash );
-				continue;
-			}
+	//		if ( materialIndex > 0 )
+	//		{
+	//			common->DWarning("skipping gltf material %s (%i), already loaded.",mat.name.c_str(), nameHash );
+	//			continue;
+	//		}
 
-			bgfxMaterial & bgfxMaterialRef = materialList.Alloc();
-			PBRMaterial & materialData = bgfxMaterialRef.material;
-			materialIndices.Add( nameHash,materialList.Num()-1 );
+	//		bgfxMaterial & bgfxMaterialRef = materialList.Alloc();
+	//		PBRMaterial & materialData = bgfxMaterialRef.material;
+	//		materialIndices.Add( nameHash,materialList.Num()-1 );
 
-			materialData =	PBRMaterial{
-				idVec4(1.0f, 1.0f, 1.0f, 1.0f), // baseColorFactor
-				idVec4(0.0f, 0.0f, 0.0f, 1.0f), // emissiveFactor
-				0.5f,                     // alphaCutoff
-				1.0f,                     // metallicFactor
-				1.0f,                     // roughnessFactor
-				out.textures[0].handle, // baseColorTexture as dummy_white
-				out.textures[1].handle, // metallicRoughnessTexture as dummy_metallicRoughness;
-				out.textures[2].handle, // normalTexture as dummy_normal_map;
-				out.textures[0].handle, // emissiveTexture as dummy_white;
-				out.textures[0].handle, // occlusionTexture as dummy_white;
-			};
-			TransparencyMode transparency_mode = TransparencyMode::OPAQUE_;
+	//		materialData =	PBRMaterial{
+	//			idVec4(1.0f, 1.0f, 1.0f, 1.0f), // baseColorFactor
+	//			idVec4(0.0f, 0.0f, 0.0f, 1.0f), // emissiveFactor
+	//			0.5f,                     // alphaCutoff
+	//			1.0f,                     // metallicFactor
+	//			1.0f,                     // roughnessFactor
+	//			out.textures[0].handle, // baseColorTexture as dummy_white
+	//			out.textures[1].handle, // metallicRoughnessTexture as dummy_metallicRoughness;
+	//			out.textures[2].handle, // normalTexture as dummy_normal_map;
+	//			out.textures[0].handle, // emissiveTexture as dummy_white;
+	//			out.textures[0].handle, // occlusionTexture as dummy_white;
+	//		};
+	//		TransparencyMode transparency_mode = TransparencyMode::OPAQUE_;
 
-			auto valuesEnd = mat.values.end( );
-			auto p_keyValue = mat.values.find( "baseColorTexture" );
-			if ( p_keyValue != valuesEnd )         {
-				materialData.baseColorTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-			};
+	//		auto valuesEnd = mat.values.end( );
+	//		auto p_keyValue = mat.values.find( "baseColorTexture" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			materialData.baseColorTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
+	//		};
 
-			p_keyValue = mat.values.find( "baseColorFactor" );
-			if ( p_keyValue != valuesEnd )         {
-				const auto &data = p_keyValue->second.ColorFactor( );
-				materialData.baseColorFactor = idVec4(
-					static_cast< float >( data[0] ),
-					static_cast< float >( data[1] ),
-					static_cast< float >( data[2] ),
-					static_cast< float >( data[3] )
-				);
-			}
-			p_keyValue = mat.values.find( "metallicRoughnessTexture" );
-			if ( p_keyValue != valuesEnd )         {
-				materialData.metallicRoughnessTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-			}
+	//		p_keyValue = mat.values.find( "baseColorFactor" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			const auto &data = p_keyValue->second.ColorFactor( );
+	//			materialData.baseColorFactor = idVec4(
+	//				static_cast< float >( data[0] ),
+	//				static_cast< float >( data[1] ),
+	//				static_cast< float >( data[2] ),
+	//				static_cast< float >( data[3] )
+	//			);
+	//		}
+	//		p_keyValue = mat.values.find( "metallicRoughnessTexture" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			materialData.metallicRoughnessTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
+	//		}
 
-			p_keyValue = mat.values.find( "metallicFactor" );
-			if ( p_keyValue != valuesEnd )         {
-				materialData.metallicFactor = static_cast< float >( p_keyValue->second.Factor( ) );
-			}
+	//		p_keyValue = mat.values.find( "metallicFactor" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			materialData.metallicFactor = static_cast< float >( p_keyValue->second.Factor( ) );
+	//		}
 
-			// Additional Factors
-			valuesEnd = mat.additionalValues.end( );
-			p_keyValue = mat.additionalValues.find( "normalTexture" );
-			if ( p_keyValue != valuesEnd )         {
-				materialData.normalTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-			}
+	//		// Additional Factors
+	//		valuesEnd = mat.additionalValues.end( );
+	//		p_keyValue = mat.additionalValues.find( "normalTexture" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			materialData.normalTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
+	//		}
 
-			p_keyValue = mat.additionalValues.find( "emissiveTexture" );
-			if ( p_keyValue != valuesEnd )         {
-				materialData.emissiveTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
+	//		p_keyValue = mat.additionalValues.find( "emissiveTexture" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			materialData.emissiveTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
 
-				if ( mat.additionalValues.find( "emissiveFactor" ) != valuesEnd )             {
-					const auto &data = mat.additionalValues.at( "emissiveFactor" ).ColorFactor( );
-					materialData.emissiveFactor = idVec4(
-						static_cast< float >( data[0] ),
-						static_cast< float >( data[1] ),
-						static_cast< float >( data[2] ),
-						1.0f );
-				}
-			};
+	//			if ( mat.additionalValues.find( "emissiveFactor" ) != valuesEnd )             {
+	//				const auto &data = mat.additionalValues.at( "emissiveFactor" ).ColorFactor( );
+	//				materialData.emissiveFactor = idVec4(
+	//					static_cast< float >( data[0] ),
+	//					static_cast< float >( data[1] ),
+	//					static_cast< float >( data[2] ),
+	//					1.0f );
+	//			}
+	//		};
 
-			p_keyValue = mat.additionalValues.find( "occlusionTexture" );
-			if ( p_keyValue != valuesEnd )         {
-				materialData.occlusionTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-			}
+	//		p_keyValue = mat.additionalValues.find( "occlusionTexture" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			materialData.occlusionTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
+	//		}
 
-			p_keyValue = mat.additionalValues.find( "metallicRoughnessTexture" );
-			if ( p_keyValue != valuesEnd )         {
-				materialData.metallicRoughnessTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-			}
+	//		p_keyValue = mat.additionalValues.find( "metallicRoughnessTexture" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			materialData.metallicRoughnessTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
+	//		}
 
-			p_keyValue = mat.additionalValues.find( "alphaMode" );
-			if ( p_keyValue != valuesEnd )         {
-				if ( p_keyValue->second.string_value == "BLEND" )             {
-					transparency_mode = TransparencyMode::BLENDED;
-				}             else if ( p_keyValue->second.string_value == "MASK" )             {
-					transparency_mode = TransparencyMode::MASKED;
-				}
-			}
+	//		p_keyValue = mat.additionalValues.find( "alphaMode" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			if ( p_keyValue->second.string_value == "BLEND" )             {
+	//				transparency_mode = TransparencyMode::BLENDED;
+	//			}             else if ( p_keyValue->second.string_value == "MASK" )             {
+	//				transparency_mode = TransparencyMode::MASKED;
+	//			}
+	//		}
 
-			p_keyValue = mat.additionalValues.find( "alphaCutoff" );
-			if ( p_keyValue != valuesEnd )         {
-				materialData.alphaCutoff = static_cast< float >( p_keyValue->second.Factor( ) );
-			}
+	//		p_keyValue = mat.additionalValues.find( "alphaCutoff" );
+	//		if ( p_keyValue != valuesEnd )         {
+	//			materialData.alphaCutoff = static_cast< float >( p_keyValue->second.Factor( ) );
+	//		}
 
-			bgfxMaterialRef.TransparencyMode = transparency_mode;
-		}
-	}
+	//		bgfxMaterialRef.TransparencyMode = transparency_mode;
+	//	}
+	//}
 
 	return &out;
 }
@@ -635,10 +733,11 @@ void gltfAssetExplorer::Init()
 	bx::Vec3 up = { 0.f, 1.f, 0.f };
 	bx::mtxLookAt( cameraView.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
 	bx::mtxProj(
-		cameraProjection.ToFloatPtr( ), 30.0, float( 800 ) / float( 600 ), 0.1f,
+		cameraProjection.ToFloatPtr( ), 30.0, float( renderTarget.width ) / float( renderTarget.height ), 0.1f,
 		10000.0f, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
-
 	camPos = idVec3(eye.x,eye.y,eye.z);
+
+
 }
 bool gltfAssetExplorer::Show(bool visible )
 {
@@ -703,8 +802,8 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context )
 	const auto & fileList = sceneEditor->GetLoadedFiles();
 	//pre-select first item.
 	if ( selectedFileHash==0 && fileList.Num())
-		selectedFileHash = idStr::Hash(fileList.begin().p->c_str());
-	
+		selectedFileHash = gltfData::fileDataHash.GenerateKey( fileList.begin( ).p->c_str( ) );
+
 	auto curCtx = ImGui::GetCurrentContext();
 	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_FirstUseEver );
 
@@ -755,7 +854,7 @@ bool gltfAssetExplorer::imDraw( bgfxContext_t *context )
 		ImGui::BeginChild( "left pane", idVec2( 250, 0 ), true, ImGuiWindowFlags_HorizontalScrollbar );
 		for (auto &file : sceneEditor->GetLoadedFiles())
 		{
-			int currentFileHash = idStr::Hash(file);
+			int currentFileHash = gltfData::fileDataHash.GenerateKey(file);
 			ImGui::PushID( currentFileHash );
 			ImGui::PushStyleColor( ImGuiCol_Button, IM_COL32( 255, 0, 0, 100 ) );
 			if ( ImGui::SmallButton( "X" ) )
