@@ -236,15 +236,6 @@ void bgfxRender( bgfxContext_t *context ){
 	idRotation modelRot2 (idVec3(0, 0, 0) ,idVec3(0, -1, 0) , RAD2DEG(abs( 0.001f * com_frameTime )) );
     idMat4 rotmat = modelRot.ToMat4();// * modelRot2.ToMat4( );
 
-	static float	s_flipMatrix[16] = {
-		// convert from our coordinate system (looking down X)
-		// to OpenGL's coordinate system (looking down -Z)
-		0, 0, -1, 0,
-		-1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 0, 1
-	};
-
     float *xtmp;
     xtmp = rotmat.ToFloatPtr( );
 	idMat4 cpy = rotmat;
@@ -283,6 +274,22 @@ void bgfxRegisterCallback( bgfxCallback callback )
     bgfxCallbackList.Append( callback );
 }
 
+
+/*
+===============
+ConvertFromIdSpace
+===============
+*/
+idVec3 ConvertFromIdSpace( const idVec3 &idpos ) {
+	idVec3 pos;
+
+	pos.x = idpos.x;
+	pos.z = -idpos.y;
+	pos.y = idpos.z;
+
+	return pos;
+}
+
 /*
 ===============
 ConvertToIdSpace
@@ -291,20 +298,22 @@ ConvertToIdSpace
 idMat3 ConvertToIdSpace( const idMat3 &mat ) {
 	idMat3 idmat;
 
-	idmat[ 0 ][ 0 ] = mat[ 0 ][ 0 ];
+	idmat[ 0 ][ 0 ] =  mat[ 0 ][ 0 ];
 	idmat[ 0 ][ 1 ] = -mat[ 0 ][ 2 ];
-	idmat[ 0 ][ 2 ] = mat[ 0 ][ 1 ];
+	idmat[ 0 ][ 2 ] =  mat[ 0 ][ 1 ];
 
-	idmat[ 1 ][ 0 ] = mat[ 1 ][ 0 ];
+	idmat[ 1 ][ 0 ] =  mat[ 1 ][ 0 ];
 	idmat[ 1 ][ 1 ] = -mat[ 1 ][ 2 ];
-	idmat[ 1 ][ 2 ] = mat[ 1 ][ 1 ];
+	idmat[ 1 ][ 2 ] =  mat[ 1 ][ 1 ];
 
-	idmat[ 2 ][ 0 ] = mat[ 2 ][ 0 ];
+	idmat[ 2 ][ 0 ] =  mat[ 2 ][ 0 ];
 	idmat[ 2 ][ 1 ] = -mat[ 2 ][ 2 ];
-	idmat[ 2 ][ 2 ] = mat[ 2 ][ 1 ];
+	idmat[ 2 ][ 2 ] =  mat[ 2 ][ 1 ];
 
 	return idmat;
 }
+
+
 
 /*
 ===============
@@ -321,6 +330,29 @@ idVec3 ConvertToIdSpace( const idVec3 &pos ) {
 	return idpos;
 }
 
+
+
+idMat4 ConvertToIdSpace( const idMat4 &idmat ) {
+	idMat4 mat;
+
+	mat[ 0 ][ 0 ] =  idmat[ 0 ][ 0 ];
+	mat[ 0 ][ 1 ] = -idmat[ 0 ][ 2 ];
+	mat[ 0 ][ 2 ] =  idmat[ 0 ][ 1 ];
+
+	mat[ 1 ][ 0 ] =  idmat[ 1 ][ 0 ];
+	mat[ 1 ][ 1 ] = -idmat[ 1 ][ 2 ];
+	mat[ 1 ][ 2 ] =  idmat[ 1 ][ 1 ];
+
+	mat[ 2 ][ 0 ] =  idmat[ 2 ][ 0 ];
+	mat[ 2 ][ 1 ] = -idmat[ 2 ][ 2 ];
+	mat[ 2 ][ 2 ] =  idmat[ 2 ][ 1 ];
+
+    mat[ 3 ][ 0 ]=  idmat[ 3 ][ 0 ] ;
+	mat[ 3 ][ 1 ]= -idmat[ 3 ][ 2 ] ;
+	mat[ 3 ][ 2 ]=  idmat[ 3 ][ 1 ] ;
+
+	return mat;
+}
 /*
 ===============
 ConvertFromIdSpace
@@ -402,18 +434,4 @@ void myGlMultMatrix( const float a[16], const float b[16], float out[16] ) {
 	out[3*4+2] = a[3*4+0]*b[0*4+2] + a[3*4+1]*b[1*4+2] + a[3*4+2]*b[2*4+2] + a[3*4+3]*b[3*4+2];
 	out[3*4+3] = a[3*4+0]*b[0*4+3] + a[3*4+1]*b[1*4+3] + a[3*4+2]*b[2*4+3] + a[3*4+3]*b[3*4+3];
 #endif
-}
-/*
-===============
-ConvertFromIdSpace
-===============
-*/
-idVec3 ConvertFromIdSpace( const idVec3 &idpos ) {
-	idVec3 pos;
-
-	pos.x = idpos.x;
-	pos.z = -idpos.y;
-	pos.y = idpos.z;
-
-	return pos;
 }

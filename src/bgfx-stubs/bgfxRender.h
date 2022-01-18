@@ -192,8 +192,19 @@ void bgfxCreateMrtTarget( bgfxMrtContext_t &context, const char *name );
 
 bgfxModel loadGltfModel( const idStr &fileName );
 
-idMat3 ConvertToIdSpace( const idMat3 &mat );
+
+static float	s_flipMatrix[16] = {
+    // convert from our coordinate system (looking down X)
+    // to OpenGL's coordinate system (looking down -Z)
+    0, 0, -1, 0,
+    -1, 0, 0, 0,
+    0, 1, 0, 0,
+    0, 0, 0, 1
+};
+
 idVec3 ConvertToIdSpace( const idVec3 &pos );
+idMat3 ConvertToIdSpace( const idMat3 &mat );
+idMat4 ConvertToIdSpace( const idMat4 &mat );
 idVec3 ConvertFromIdSpace( const idVec3 &idpos );
 idMat3 ConvertFromIdSpace( const idMat3 &idmat );
 idMat4 ConvertFromIdSpace( const idMat4 &idmat );

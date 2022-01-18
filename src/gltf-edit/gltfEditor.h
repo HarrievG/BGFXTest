@@ -55,6 +55,7 @@ private:
 
 	idQuat anglesQ;
 	idAngles anglesX;
+	idVec3 scale;
 	idVec3 pos;
 	idMat4 curtrans;
 };

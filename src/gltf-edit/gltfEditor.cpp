@@ -209,13 +209,14 @@ void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, i
 		}
 	}
 	if (node->camera == 0)
-		cameraView = ( trans * node->matrix );
+	{
+		cameraView =( node->matrix * trans).Transpose();
+		cameraView[3][2] *= -1;
+	}
 	trans *= node->matrix;
 	for ( auto &child : node->children )
 		RenderSceneNode( context, nodeList[child], trans, nodeList );
-
 }
-
 
 bool gltfSceneEditor::Render( bgfxContext_t *context ) 
 {
@@ -227,71 +228,84 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 		editorData =  gltfData::Data( "blender/SceneExplorerAssets.glb" );
 		//for ( auto &data : dataList )
 		//grab first cam?
-		gltfCamera_Perspective & sceneCam = editorData->CameraList()[0]->perspective;
-		bx::mtxProj(cameraProjection.ToFloatPtr(), RAD2DEG(sceneCam.yfov),sceneCam.aspectRatio,sceneCam.znear,sceneCam.zfar, bgfx::getCaps()->homogeneousDepth, bx::Handness::Right );
-		
+		if ( editorData->CameraList().Num())
+		{
+			gltfCamera_Perspective & sceneCam = editorData->CameraList()[0]->perspective;
+			bx::mtxProj(cameraProjection.ToFloatPtr(), RAD2DEG(sceneCam.yfov),sceneCam.aspectRatio,sceneCam.znear,sceneCam.zfar, bgfx::getCaps()->homogeneousDepth, bx::Handness::Right );
+		}
 
-		float xfov = 90;
-		float yfov = 2 * atan( ( float ) context->height / context->width ) * idMath::M_RAD2DEG;
+		//float xfov = 90;
+		//float yfov = 2 * atan( ( float ) context->height / context->width ) * idMath::M_RAD2DEG;
 
-		float	xmin, xmax, ymin, ymax;
-		float	width, height;
-		float	zNear;
+		//float	xmin, xmax, ymin, ymax;
+		//float	width, height;
+		//float	zNear;
 
-		float	*xprojectionMatrix =  cameraProjection.ToFloatPtr( );
+		//float	*xprojectionMatrix =  cameraProjection.ToFloatPtr( );
+		////
+		//// set up projection matrix
+		////
+		//zNear = 0.01f;
+
+		//ymax = zNear * tan( yfov * idMath::PI / 360.0f );
+		//ymin = -ymax;
+
+		//xmax = zNear * tan( xfov * idMath::PI / 360.0f );
+		//xmin = -xmax;
+
+		//width = xmax - xmin;
+		//height = ymax - ymin;
+
+		//xprojectionMatrix[0] = 2 * zNear / width;
+		//xprojectionMatrix[4] = 0;
+		//xprojectionMatrix[8] = ( xmax + xmin ) / width;	// normally 0
+		//xprojectionMatrix[12] = 0;
 		//
-		// set up projection matrix
+		//xprojectionMatrix[1] = 0;
+		//xprojectionMatrix[5] = 2 * zNear / height;
+		//xprojectionMatrix[9] = ( ymax + ymin ) / height;	// normally 0
+		//xprojectionMatrix[13] = 0;
+
+		//// this is the far-plane-at-infinity formulation
+		//xprojectionMatrix[2] = 0;
+		//xprojectionMatrix[6] = 0;
+		//xprojectionMatrix[10] = -1;
+		//xprojectionMatrix[14] = -2 * zNear;
 		//
-		zNear = sceneCam.znear;
-
-		ymax = zNear * tan( yfov * idMath::PI / 360.0f );
-		ymin = -ymax;
-
-		xmax = zNear * tan( xfov * idMath::PI / 360.0f );
-		xmin = -xmax;
-
-		width = xmax - xmin;
-		height = ymax - ymin;
-
-		xprojectionMatrix[0] = 2 * zNear / width;
-		xprojectionMatrix[4] = 0;
-		xprojectionMatrix[8] = ( xmax + xmin ) / width;	// normally 0
-		xprojectionMatrix[12] = 0;
-		
-		xprojectionMatrix[1] = 0;
-		xprojectionMatrix[5] = 2 * zNear / height;
-		xprojectionMatrix[9] = ( ymax + ymin ) / height;	// normally 0
-		xprojectionMatrix[13] = 0;
-
-		// this is the far-plane-at-infinity formulation
-		xprojectionMatrix[2] = 0;
-		xprojectionMatrix[6] = 0;
-		xprojectionMatrix[10] = -1;
-		xprojectionMatrix[14] = -2 * zNear;
-		
-		xprojectionMatrix[3] = 0;
-		xprojectionMatrix[7] = 0;
-		xprojectionMatrix[11] = -1;
-		xprojectionMatrix[15] = 0;
+		//xprojectionMatrix[3] = 0;
+		//xprojectionMatrix[7] = 0;
+		//xprojectionMatrix[11] = -1;
+		//xprojectionMatrix[15] = 0;
 
 		cameraView = mat4_identity;
-		pos = idVec3(0.f,0.f,-5.f );
-
+		pos = idVec3(0.f,15.f,0.f );
+		scale = idVec3( 1.f, 1, 1.f );
 		currentData = editorData;
+		anglesX = idAngles(0,0,90 );
+		anglesQ = anglesX.ToQuat();
+		anglesX.Set(0,0,0);
 	}
-
-	curtrans = cameraView.Transpose()*(idMat4( anglesX.ToMat3(),pos)).Transpose();
-	//myGlMultMatrix(curtrans.ToFloatPtr(),mat4_identity.ToFloatPtr(), curtrans.ToFloatPtr( ) );
-	//tx = context. cameraView;// * 
+	idMat4 scaleMat = idMat4(
+		scale.x, 0, 0, 0,
+		0, scale.y, 0, 0,
+		0, 0, scale.z, 0,
+		0, 0, 0, 1
+	);
 
 	bgfx::touch( renderTarget.viewId );
-//	bgfx::setViewTransform( , cameraView.ToFloatPtr( ), );
-	bgfx::setViewTransform( renderTarget.viewId, curtrans.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
-
 
 	if (selectedScene && currentData)
 	{
-		auto &nodeList = currentData->NodeList( );
+		if (!currentData->CameraList().Num() )
+		{
+			idVec3 tmp = idVec3( anglesX.ToFloatPtr( )[0], anglesX.ToFloatPtr( )[1], anglesX.ToFloatPtr( )[2] );
+			idAngles tmpAngles = idAngles( tmp );
+
+			cameraView = ( ( scaleMat * tmpAngles.ToMat4() * idMat4( mat3_identity, pos ))).Transpose();
+			cameraView[3][2] *= -1;
+		}
+
+		auto &nodeList = currentData->NodeList( ); 
 		idMat4 mat;
 		auto &scenes = currentData->SceneList( );
 		for ( auto &scene : scenes )
@@ -302,38 +316,8 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 			}
 	}
 
+	bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 
-	//float model[16];
-	//bx::mtxIdentity( model );
-	////bx::mtxScale( model, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
-
-	//bgfx::setTransform( model );
-
-	//bgfx::setVertexBuffer( 0, context->vbh );
-	//bgfx::setIndexBuffer( context->ibh );
-	//bgfx::submit( renderTarget.viewId, context->program );
-
-	//bx::mtxScale( model, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
-	//bx::mtxTranslate( model, 0.f,0.f,5.f );// sin( com_frameTime ) );
-	//bgfx::setTransform( model );
-	//bgfx::setVertexBuffer( 0, context->vbh );
-	//bgfx::setIndexBuffer( context->ibh );
-	//bgfx::submit( renderTarget.viewId, context->program );
-
-
-	//bx::mtxScale( model, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
-	//bx::mtxTranslate( model, 0.f, 5.f, -5.f );// sin( com_frameTime ) );
-	//bgfx::setTransform( model );
-	//bgfx::setVertexBuffer( 0, context->vbh );
-	//bgfx::setIndexBuffer( context->ibh );
-	//bgfx::submit( renderTarget.viewId, context->program );
-
-	//bx::mtxScale( model, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
-	//bx::mtxTranslate( model, 5.f, 0.0, -5.f );// sin( com_frameTime ) );
-	//bgfx::setTransform( model );
-	//bgfx::setVertexBuffer( 0, context->vbh );
-	//bgfx::setIndexBuffer( context->ibh );
-	//bgfx::submit( renderTarget.viewId, context->program );
 
 	if ( bgfx::isValid( renderTarget.rb ) )
 		bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
@@ -394,10 +378,11 @@ bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 			ImGui::EndMenuBar( );
 		}
 	}
-	ImGui::Image((void*)(intptr_t)renderTarget.rb.idx, idVec2( ( float ) renderTarget.width / 2, ( float ) renderTarget.height / 2 ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
-	
+	ImGui::Image((void*)(intptr_t)renderTarget.rb.idx, idVec2( ( float ) renderTarget.width, ( float ) renderTarget.height ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
+	ImGui::DragFloat3( "##test3", scale.ToFloatPtr( ) ); 
 	ImGui::DragFloat3("##test",pos.ToFloatPtr());
 	ImGui::DragFloat3( "##test2", anglesX.ToFloatPtr( ) );
+
 	ImGui::End();
 	DrawSceneList();
 	return true;
@@ -414,6 +399,7 @@ void gltfSceneEditor::DrawSceneList()
 			auto &dataList = gltfData::DataList( );
 			auto &imStyle = ImGui::GetStyle( );
 			ImGui::SetNextItemWidth( ImGui::GetWindowSize().x - ( imStyle.WindowPadding.x * 2 ) );
+			ImGui::PushID( "##" );
 			if ( ImGui::BeginCombo( "##scenes", selectedScene ? selectedScene->name.c_str( ) : "<Scene>" ) ) 		{
 				for ( auto &data : dataList )
 				{
@@ -434,7 +420,7 @@ void gltfSceneEditor::DrawSceneList()
 				}
 				ImGui::EndCombo( );
 			}
-
+			ImGui::PopID( );
 			//draw scene nodes
 			if ( selectedScene && currentData ) 		{
 				auto &nodes = currentData->NodeList( );

@@ -357,19 +357,20 @@ public:
 	static const idList<gltfData *> &DataList( ) { return dataList; }
 	static void ClearData( ) { common->Warning("TODO! DATA NOT FREED");}
 	
-	static void ResolveNodeMatrix (gltfNode * node, idMat4 * mat )
+	static void ResolveNodeMatrix (gltfNode * node, idMat4 * mat = nullptr )
 	{
 		if (node->matrix == mat4_zero )
 		{
-			node->matrix = mat4_identity;
-			//node->matrix *= ToMat4();
-			node->matrix *= idMat4( node->rotation.ToMat3(),node->translation);
-			//// =  idMat4((node->scale.ToMat3( ) * node->rotation.ToMat3( )),node->translation);
-			//idVec3 rm; rm.ToFloatPtr() = node->rotation.ToAngles().ToFloatPtr();
-			//bx::mtxSRT( node->matrix.ToFloatPtr(),
-			//	node->scale.x, node->scale.y, node->scale.z,
-			//	rm.x, rm.y, rm.z, 
-			//	node->translation.x, node->translation.y, node->translation.z);
+			idMat4 scaleMat = idMat4(
+				node->scale.x, 0, 0, 0,
+				0, node->scale.y, 0, 0,
+				0, 0, node->scale.z, 0,
+				0, 0, 0, 1
+			);
+
+			node->matrix = idMat4( mat3_identity, node->translation ) *  node->rotation.ToMat4() * scaleMat;
+			if (mat != nullptr )
+				*mat = node->matrix;
 		}
 	}
 
