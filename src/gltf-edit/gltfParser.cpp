@@ -213,7 +213,7 @@ byte * gltfData::AddData(int size, int * bufferID/*=nullptr*/)
 	data[totalChunks++] = (byte*) Mem_ClearedAlloc(size);
 	
 	if ( bufferID )
-		*bufferID = id;
+		*bufferID = id;	
 
 	return data[id];
 }
@@ -969,7 +969,7 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 			Parse_SAMPLERS( token );
 			break;
 		case BUFFERS:
-			if (!buffersDone)
+			if ( !buffersDone )
 				common->FatalError( "Buffers should already be parsed!" );
 			break;
 		case ANIMATIONS:
@@ -1174,6 +1174,9 @@ bool GLTF_Parser::Load(idStr filename )
 	}
 	else if ( filename.CheckExtension( ".gltf" ) ) {
 		int length = fileSystem->ReadFile(filename,NULL);
+		if (!length)
+			common->FatalError("Failed to read file");
+
 		gltfData * data = gltfData::Data( filename );
 		data->FileName(filename);
 		byte* dataBuff = data->AddData(length);

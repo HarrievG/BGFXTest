@@ -4,6 +4,7 @@
 #include <functional>
 #include "bgfx-stubs/bgfxRender.h"
 #include "idFramework/idlib/math/Quat.h"
+#include "idlib/Lib.h"
 
 enum gltfProperty {
 	INVALID, 
@@ -49,7 +50,7 @@ class gltfNode {
 public:
 	gltfNode( ) :	camera(-1),skin(-1),matrix(mat4_zero),
 					mesh(-1),rotation(0.f,0.f,0.f,0.f),scale(1.f,1.f,1.f),
-					translation(vec3_zero),parent(nullptr){ }
+					translation(vec3_zero),parent(nullptr),dirty(true){ }
 	int				camera;
 	idList<int>		children;
 	int				skin;
@@ -65,6 +66,12 @@ public:
 
 	//
 	gltfNode *		parent;
+	bool			dirty;
+};
+
+struct gltfCameraNodePtrs {
+	gltfNode * translationNode = nullptr;
+	gltfNode * orientationNode = nullptr;
 };
 
 class gltfScene {
@@ -357,9 +364,45 @@ public:
 	static const idList<gltfData *> &DataList( ) { return dataList; }
 	static void ClearData( ) { common->Warning("TODO! DATA NOT FREED");}
 	
+	//return the GLTF nodes that control the given camera
+	//return TRUE if the camera uses 2 nodes (like when blender exports gltfs with +Y..)
+	//This is determined by checking for an "_Orientation" suffix to the camera name of the node that has the target camera assigned. 
+	// if so, translate node will be set to the parent node of the orientation node.
+	gltfCameraNodePtrs GetCameraNodes(gltfCamera* camera )
+	{
+		gltfCameraNodePtrs result;
+
+		assert( camera );
+		int camId = -1;
+		for (auto & cam : cameras )
+		{
+			camId++;
+			if( cam = camera )
+				break;
+		}
+
+		for (int i=0; i<nodes.Num(); i++ )
+		{
+			if ( nodes[i]->camera != -1 && nodes[i]->camera == camId )
+			{
+				result.orientationNode = nodes[i];
+				result.translationNode = nodes[i];
+				if ( nodes[i]->name.Find( "_Orientation" )!= -1)
+					result.translationNode = nodes[i]->parent;
+				else
+					result.orientationNode = nullptr;
+
+				return result;
+			}
+		}
+		return result;
+	}
+	//bgfc = column-major
+	//idmath = row major, except mat3
+	//gltf matrices : column-major.
 	static void ResolveNodeMatrix (gltfNode * node, idMat4 * mat = nullptr )
 	{
-		if (node->matrix == mat4_zero )
+		if (node->matrix == mat4_zero || node->dirty)
 		{
 			idMat4 scaleMat = idMat4(
 				node->scale.x, 0, 0, 0,
@@ -368,9 +411,12 @@ public:
 				0, 0, 0, 1
 			);
 
-			node->matrix = idMat4( mat3_identity, node->translation ) *  node->rotation.ToMat4() * scaleMat;
+			node->matrix = idMat4( mat3_identity, node->translation ) * node->rotation.ToMat4( ).Transpose() * scaleMat;
+
 			if (mat != nullptr )
 				*mat = node->matrix;
+
+			node->dirty = false;
 		}
 	}
 

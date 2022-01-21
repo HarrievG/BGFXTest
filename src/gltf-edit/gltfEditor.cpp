@@ -97,6 +97,8 @@ void gltfSceneEditor::Init( )
 	selectedScene = nullptr;
 	currentData	 = nullptr;
 	selectedNode = nullptr;
+	currentCamera = nullptr;
+	selectedCameraId = -1;
 
 	renderTarget.width = r_gltfEditRenderWidth.GetInteger( );
 	renderTarget.height = r_gltfEditRenderHeight.GetInteger( );
@@ -189,16 +191,17 @@ void gltfSceneEditor::Init( )
 	bx::Vec3 up = { 0.f, 1.f, 0.f };
 	bx::mtxLookAt( cameraView.ToFloatPtr( ), eye, at, up, bx::Handness::Left );
 }
-
 void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, idMat4 trans, const idList<gltfNode *> &nodeList )
 {
 	idMat4 mat;
 	gltfData::ResolveNodeMatrix( node, &mat);
+	idMat4 curTrans = trans * node->matrix ;
+
 	if ( node->mesh != -1 ) 		
 	{
 		for ( auto prim : currentData->MeshList()[node->mesh]->primitives )
 		{
-			bgfx::setTransform( (trans * node->matrix).Transpose().ToFloatPtr() );
+			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
 
 			//if ( selectedImage )
 			//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
@@ -208,16 +211,22 @@ void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, i
 			bgfx::submit( renderTarget.viewId, context->program );
 		}
 	}
-	if (node->camera == 0)
-	{
-		cameraView =( node->matrix * trans).Transpose();
-		cameraView[3][2] *= -1;
-	}
-	trans *= node->matrix;
-	for ( auto &child : node->children )
-		RenderSceneNode( context, nodeList[child], trans, nodeList );
-}
 
+	if ( selectedCameraId != -1 && node->camera == selectedCameraId )
+	{
+		idVec3 idup = idVec3(curTrans[0][1],curTrans[1][1],curTrans[2][1]);
+		idVec3 forward = idVec3(- curTrans[0][2],- curTrans[1][2], -curTrans[2][2] );
+		idVec3 pos = idVec3(curTrans[0][3],curTrans[1][3],curTrans[2][3] );
+
+		bx::Vec3 at = bx::Vec3(pos.x + forward.x, pos.y +forward.y ,pos.z+forward.z );
+		bx::Vec3 eye = bx::Vec3(pos.x,pos.y,pos.z);
+		bx::Vec3 up = bx::Vec3(idup.x,idup.y,idup.z );
+		bx::mtxLookAt( cameraView.ToFloatPtr( ), eye, at, up ,bx::Handness::Right );
+	}
+
+	for ( auto &child : node->children )
+		RenderSceneNode( context, nodeList[child], curTrans, nodeList );
+}
 bool gltfSceneEditor::Render( bgfxContext_t *context ) 
 {
 	if ( !bgfx::isValid( renderTarget.fbh ) )
@@ -226,13 +235,6 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 		LoadFile( "blender/SceneExplorerAssets.glb" );
 		bgfxCreateMrtTarget( renderTarget, "SceneEditorView" );
 		editorData =  gltfData::Data( "blender/SceneExplorerAssets.glb" );
-		//for ( auto &data : dataList )
-		//grab first cam?
-		if ( editorData->CameraList().Num())
-		{
-			gltfCamera_Perspective & sceneCam = editorData->CameraList()[0]->perspective;
-			bx::mtxProj(cameraProjection.ToFloatPtr(), RAD2DEG(sceneCam.yfov),sceneCam.aspectRatio,sceneCam.znear,sceneCam.zfar, bgfx::getCaps()->homogeneousDepth, bx::Handness::Right );
-		}
 
 		//float xfov = 90;
 		//float yfov = 2 * atan( ( float ) context->height / context->width ) * idMath::M_RAD2DEG;
@@ -278,10 +280,10 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 		//xprojectionMatrix[15] = 0;
 
 		cameraView = mat4_identity;
-		pos = idVec3(0.f,15.f,0.f );
+		pos = idVec3(0.f,0,0.f );
 		scale = idVec3( 1.f, 1, 1.f );
 		currentData = editorData;
-		anglesX = idAngles(0,0,90 );
+		anglesX = idAngles(0,0,0 );
 		anglesQ = anglesX.ToQuat();
 		anglesX.Set(0,0,0);
 	}
@@ -296,13 +298,18 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 
 	if (selectedScene && currentData)
 	{
+		if (selectedCameraId != -1 )
+		{
+			gltfCamera_Perspective &sceneCam = currentData->CameraList( )[selectedCameraId]->perspective;
+			bx::mtxProj( cameraProjection.ToFloatPtr( ), RAD2DEG( sceneCam.yfov ), sceneCam.aspectRatio, sceneCam.znear, sceneCam.zfar, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
+		}
+
 		if (!currentData->CameraList().Num() )
 		{
 			idVec3 tmp = idVec3( anglesX.ToFloatPtr( )[0], anglesX.ToFloatPtr( )[1], anglesX.ToFloatPtr( )[2] );
 			idAngles tmpAngles = idAngles( tmp );
 
-			cameraView = ( ( scaleMat * tmpAngles.ToMat4() * idMat4( mat3_identity, pos ))).Transpose();
-			cameraView[3][2] *= -1;
+			cameraView = idMat4( mat3_identity, pos ) * tmpAngles.ToMat4( ).Transpose() * scaleMat;
 		}
 
 		auto &nodeList = currentData->NodeList( ); 
@@ -318,12 +325,10 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 
 	bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 
-
 	if ( bgfx::isValid( renderTarget.rb ) )
 		bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
 	return false;
 }
-extern const float identityMatrix[16];
 bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 	auto curCtx = ImGui::GetCurrentContext();
 	ImGui::SetNextWindowPos( idVec2(0,0), ImGuiCond_FirstUseEver );
@@ -375,17 +380,175 @@ bool gltfSceneEditor::imDraw( bgfxContext_t *context ) {
 
 				ImGui::EndMenu( );
 			}
+			if ( ImGui::BeginMenu( "Scene" ) ) {
+				if ( ImGui::BeginMenu( "Cameras" ) ) {
+					if (currentData && selectedScene ) {
+						int camCount = 0;
+						idList<gltfCamera*> cams = currentData->CameraList( );
+						for (auto & camera : cams ) {
+							idStr camName;
+							if (!camera->name.IsEmpty( ))
+								camName = camera->name.c_str( );
+							else
+								camName = currentData->FileName() + idStr(camCount);
+							ImGui::PushID( camCount );
+							if (ImGui::MenuItem(camName.c_str())) {
+								currentCamera = cams[camCount];
+								selectedCameraId = camCount;
+							}
+							ImGui::PopID(  );
+							camCount++;
+						}
+					}
+					ImGui::EndMenu( );
+				}
+				ImGui::EndMenu( );
+			}
 			ImGui::EndMenuBar( );
 		}
+		//fixme DrawCameraInfo( currentCamera );
+		DrawNodeInfo( selectedNode );
+		ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) renderTarget.width, ( float ) renderTarget.height ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
 	}
-	ImGui::Image((void*)(intptr_t)renderTarget.rb.idx, idVec2( ( float ) renderTarget.width, ( float ) renderTarget.height ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
-	ImGui::DragFloat3( "##test3", scale.ToFloatPtr( ) ); 
-	ImGui::DragFloat3("##test",pos.ToFloatPtr());
-	ImGui::DragFloat3( "##test2", anglesX.ToFloatPtr( ) );
-
 	ImGui::End();
 	DrawSceneList();
+
 	return true;
+}
+void gltfSceneEditor::DrawCameraInfo( gltfCamera *camera )
+{
+	if ( !currentData || !currentCamera ) 
+		return;
+
+	static bool p_open = true;
+	static int corner = 1;
+	ImGuiIO &io = ImGui::GetIO( );
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+	if ( corner != -1 )     {
+		const float PAD = 50.0f;
+		const ImGuiViewport *viewport = ImGui::GetMainViewport( );
+
+		ImVec2 work_pos = ImGui::GetWindowPos( );
+		ImVec2 work_size = ImGui::GetWindowSize( );
+
+		ImVec2 window_pos, window_pos_pivot;
+		window_pos.x = ( corner & 1 ) ? ( work_pos.x + work_size.x - PAD ) : ( work_pos.x + PAD );
+		window_pos.y = ( corner & 2 ) ? ( work_pos.y + work_size.y - PAD ) : ( work_pos.y + PAD );
+		window_pos_pivot.x = ( corner & 1 ) ? 1.0f : 0.0f;
+		window_pos_pivot.y = ( corner & 2 ) ? 1.0f : 0.0f;
+		ImGui::SetNextWindowPos( window_pos, ImGuiCond_Always, window_pos_pivot );
+		window_flags |= ImGuiWindowFlags_NoMove;
+	}
+	ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
+	if ( ImGui::Begin( "Camera info", &p_open, window_flags ) ) {
+	
+		gltfCameraNodePtrs res = currentData->GetCameraNodes( currentCamera );
+
+		if ( io.MouseDown[1] ) {
+
+			res.translationNode->rotation *= idAngles(0, io.MouseDelta.x * ( com_frameTime / 100000.0f ), io.MouseDelta.y *  ( com_frameTime / 100000.0f )).ToQuat();
+
+
+			idVec3 dir = idVec3( cameraView[2][0], cameraView[2][1], cameraView[2][2] );
+
+			//idQuat dir = res.orientationNode != nullptr ? res.translationNode->rotation + res.orientationNode->rotation : res.translationNode->rotation;
+
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_W ) ) {
+				res.translationNode->translation -= dir *  ( com_frameTime / 100000.0f );
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_S ) ) {
+				res.translationNode->translation += dir *  ( com_frameTime / 100000.0f );
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_A ) ) {
+				res.translationNode->rotation *= idAngles( ( com_frameTime / 100000.0f ),0, 0 ).ToQuat( );
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_D ) ) {
+				res.translationNode->rotation *= idAngles( -( com_frameTime / 100000.0f ),0, 0).ToQuat( );
+			}
+			res.translationNode->dirty = true;
+		}
+
+		ImGui::Text( "Camera" );
+		if ( res.translationNode != nullptr && !currentCamera->name.IsEmpty( ) )
+		{
+			ImGui::SameLine();
+			ImGui::Text( ": %s", currentCamera->name.c_str());
+		}
+		ImGui::Separator( );
+		if ( res.translationNode != nullptr ) {
+			ImGui::Text( "Position" );
+			ImGui::DragFloat3( "##campos", res.translationNode->translation.ToFloatPtr( ) );
+		}
+		ImGui::Separator( );
+
+		if ( ImGui::BeginPopupContextWindow( ) )         {
+			if ( ImGui::MenuItem( "Custom", NULL, corner == -1 ) ) corner = -1;
+			if ( ImGui::MenuItem( "Top-left", NULL, corner == 0 ) ) corner = 0;
+			if ( ImGui::MenuItem( "Top-right", NULL, corner == 1 ) ) corner = 1;
+			if ( ImGui::MenuItem( "Bottom-left", NULL, corner == 2 ) ) corner = 2;
+			if ( ImGui::MenuItem( "Bottom-right", NULL, corner == 3 ) ) corner = 3;
+			if ( p_open && ImGui::MenuItem( "Close" ) ) p_open = false;
+			ImGui::EndPopup( );
+		}
+	}
+	ImGui::End( );
+}
+void gltfSceneEditor::DrawNodeInfo( gltfNode* node )
+{
+	if ( !currentData || !node )
+		return;
+	static bool p_open = true;
+	static int corner = 1;
+	ImGuiIO &io = ImGui::GetIO( );
+	ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
+	if ( corner != -1 ) {
+		const float PAD = 50.0f;
+		const ImGuiViewport *viewport = ImGui::GetMainViewport( );
+
+		ImVec2 work_pos = ImGui::GetWindowPos( );
+		ImVec2 work_size = ImGui::GetWindowSize( );
+
+		ImVec2 window_pos, window_pos_pivot;
+		window_pos.x = ( corner & 1 ) ? ( work_pos.x + work_size.x - PAD ) : ( work_pos.x + PAD );
+		window_pos.y = ( corner & 2 ) ? ( work_pos.y + work_size.y - PAD ) : ( work_pos.y + PAD );
+		window_pos_pivot.x = ( corner & 1 ) ? 1.0f : 0.0f;
+		window_pos_pivot.y = ( corner & 2 ) ? 1.0f : 0.0f;
+		ImGui::SetNextWindowPos( window_pos, ImGuiCond_Always, window_pos_pivot );
+		window_flags |= ImGuiWindowFlags_NoMove;
+	}
+	ImGui::Separator( );
+	ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
+	if ( ImGui::Begin( "Camera info", &p_open, window_flags ) ) {
+
+		ImGui::Text( "Node" );
+		if ( node != nullptr && !node->name.IsEmpty( ) ) 		{
+			ImGui::SameLine( );
+			ImGui::Text( ": %s", node->name.c_str( ) );
+		}
+		ImGui::Separator( );
+		if ( node != nullptr ) {
+			bool refresh = false;
+			ImGui::Text( "Position (vec3)" );
+			refresh |= ImGui::DragFloat3( "##nodepas", node->translation.ToFloatPtr( ));
+			idAngles ang = node->rotation.ToMat3().ToAngles();
+			ImGui::Text( "Rotation (angle %)" );
+			if ( ImGui::DragFloat3( "##noderot", ang.ToFloatPtr( ) ) )
+			{
+				refresh = true;
+				node->rotation = ang.ToQuat();
+			}
+			ImGui::Text( "Scale (vec3)" );
+			refresh |= ImGui::DragFloat3( "##nodescale", node->scale.ToFloatPtr( ) );
+			node->dirty |= refresh;
+		}
+
+		ImGui::Separator( );
+		if ( ImGui::IsMousePosValid( ) )
+			ImGui::Text( "Mouse Position: (%.1f,%.1f)", io.MousePos.x, io.MousePos.y );
+		else
+			ImGui::Text( "Mouse Position: <invalid>" );
+	}
+	ImGui::End( );
 }
 void gltfSceneEditor::DrawSceneList()
 {
@@ -400,23 +563,27 @@ void gltfSceneEditor::DrawSceneList()
 			auto &imStyle = ImGui::GetStyle( );
 			ImGui::SetNextItemWidth( ImGui::GetWindowSize().x - ( imStyle.WindowPadding.x * 2 ) );
 			ImGui::PushID( "##" );
-			if ( ImGui::BeginCombo( "##scenes", selectedScene ? selectedScene->name.c_str( ) : "<Scene>" ) ) 		{
+			if ( ImGui::BeginCombo( "##scenes", selectedScene ? selectedScene->name.c_str( ) : "<Scene>" ) ) 
+			{
+				int dataCount = 0;
 				for ( auto &data : dataList )
 				{
-
+					ImGui::PushID( dataCount++ );
 					int sceneCount = 0;
 					auto &scenes = data->SceneList( );
 					for ( auto &scene : scenes )
 					{
 						bool selected = selectedScene == scene;
+						ImGui::PushID( sceneCount++ );
 						if ( ImGui::Selectable( scene->name.Length( ) ? scene->name.c_str( ) : data->FileName( ).c_str( ), selected ) )
 						{
 							currentData = data;
 							selectedScene = scene;
+							selectedCameraId = -1;
 						}
-						if ( selected )
-							ImGui::SetItemDefaultFocus( );
+						ImGui::PopID( );
 					}
+					ImGui::PopID( );
 				}
 				ImGui::EndCombo( );
 			}
@@ -427,28 +594,12 @@ void gltfSceneEditor::DrawSceneList()
 				for ( auto &child : selectedScene->nodes )
 					DrawSceneNode( nodes[child], nodes );
 			}
-			//common->Printf( "  %-21s : %-21s\n", mesh.name.c_str(),
-			//	mesh.extras_json_string.c_str() );
 			if ( ImGui::BeginPopupContextWindow( ) ) {//add primitive
 				if ( ImGui::MenuItem( "Add Node" ) ) {
 
 				}
 				ImGui::EndPopup( );
 			}
-			ImGui::SameLine( );
-
-			//if ( bgfx::isValid( context->rb ) ) 
-			//{
-			//	
-			//	float windowWidth = ( float ) ImGui::GetWindowWidth( );
-			//	float windowHeight = ( float ) ImGui::GetWindowHeight( );
-			//	ImGuizmo::SetRect( ImGui::GetWindowPos( ).x, ImGui::GetWindowPos( ).y, windowWidth, windowHeight );
-			//	ImGuizmo::SetDrawlist( );
-			//	if ( !scrolling && ImGui::IsWindowFocused( ) )
-			//		ImGuizmo::ViewManipulate( context->cameraView.ToFloatPtr( ), 10, viewGizmoPos, viewGizmoSize, 0x10101010 );
-			//}
-			//idVec2 ImGui::GetWindow
-			//ImGui::Text( "X: %f Y: %f %s %f %s", localMousePos.x, localMousePos.y, gizmoHover ? "Gizmo Hover" : "" , ImGui::GetScrollY( ), scrolling ? "scrolling":"" );
 		}ImGui::PopID(/*SceneView*/ );
 	}
 	ImGui::End();
@@ -458,12 +609,18 @@ bool gltfSceneEditor::DrawSceneNode( gltfNode *node,const  idList<gltfNode *> &n
 	//nodeList.Remove(node);
 	if ( node->children.Num( ) ) 
 	{
-		if (ImGui::TreeNode( node->name.Length( ) ? node->name.c_str( ) : "<Node>" ))
+		ImGui::PushID( "##" );
+		bool opened = ImGui::TreeNode((void*)(intptr_t) node,"");
+		ImGui::SameLine( );
+		if ( ImGui::Selectable( node->name.Length( ) ? node->name.c_str( ) : "<Node>", selectedNode == node, ImGuiSelectableFlags_AllowDoubleClick ) )
+			selectedNode = node;
+		if ( opened )
 		{
-			for ( auto &child : node->children ) 
+			for ( auto &child : node->children )
 				DrawSceneNode( nodeList[child], nodeList );
 			ImGui::TreePop( );
 		}
+		ImGui::PopID( );
 	}else 
 	{
 		ImGui::PushID( "##" );

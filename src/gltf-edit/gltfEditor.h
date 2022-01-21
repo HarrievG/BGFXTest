@@ -31,33 +31,36 @@ private:
 	void DrawSceneList ();
 	bool DrawSceneNode ( gltfNode *node, const idList<gltfNode *> &nodeList );
 	void RenderSceneNode( bgfxContext_t *context , gltfNode *node, idMat4 trans, const idList<gltfNode *> &nodeList );
-	bool windowOpen;
-	bool sceneViewOpen;
-	bool sceneListOpen;
-	idStrList	loadedFiles;
-	gltfScene *	selectedScene;
-	gltfData *	currentData;
-	gltfNode *	selectedNode;
-	
-	gltfData *	editorData;
+	void DrawCameraInfo(gltfCamera* camera );
+	void DrawNodeInfo(gltfNode * node );
+	bool				windowOpen;
+	bool				sceneViewOpen;
+	bool				sceneListOpen;
+	idStrList			loadedFiles;
+	gltfScene *			selectedScene;
+	gltfData *			currentData;
+	gltfNode *			selectedNode;
+	gltfCamera *		currentCamera;
+	gltfData *			editorData;
+	int					selectedCameraId;
 
 	//HVG_TODO -> Use hash index
-	bgfxModelList renderModels; 
-	idStrList modelNames;
+	bgfxModelList		renderModels; 
+	idStrList			modelNames;
 	//
-	bgfxMaterialList materialList;
-	idHashIndex materialIndices;
+	bgfxMaterialList	materialList;
+	idHashIndex			materialIndices;
 
-	idMat4 cameraView;
-	idMat4 cameraProjection;
+	idMat4				cameraView;
+	idMat4				cameraProjection;
 
-	bgfxMrtContext_t renderTarget;
+	bgfxMrtContext_t	renderTarget;
 
-	idQuat anglesQ;
-	idAngles anglesX;
-	idVec3 scale;
-	idVec3 pos;
-	idMat4 curtrans;
+	idQuat				anglesQ;
+	idAngles			anglesX;
+	idVec3				scale;
+	idVec3				pos;
+	idMat4				curtrans;
 };
 extern gltfSceneEditor * sceneEditor;
 
