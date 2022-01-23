@@ -110,7 +110,9 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
         //ImGui::SameLine();
         //if (ImGui::SmallButton("Add Debug Error")) { AddLog("[error] something went wrong"); }
         //ImGui::SameLine();
-        if (ImGui::SmallButton("Clear"))           { ClearLog(); }
+        if (ImGui::SmallButton("Clear")) { 
+            ClearLog(); 
+        }
         ImGui::SameLine();
         bool copy_to_clipboard = ImGui::SmallButton("Copy");
         //static float t = 0.0f; if (ImGui::GetTime() - t > 0.02f) { t = ImGui::GetTime(); AddLog("Spam %f", t); }
@@ -139,6 +141,9 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
             ImGui::EndPopup();
         }
 
+        ////
+        /// Clipper is done. pls stream to a file!
+        ///
         // Display every line as a separate entry so we can change their color or add custom widgets.
         // If you only want raw text you can use ImGui::TextUnformatted(log.begin(), log.end());
         // NB- if you have thousands of entries this approach may be too inefficient and may require user-side clipping
@@ -356,8 +361,8 @@ int idImConsole::TextEditCallback(ImGuiInputTextCallbackData* data)
                         parmPtr->listptr->push_back( cmd + 1 + strlen( parmPtr->args->Argv( 0 ) ) );
                     parmPtr->used = true;
                 };
-                cmdSystem->ArgCompletion( args.Args(0,0), find );
-                cvarSystem->ArgCompletion( args.Args(0,0), find );
+                cmdSystem->ArgCompletion( args.Args(0,-1), find );
+                cvarSystem->ArgCompletion( args.Args(0,-1), find );
                 autoComplete.matchCount = candidates.Size;
             }else if (word_start != word_end)
             {
@@ -418,9 +423,9 @@ int idImConsole::TextEditCallback(ImGuiInputTextCallbackData* data)
                 }
                 
                 // List matches
-                AddLog("Possible matches:\n");
+                common->Printf("Possible matches:\n");
                 for (int i = 0; i < candidates.Size; i++)
-                    AddLog("- %s\n", candidates[i]);
+                    common->Printf(" %i)- %s\n", i+1,candidates[i]);
             }
             idStr::snPrintf( autoComplete.completionString, idStr::Length( data->Buf ) + 1, "%s", data->Buf );
             autoComplete.length = strlen( autoComplete.completionString );
