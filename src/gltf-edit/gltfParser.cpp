@@ -1255,7 +1255,7 @@ void GLTF_Parser::CreateBgfxData( )
 			Mem_Free( indices );
 
 			//vertex attribs  
-			PosColorVertex * vtxData = NULL;
+			pbrVertex * vtxData = NULL;
 			uint vtxDataSize = 0;
 			bgfx::VertexLayout vtxLayout;
 			vtxLayout.begin( );
@@ -1269,27 +1269,31 @@ void GLTF_Parser::CreateBgfxData( )
 				idFile_Memory bin = idFile_Memory( "gltfChunkPosition", ( const char * )(( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + attrAcc->byteOffset )) , attrBv->byteLength );
 
 				if ( vtxData == nullptr ) {
-					vtxDataSize = sizeof( PosColorVertex ) * attrAcc->count;
-					vtxData = ( PosColorVertex * ) Mem_ClearedAlloc( vtxDataSize );
+					vtxDataSize = sizeof( pbrVertex ) * attrAcc->count;
+					vtxData = ( pbrVertex * ) Mem_ClearedAlloc( vtxDataSize );
 				}
+				
+				switch  (attrib->bgfxType)
+				{
+					case bgfx::Attrib::Enum::Position : {
+						for ( int i = 0; i < attrAcc->count; i++ ) {
+							bin.Read( ( void * ) ( &vtxData[i].pos.x ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].pos.y ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].pos.z ), attrAcc->typeSize );
+							if ( attrBv->byteStride )
+								bin.Seek( attrBv->byteStride - ( 3 * attrAcc->typeSize ), FS_SEEK_CUR );
 
-				if ( attrib->bgfxType == bgfx::Attrib::Enum::Color0 ) {
-					int a = 0;
-				}
-				if ( attrib->bgfxType == bgfx::Attrib::Enum::Position ) {
-					for ( int i = 0; i < attrAcc->count; i++ ) {
-						bin.Read( ( void * ) ( &vtxData[i].x ), attrAcc->typeSize );
-						bin.Read( ( void * ) ( &vtxData[i].y ), attrAcc->typeSize );
-						bin.Read( ( void * ) ( &vtxData[i].z ), attrAcc->typeSize );
-						if ( attrBv->byteStride )
-							bin.Seek( attrBv->byteStride - (3 * attrAcc->typeSize), FS_SEEK_CUR );
+							idRandom rnd( i );
+							int r = rnd.RandomInt( 255 ), g = rnd.RandomInt( 255 ), b = rnd.RandomInt( 255 );
 
-						idRandom rnd(i);
-						int r = rnd.RandomInt(255), g = rnd.RandomInt(255), b = rnd.RandomInt(255);
-
-						vtxData[i].abgr = 0xff000000 + ( b << 16 ) + ( g << 8 ) + r;
+							vtxData[i].abgr = 0xff000000 + ( b << 16 ) + ( g << 8 ) + r;
+						}
+						vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
 					}
-					vtxLayout.add( attrib->bgfxType, attrib->elementSize,bgfx::AttribType::Float, attrAcc->normalized );
+					case bgfx::Attrib::Enum::Normal : {
+
+						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+					}
 				}
 			}
 

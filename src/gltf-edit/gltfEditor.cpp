@@ -1,11 +1,11 @@
 #include "gltfEditor.h"
-#define TINYGLTF_IMPLEMENTATION
-#define TINYGLTF_USE_CPP14
+//#define TINYGLTF_IMPLEMENTATION
+//#define TINYGLTF_USE_CPP14
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-// no need for it, it should go,  but doenst compile ootb..
-//#define TINYGLTF_NO_FS
-#include "tiny_gltf.h"
+//// no need for it, it should go,  but doenst compile ootb..
+////#define TINYGLTF_NO_FS
+//#include "tiny_gltf.h"
 ////////////////////////
 
 #include "imgui.h"
@@ -18,7 +18,7 @@
 #include "gltfParser.h"
 #include <ImGuizmo.h>
 
-tinygltf::TinyGLTF gGLFTLoader;
+//tinygltf::TinyGLTF gGLFTLoader;
 
 static gltfSceneEditor localSceneEditor;
 gltfSceneEditor *sceneEditor = &localSceneEditor;
@@ -38,55 +38,6 @@ void gltfSceneEditor::Shutdown( )
 gltfSceneEditor::gltfSceneEditor( )
 	: windowOpen(false)
 {
-	tinygltf::FsCallbacks callbacks;
-	callbacks.FileExists = [](const std::string &abs_filename, void *) 
-		-> bool {
-		if ( cvarSystem->GetCVarInteger( "fs_debug" ))
-			common->DPrintf("tinyGLTF checks for %s\n",abs_filename.c_str() );
-		return fileSystem->FindFile(abs_filename.c_str()) == findFile_t::FIND_YES;
-	};
-	callbacks.ExpandFilePath = [](const std::string &path, void *) 
-		-> std::string {
-		if ( cvarSystem->GetCVarInteger( "fs_debug" ))
-			common->DPrintf( "tinyGLTF not expanding for %s\n", path.c_str( ) );
-		return path;//std::string(fileSystem->RelativePathToOSPath( path.c_str())) ;
-	};
-
-	callbacks.ReadWholeFile = [] (std::vector<unsigned char> *data, std::string * err, const std::string & file,void * usr) 
-		-> bool { 
-		if ( cvarSystem->GetCVarInteger( "fs_debug" ))
-			common->DPrintf( "tinyGLTF wants to read (%s)\n", file.c_str() );
-		// dont stall to much.
-		// all file loading should go to seperate thread and fire callback on completion.
-		
-		if (fileSystem->FindFile( file.c_str()) == findFile_t::FIND_YES )
-		{
-			int size = fileSystem->ReadFile( file.c_str(),NULL);
-			if (!size )
-			{
-				*err = "File empty";
-				return false;
-			}
-			if ( cvarSystem->GetCVarInteger( "fs_debug" ))
-				common->DPrintf( "opening file %s %i bytes\n", file.c_str( ),size );
-			const unsigned char *buffer = NULL;// reinterpret_cast< const unsigned char * >( buff );
-			bool res = fileSystem->ReadFile( file.c_str( ), ( ( void ** ) &buffer ) ) > 0;
-			*data = std::vector<unsigned char>( buffer,buffer + size);
-			return res;
-		}
-		*err = "File not found";
-		return false;
-	};
-
-	callbacks.WriteWholeFile = [] (std::string * a, const std::string & b, const std::vector<unsigned char> & c, void *) 
-		-> bool { 
-		common->Printf( "TODO tinyGLTF wants to write BUT WHAT! a(%s) b(%s) ", a->c_str(), b.c_str() );
-		return false; 
-	};
-
-	gGLFTLoader.SetFsCallbacks(callbacks);
-
-
 }
 void gltfSceneEditor::Init( ) 
 {
@@ -196,15 +147,14 @@ void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, i
 	idMat4 mat;
 	gltfData::ResolveNodeMatrix( node, &mat);
 	idMat4 curTrans = trans * node->matrix ;
-
+	static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
 	if ( node->mesh != -1 ) 		
 	{
 		for ( auto prim : currentData->MeshList()[node->mesh]->primitives )
 		{
 			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
 
-			//if ( selectedImage )
-			//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
+			//bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
 
 			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
 			bgfx::setIndexBuffer( prim->indexBufferHandle );
@@ -658,19 +608,6 @@ bool gltfSceneEditor::Show( bool visible ) {
 	if ( windowOpen != visible ) 	{
 		windowOpen = visible;
 		return true;
-	}
-	return false;
-}
-
-bool LoadTextureForModel( bgfxModel & model, const tinygltf::Image & img)
-{
-	if (!img.image.empty( ))
-	{
-		auto &texture = model.textures.Alloc( );
-		texture.dim = idVec2( img.width, img.height );
-		uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
-		texture.handle = bgfx::createTexture2D( img.width, img.height, false, 1, bgfx::TextureFormat::RGBA8, tex_flags, bgfx::copy( img.image.data( ), img.width * img.height * 4 ) );
-		return texture.handle.idx != -1;
 	}
 	return false;
 }

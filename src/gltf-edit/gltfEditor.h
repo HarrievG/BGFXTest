@@ -80,15 +80,15 @@ private:
 	bool guiVisible;
 
 	int selectedFileHash;
-	gltfImage	*	selectedImage;
-	gltfMesh	*	selectedMesh;
-	idMat4			cameraView;
-	idMat4			cameraProjection;
+	gltfImage	*		selectedImage;
+	gltfMesh	*		selectedMesh;
+	idMat4				cameraView;
+	idMat4				cameraProjection;
 
-	idVec3		camPos;
-	idAngles	camAngle;
+	idVec3				camPos;
+	idAngles			camAngle;
 
-	bgfxMrtContext_t renderTarget;
+	bgfxMrtContext_t	renderTarget;
 };
 
 extern gltfAssetExplorer * assetExplorer;

@@ -36,9 +36,12 @@ struct bgfxMrtContext_t{
 
 struct bgfxContext_t {
     SDL_Window *window = nullptr;
+
     bgfx::ProgramHandle program = BGFX_INVALID_HANDLE;
     bgfx::VertexBufferHandle vbh = BGFX_INVALID_HANDLE;
     bgfx::IndexBufferHandle ibh = BGFX_INVALID_HANDLE;
+
+    bgfx::ProgramHandle  pbrProgram  = BGFX_INVALID_HANDLE;
 
     bgfx::UniformHandle colorUniformHandle;
     bgfx::TextureHandle fbTextureHandle[2];
@@ -68,6 +71,16 @@ struct bgfxContext_t {
     bx::RngMwc rng;
 
     bool quit = false;
+};
+
+
+struct pbrVertex {
+    idVec3 pos;
+    //idVec2 uv;
+    //idVec3 normal;
+    //idVec3 tangent;
+    //idVec3 bitangent;
+    uint32_t abgr;
 };
 
 struct PosColorVertex {
@@ -189,23 +202,4 @@ void bgfxInitShaders( bgfxContext_t *context );
 void bgfxRender( bgfxContext_t* context );
 void bgfxRegisterCallback( bgfxCallback callback );
 void bgfxCreateMrtTarget( bgfxMrtContext_t &context, const char *name );
-
-bgfxModel loadGltfModel( const idStr &fileName );
-
-
-static float	s_flipMatrix[16] = {
-    // convert from our coordinate system (looking down X)
-    // to OpenGL's coordinate system (looking down -Z)
-    0, 0, -1, 0,
-    -1, 0, 0, 0,
-    0, 1, 0, 0,
-    0, 0, 0, 1
-};
-
-idVec3 ConvertToIdSpace( const idVec3 &pos );
-idMat3 ConvertToIdSpace( const idMat3 &mat );
-idMat4 ConvertToIdSpace( const idMat4 &mat );
-idVec3 ConvertFromIdSpace( const idVec3 &idpos );
-idMat3 ConvertFromIdSpace( const idMat3 &idmat );
-idMat4 ConvertFromIdSpace( const idMat4 &idmat );
-void myGlMultMatrix( const float a[16], const float b[16], float out[16] );
+bgfx::ShaderHandle  bgfxCreateShader( const char *shaderFile, const char *name );

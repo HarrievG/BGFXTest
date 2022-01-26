@@ -13,8 +13,7 @@
     "imguizmo",
     "zlib",
     "nlohmann-json",
-    "stb",
-    "tinygltf"
+    "stb"
   ],
   "overrides": [
     {

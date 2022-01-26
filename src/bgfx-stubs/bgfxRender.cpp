@@ -25,7 +25,7 @@ idCVar r_mode( "r_mode", "-1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "vid
 
 idList<bgfxCallback> bgfxCallbackList;
 
-static bgfx::ShaderHandle createShader( const char * shaderFile, const char *name ) {
+bgfx::ShaderHandle bgfxCreateShader( const char * shaderFile, const char *name ) {
     int fSize = 0;
     const char *buffer = NULL;
     uInt sSize = 0;
@@ -64,9 +64,13 @@ void bgfxInitShaders( bgfxContext_t *context ) {
         bgfx::makeRef( cube_tri_list, sizeof( cube_tri_list ) ) );
 
 
-    bgfx::ShaderHandle vsh = createShader("shaders/v_simple.bin","vshader" );
-    bgfx::ShaderHandle fsh = createShader( "shaders/f_simple.bin", "fsshader" );
+    bgfx::ShaderHandle vsh      = bgfxCreateShader("shaders/v_simple.bin","vshader" );
+    bgfx::ShaderHandle fsh      = bgfxCreateShader( "shaders/f_simple.bin", "fsshader" );
     bgfx::ProgramHandle program = bgfx::createProgram( vsh, fsh, true );
+    
+    vsh = bgfxCreateShader( "shaders/v_pbr.bin", "pbr_vshader" );
+    fsh = bgfxCreateShader( "shaders/f_pbr.bin", "pbr_fsshader" );
+    context->pbrProgram   = bgfx::createProgram( vsh, fsh, true );
 
     //context_t context;
     context->program = program;
@@ -84,21 +88,15 @@ void bgfxInitShaders( bgfxContext_t *context ) {
 		context->cameraProjection.ToFloatPtr(), 30.0, float( context->width ) / float( context->height ), 0.1f,
 		10000.0f, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
 
-	//float tmp[16];
-	//float trans[16];
-	//bx::mtxIdentity( tmp );
-	//bx::mtxIdentity( trans );
-	//bx::mtxTranslate( trans, 0.0f, 0.0f, 0.0f );
-	//
-	//bx::mtxMul( context->cameraView.ToFloatPtr( ), tmp, trans );
-	//bx::mtxInverse(, tmp );
 	bx::mtxIdentity(context->cameraView.ToFloatPtr( ));
+
+
     static bool cmdSystemSet = false;
     if (!cmdSystemSet) {
 
         cmdSystem->AddCommand( "CreateShader", []( const idCmdArgs &args ) 
             -> auto {
-            createShader(args.Argv(1),args.Argv(2));
+			bgfxCreateShader(args.Argv(1),args.Argv(2));
         }
         , CMD_FL_SYSTEM, "compiles the given shader file" );
 		cmdSystemSet = true;
@@ -272,166 +270,4 @@ void bgfxRender( bgfxContext_t *context ){
 void bgfxRegisterCallback( bgfxCallback callback )
 { 
     bgfxCallbackList.Append( callback );
-}
-
-
-/*
-===============
-ConvertFromIdSpace
-===============
-*/
-idVec3 ConvertFromIdSpace( const idVec3 &idpos ) {
-	idVec3 pos;
-
-	pos.x = idpos.x;
-	pos.z = -idpos.y;
-	pos.y = idpos.z;
-
-	return pos;
-}
-
-/*
-===============
-ConvertToIdSpace
-===============
-*/
-idMat3 ConvertToIdSpace( const idMat3 &mat ) {
-	idMat3 idmat;
-
-	idmat[ 0 ][ 0 ] =  mat[ 0 ][ 0 ];
-	idmat[ 0 ][ 1 ] = -mat[ 0 ][ 2 ];
-	idmat[ 0 ][ 2 ] =  mat[ 0 ][ 1 ];
-
-	idmat[ 1 ][ 0 ] =  mat[ 1 ][ 0 ];
-	idmat[ 1 ][ 1 ] = -mat[ 1 ][ 2 ];
-	idmat[ 1 ][ 2 ] =  mat[ 1 ][ 1 ];
-
-	idmat[ 2 ][ 0 ] =  mat[ 2 ][ 0 ];
-	idmat[ 2 ][ 1 ] = -mat[ 2 ][ 2 ];
-	idmat[ 2 ][ 2 ] =  mat[ 2 ][ 1 ];
-
-	return idmat;
-}
-
-
-
-/*
-===============
-ConvertToIdSpace
-===============
-*/
-idVec3 ConvertToIdSpace( const idVec3 &pos ) {
-	idVec3 idpos;
-
-	idpos.x = pos.x;
-	idpos.y = -pos.z;
-	idpos.z = pos.y;
-
-	return idpos;
-}
-
-
-
-idMat4 ConvertToIdSpace( const idMat4 &idmat ) {
-	idMat4 mat;
-
-	mat[ 0 ][ 0 ] =  idmat[ 0 ][ 0 ];
-	mat[ 0 ][ 1 ] = -idmat[ 0 ][ 2 ];
-	mat[ 0 ][ 2 ] =  idmat[ 0 ][ 1 ];
-
-	mat[ 1 ][ 0 ] =  idmat[ 1 ][ 0 ];
-	mat[ 1 ][ 1 ] = -idmat[ 1 ][ 2 ];
-	mat[ 1 ][ 2 ] =  idmat[ 1 ][ 1 ];
-
-	mat[ 2 ][ 0 ] =  idmat[ 2 ][ 0 ];
-	mat[ 2 ][ 1 ] = -idmat[ 2 ][ 2 ];
-	mat[ 2 ][ 2 ] =  idmat[ 2 ][ 1 ];
-
-    mat[ 3 ][ 0 ]=  idmat[ 3 ][ 0 ] ;
-	mat[ 3 ][ 1 ]= -idmat[ 3 ][ 2 ] ;
-	mat[ 3 ][ 2 ]=  idmat[ 3 ][ 1 ] ;
-
-	return mat;
-}
-/*
-===============
-ConvertFromIdSpace
-===============
-*/
-idMat3 ConvertFromIdSpace( const idMat3 &idmat ) {
-	idMat3 mat;
-
-	mat[ 0 ][ 0 ] = idmat[ 0 ][ 0 ];
-	mat[ 0 ][ 2 ] = -idmat[ 0 ][ 1 ];
-	mat[ 0 ][ 1 ] = idmat[ 0 ][ 2 ];
-
-	mat[ 1 ][ 0 ] = idmat[ 1 ][ 0 ];
-	mat[ 1 ][ 2 ] = -idmat[ 1 ][ 1 ];
-	mat[ 1 ][ 1 ] = idmat[ 1 ][ 2 ];
-
-	mat[ 2 ][ 0 ] = idmat[ 2 ][ 0 ];
-	mat[ 2 ][ 2 ] = -idmat[ 2 ][ 1 ];
-	mat[ 2 ][ 1 ] = idmat[ 2 ][ 2 ];
-
-	return mat;
-}
-
-idMat4 ConvertFromIdSpace( const idMat4 &idmat ) {
-	idMat4 mat;
-
-	mat[ 0 ][ 0 ] = idmat[ 0 ][ 0 ];
-	mat[ 0 ][ 2 ] = -idmat[ 0 ][ 1 ];
-	mat[ 0 ][ 1 ] = idmat[ 0 ][ 2 ];
-
-	mat[ 1 ][ 0 ] = idmat[ 1 ][ 0 ];
-	mat[ 1 ][ 2 ] = -idmat[ 1 ][ 1 ];
-	mat[ 1 ][ 1 ] = idmat[ 1 ][ 2 ];
-
-	mat[ 2 ][ 0 ] = idmat[ 2 ][ 0 ];
-	mat[ 2 ][ 2 ] = -idmat[ 2 ][ 1 ];
-	mat[ 2 ][ 1 ] = idmat[ 2 ][ 2 ];
-
-    mat[ 3 ][ 0 ] = idmat[ 3 ][ 0 ];
-	mat[ 3 ][ 2 ] = -idmat[ 3 ][ 1 ];
-	mat[ 3 ][ 1 ] = idmat[ 3 ][ 2 ];
-
-	return mat;
-}
-
-/*
-==========================
-myGlMultMatrix
-==========================
-*/
-void myGlMultMatrix( const float a[16], const float b[16], float out[16] ) {
-#if 0
-	int		i, j;
-
-	for ( i = 0 ; i < 4 ; i++ ) {
-		for ( j = 0 ; j < 4 ; j++ ) {
-			out[ i * 4 + j ] =
-				a [ i * 4 + 0 ] * b [ 0 * 4 + j ]
-				+ a [ i * 4 + 1 ] * b [ 1 * 4 + j ]
-				+ a [ i * 4 + 2 ] * b [ 2 * 4 + j ]
-				+ a [ i * 4 + 3 ] * b [ 3 * 4 + j ];
-		}
-	}
-#else
-	out[0*4+0] = a[0*4+0]*b[0*4+0] + a[0*4+1]*b[1*4+0] + a[0*4+2]*b[2*4+0] + a[0*4+3]*b[3*4+0];
-	out[0*4+1] = a[0*4+0]*b[0*4+1] + a[0*4+1]*b[1*4+1] + a[0*4+2]*b[2*4+1] + a[0*4+3]*b[3*4+1];
-	out[0*4+2] = a[0*4+0]*b[0*4+2] + a[0*4+1]*b[1*4+2] + a[0*4+2]*b[2*4+2] + a[0*4+3]*b[3*4+2];
-	out[0*4+3] = a[0*4+0]*b[0*4+3] + a[0*4+1]*b[1*4+3] + a[0*4+2]*b[2*4+3] + a[0*4+3]*b[3*4+3];
-	out[1*4+0] = a[1*4+0]*b[0*4+0] + a[1*4+1]*b[1*4+0] + a[1*4+2]*b[2*4+0] + a[1*4+3]*b[3*4+0];
-	out[1*4+1] = a[1*4+0]*b[0*4+1] + a[1*4+1]*b[1*4+1] + a[1*4+2]*b[2*4+1] + a[1*4+3]*b[3*4+1];
-	out[1*4+2] = a[1*4+0]*b[0*4+2] + a[1*4+1]*b[1*4+2] + a[1*4+2]*b[2*4+2] + a[1*4+3]*b[3*4+2];
-	out[1*4+3] = a[1*4+0]*b[0*4+3] + a[1*4+1]*b[1*4+3] + a[1*4+2]*b[2*4+3] + a[1*4+3]*b[3*4+3];
-	out[2*4+0] = a[2*4+0]*b[0*4+0] + a[2*4+1]*b[1*4+0] + a[2*4+2]*b[2*4+0] + a[2*4+3]*b[3*4+0];
-	out[2*4+1] = a[2*4+0]*b[0*4+1] + a[2*4+1]*b[1*4+1] + a[2*4+2]*b[2*4+1] + a[2*4+3]*b[3*4+1];
-	out[2*4+2] = a[2*4+0]*b[0*4+2] + a[2*4+1]*b[1*4+2] + a[2*4+2]*b[2*4+2] + a[2*4+3]*b[3*4+2];
-	out[2*4+3] = a[2*4+0]*b[0*4+3] + a[2*4+1]*b[1*4+3] + a[2*4+2]*b[2*4+3] + a[2*4+3]*b[3*4+3];
-	out[3*4+0] = a[3*4+0]*b[0*4+0] + a[3*4+1]*b[1*4+0] + a[3*4+2]*b[2*4+0] + a[3*4+3]*b[3*4+0];
-	out[3*4+1] = a[3*4+0]*b[0*4+1] + a[3*4+1]*b[1*4+1] + a[3*4+2]*b[2*4+1] + a[3*4+3]*b[3*4+1];
-	out[3*4+2] = a[3*4+0]*b[0*4+2] + a[3*4+1]*b[1*4+2] + a[3*4+2]*b[2*4+2] + a[3*4+3]*b[3*4+2];
-	out[3*4+3] = a[3*4+0]*b[0*4+3] + a[3*4+1]*b[1*4+3] + a[3*4+2]*b[2*4+3] + a[3*4+3]*b[3*4+3];
-#endif
 }

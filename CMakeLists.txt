@@ -14,7 +14,6 @@ find_package(BIMG REQUIRED)
 find_package(BGFX REQUIRED)
 find_package(IMGUI REQUIRED)
 find_package(imguizmo REQUIRED)
-find_path(TINYGLTF_INCLUDE_DIRS "tiny_gltf.h")
 find_package(ZLIB REQUIRED)
 
 add_definitions(-DID_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P})
@@ -128,10 +127,8 @@ set(Sources
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxCallback.cpp
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/TextEditor.cpp
     ${PROJECT_SOURCE_DIR}/src/gltf-edit/TextEditor.h
-	${PROJECT_SOURCE_DIR}/src/gltf-edit/tiny_gltf.h
     ${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.h
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.cpp
-	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfModel.cpp
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfParser.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.h
@@ -155,7 +152,6 @@ target_include_directories(
   PRIVATE ${BGFX_INCLUDE_DIRS}
   PRIVATE ${SDL2_INCLUDE_DIRS}
   PRIVATE ${IMGUI_INCLUDE_DIRS}
-  PRIVATE ${TINYGLTF_INCLUDE_DIRS}
   private ${ZLIB_INCLUDE_DIRS}
   
 )

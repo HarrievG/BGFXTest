@@ -5,6 +5,7 @@ syntax: glob
 vcpkg_installed/
 [Bb]inaries/
 
+
 # Build tools related files
 /[Tt]ools/
 
@@ -27,6 +28,8 @@ bld/
 [Bb]in/
 [Oo]bj/
 msbuild.log
+
+!Assets/bin
 
 # add back architecture directories ignored in 'Build results'
 !tests/x86
