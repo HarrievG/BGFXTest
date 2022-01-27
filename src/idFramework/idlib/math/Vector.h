@@ -105,8 +105,9 @@ public:
 	void			Lerp( const idVec2 &v1, const idVec2 &v2, const float l );
 };
 
-extern idVec2 vec2_origin;
-#define vec2_zero vec2_origin
+extern idVec2		vec2_origin;
+#define vec2_zero	vec2_origin
+extern idVec2		vec2_one;
 
 ID_INLINE idVec2::idVec2( void ) {
 }
@@ -391,8 +392,9 @@ public:
 	void			SLerp( const idVec3 &v1, const idVec3 &v2, const float l );
 };
 
-extern idVec3 vec3_origin;
-#define vec3_zero vec3_origin
+extern idVec3		vec3_origin;
+#define vec3_zero	vec3_origin
+extern idVec3		vec3_one;
 
 ID_INLINE idVec3::idVec3( void ) {
 }
@@ -862,8 +864,10 @@ public:
 	void			Lerp( const idVec4 &v1, const idVec4 &v2, const float l );
 };
 
-extern idVec4 vec4_origin;
-#define vec4_zero vec4_origin
+extern idVec4		vec4_origin;
+#define vec4_zero	vec4_origin
+extern idVec4		vec4_one;
+
 
 ID_INLINE idVec4::idVec4( void ) {
 }

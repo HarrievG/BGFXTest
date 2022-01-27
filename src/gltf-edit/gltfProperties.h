@@ -301,6 +301,35 @@ public:
 	idStr	extras;
 };
 
+class gltfOcclusionTexture_Info {
+public:
+	gltfOcclusionTexture_Info( ) : index( -1 ), texCoord( 0 ), strength(1.0f) { }
+	int		index;
+	int		texCoord;
+	float	strength;
+	idStr	extensions;
+	idStr	extras;
+};
+
+class gltfNormalTexture_Info {
+public:
+	gltfNormalTexture_Info( ) : index( -1 ), texCoord( 0 ),scale(1.0f) { }
+	int		index;
+	int		texCoord;
+	float	scale;
+	idStr	extensions;
+	idStr	extras;
+};
+
+class gltfTexture_Info {
+public: 
+	gltfTexture_Info( ) : index(-1), texCoord(0) { }
+	int		index;
+	int		texCoord;
+	idStr	extensions;
+	idStr	extras;
+};
+
 class gltfTexture {
 public:
 	gltfTexture( ) : sampler(-1), source(-1){ }
@@ -309,6 +338,34 @@ public:
 	idStr	name;
 	idStr	extensions;
 	idStr	extras;
+};
+
+class gltfMaterial_pbrMetallicRoughness {
+public:
+	gltfMaterial_pbrMetallicRoughness( ) : baseColorFactor( vec4_one ), metallicFactor( 1.0f ), roughnessFactor( 1.0f ) { }
+	idVec4				baseColorFactor;
+	gltfTexture_Info	baseColorTexture;
+	float				metallicFactor;
+	float				roughnessFactor;
+	gltfTexture_Info	metallicRoughnessTexture;
+	idStr				extensions;
+	idStr				extras;
+};
+
+class gltfMaterial {
+public:
+	gltfMaterial( ) : emissiveFactor(vec3_zero),alphaMode("OPAQUE"),alphaCutoff(0.5f),doubleSided(false){ }
+	gltfMaterial_pbrMetallicRoughness	pbrMetallicRoughness;
+	gltfNormalTexture_Info				normalTexture;
+	gltfOcclusionTexture_Info			occlusionTexture;
+	gltfTexture_Info					emissiveTexture;
+	idVec3								emissiveFactor;
+	idStr								alphaMode;
+	float								alphaCutoff;
+	bool								doubleSided;
+	idStr								name;
+	idStr								extensions;
+	idStr								extras;
 };
 
 class gltfAsset {
@@ -432,6 +489,7 @@ public:
 	GLTFCACHEITEM( Scene, scenes )
 	GLTFCACHEITEM( Node, nodes )
 	GLTFCACHEITEM( Camera, cameras )
+	GLTFCACHEITEM( Material, materials )
 private:
 	idStr fileName;
 	int	fileNameHash;
@@ -454,5 +512,6 @@ private:
 	idList<gltfScene *>						scenes;
 	idList<gltfNode *>						nodes;
 	idList<gltfCamera *>					cameras;
+	idList<gltfMaterial *>					materials;
 };
 #undef GLTFCACHEITEM
