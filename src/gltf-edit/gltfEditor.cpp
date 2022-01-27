@@ -865,7 +865,7 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 
 			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
 			bgfx::setIndexBuffer( prim->indexBufferHandle );
-			bgfx::submit( renderTarget.viewId, context->program );
+			bgfx::submit( renderTarget.viewId, context->pbrContext.pbrProgram );
 		}
 
 		if ( bgfx::isValid( renderTarget.rb ) )

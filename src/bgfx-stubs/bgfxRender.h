@@ -34,6 +34,18 @@ struct bgfxMrtContext_t{
     bgfx::ViewId viewId;
 };
 
+struct bgfxPbrContext_t {
+        bgfx::UniformHandle s_baseColor         = BGFX_INVALID_HANDLE;
+        bgfx::UniformHandle s_normal            = BGFX_INVALID_HANDLE;
+        bgfx::UniformHandle s_metallicRoughness = BGFX_INVALID_HANDLE;
+        bgfx::UniformHandle s_emissive          = BGFX_INVALID_HANDLE;
+        bgfx::UniformHandle s_occlusion         = BGFX_INVALID_HANDLE;
+        bgfx::UniformHandle u_factors           = BGFX_INVALID_HANDLE;
+        bgfx::UniformHandle u_cameraPos         = BGFX_INVALID_HANDLE;
+        bgfx::UniformHandle u_normalTransform   = BGFX_INVALID_HANDLE;
+
+        bgfx::ProgramHandle  pbrProgram = BGFX_INVALID_HANDLE;
+};
 struct bgfxContext_t {
     SDL_Window *window = nullptr;
 
@@ -41,7 +53,7 @@ struct bgfxContext_t {
     bgfx::VertexBufferHandle vbh = BGFX_INVALID_HANDLE;
     bgfx::IndexBufferHandle ibh = BGFX_INVALID_HANDLE;
 
-    bgfx::ProgramHandle  pbrProgram  = BGFX_INVALID_HANDLE;
+    bgfxPbrContext_t pbrContext;
 
     bgfx::UniformHandle colorUniformHandle;
     bgfx::TextureHandle fbTextureHandle[2];
@@ -76,8 +88,8 @@ struct bgfxContext_t {
 
 struct pbrVertex {
     idVec3 pos;
-    //idVec2 uv;
     //idVec3 normal;
+    //idVec2 uv;
     //idVec3 tangent;
     //idVec3 bitangent;
     uint32_t abgr;

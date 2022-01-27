@@ -49,8 +49,29 @@ void bgfxShutdown( bgfxContext_t *context ) {
 
     bgfx::shutdown( );
 }
+void bgfxCreatePbrContext(bgfxPbrContext_t & context )
+{
+    //create shaders
+    bgfx::ShaderHandle vsh = bgfxCreateShader( "shaders/v_pbr.bin", "pbr_vshader" );
+    bgfx::ShaderHandle fsh = bgfxCreateShader( "shaders/f_pbr.bin", "pbr_fsshader" );
+    context.pbrProgram = bgfx::createProgram( vsh, fsh, true );
+    //create Uniforms
+    context.s_baseColor         = bgfx::createUniform( "s_baseColor", bgfx::UniformType::Sampler );
+    context.s_normal            = bgfx::createUniform( "s_normal", bgfx::UniformType::Sampler );
+    context.s_metallicRoughness = bgfx::createUniform( "s_metallicRoughness", bgfx::UniformType::Sampler );
+    context.s_emissive          = bgfx::createUniform( "s_emissive", bgfx::UniformType::Sampler );
+    context.s_occlusion         = bgfx::createUniform( "s_occlusion", bgfx::UniformType::Sampler );
+
+    // We are going to pack our baseColorFactor, emissiveFactor, roughnessFactor
+    // and metallicFactor into this uniform
+    context.u_factors           = bgfx::createUniform( "u_factors", bgfx::UniformType::Vec4, 3 );
+    context.u_cameraPos         = bgfx::createUniform( "u_cameraPos", bgfx::UniformType::Vec4 );
+    context.u_normalTransform   = bgfx::createUniform( "u_normalTransform", bgfx::UniformType::Mat4 );
+}
 
 void bgfxInitShaders( bgfxContext_t *context ) {
+
+    bgfxCreatePbrContext(context->pbrContext);
 
     bgfx::VertexLayout pos_col_vert_layout;
     pos_col_vert_layout.begin( )
@@ -63,15 +84,11 @@ void bgfxInitShaders( bgfxContext_t *context ) {
     bgfx::IndexBufferHandle ibh = bgfx::createIndexBuffer(
         bgfx::makeRef( cube_tri_list, sizeof( cube_tri_list ) ) );
 
-
     bgfx::ShaderHandle vsh      = bgfxCreateShader("shaders/v_simple.bin","vshader" );
     bgfx::ShaderHandle fsh      = bgfxCreateShader( "shaders/f_simple.bin", "fsshader" );
     bgfx::ProgramHandle program = bgfx::createProgram( vsh, fsh, true );
     
-    vsh = bgfxCreateShader( "shaders/v_pbr.bin", "pbr_vshader" );
-    fsh = bgfxCreateShader( "shaders/f_pbr.bin", "pbr_fsshader" );
-    context->pbrProgram   = bgfx::createProgram( vsh, fsh, true );
-
+    bgfxCreatePbrContext( context->pbrContext );
     //context_t context;
     context->program = program;
     context->vbh = vbh;

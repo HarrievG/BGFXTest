@@ -14,6 +14,7 @@ void main()
     v_bitangent = normalize(mul(u_model[0], vec4(a_bitangent, 0.0)).xyz);
 
     v_texcoord = a_texcoord0;
+    //v_color = a_color0;
 
-    gl_Position = mul(u_viewProj, vec4(v_position, 1.0));
+    gl_Position = mul(u_modelViewProj, vec4(v_position, 1.0));
 }
