@@ -265,9 +265,13 @@ public:
 	gltfData *parent;
 };
 
+
+//33071 CLAMP_TO_EDGE
+//33648 MIRRORED_REPEAT
+//10497 REPEAT
 class gltfSampler {
 public:
-	gltfSampler( ) : magFilter( 0 ), minFilter( 0 ), wrapS( -10497 ), wrapT( 10497 ) { };
+	gltfSampler( ) : magFilter( 0 ), minFilter( 0 ), wrapS( 10497 ), wrapT( 10497 ) { };
 	int	magFilter;
 	int	minFilter;
 	int	wrapS;

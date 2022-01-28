@@ -74,6 +74,8 @@ gltfItemClassParser( camera_perspective,			gltfCamera_Perspective );
 gltfItemClassParser( camera_orthographic,			gltfCamera_Orthographic );
 gltfItemClassParser( pbrMetallicRoughness,			gltfMaterial_pbrMetallicRoughness );
 gltfItemClassParser( texture_info,					gltfTexture_Info);
+gltfItemClassParser( normal_texture,				gltfNormalTexture_Info);
+gltfItemClassParser( occlusion_texture,				gltfOcclusionTexture_Info );
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token

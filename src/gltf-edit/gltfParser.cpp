@@ -48,7 +48,6 @@ gltf_accessor_component_type_map s_componentTypeMap[] = {
 	"double",			5130,	bgfx::AttribType::Float, 8 ,
 	"",					0,		bgfx::AttribType::Count, 0
 };
-
 bgfx::AttribType::Enum GetComponentTypeEnum( int id  , uint * sizeInBytes = nullptr) {
 	int i = -1;
 	while ( s_componentTypeMap[++i].id != 0)
@@ -180,10 +179,13 @@ void gltfItemArray::Parse(idLexer * lexer) {
 	idToken token;
 	bool parsing = true;
 	lexer->ExpectTokenString( "{" );
-	while ( parsing && lexer->ExpectAnyToken( &token ) ) 	{
+	while ( parsing && lexer->ExpectAnyToken( &token ) ) 
+	{
 		lexer->ExpectTokenString( ":" );
-		for ( auto item : items ) 		{
-			if ( item->Name( ) == token ) 			{
+		for ( auto item : items ) 		
+		{
+			if ( item->Name( ) == token ) 
+			{
 				lexer->ExpectAnyToken( &token );
 				item->parse( token );
 				break;
@@ -381,6 +383,7 @@ void gltfItem_vec3::parse( idToken &token ) {
 	double *val = numbers->item->Ptr( );
 	*item = idVec3( val[0], val[1], val[2] );
 }
+
 void gltfItem_quat::parse( idToken &token ) { 	
 	auto * numbers = new gltfItem_number_array("");
 	idList<double> numberarray;
@@ -501,35 +504,70 @@ void gltfItem_camera_perspective::parse( idToken &token )
 		common->Printf( "%s", token.c_str( ) );
 }
 
+void gltfItem_occlusion_texture::parse( idToken &token ) {
+	parser->UnreadToken( &token );
+	gltfItemArray textureInfo;
+	GLTFARRAYITEM( textureInfo, index,				gltfItem_integer);
+	GLTFARRAYITEM( textureInfo, texCoord,			gltfItem_integer );
+	GLTFARRAYITEM( textureInfo, strength,			gltfItem_number);
+	GLTFARRAYITEM( textureInfo, extensions,			gltfItem );
+	GLTFARRAYITEM( textureInfo, extras,				gltfItem );
+
+	GLTFARRAYITEMREF( item, index );
+	GLTFARRAYITEMREF( item, texCoord );
+	GLTFARRAYITEMREF( item, strength );
+	GLTFARRAYITEMREF( item, extensions );
+	GLTFARRAYITEMREF( item, extras );
+	textureInfo.Parse( parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
+
+void gltfItem_normal_texture::parse( idToken &token ) {
+	parser->UnreadToken( &token );
+	gltfItemArray textureInfo;
+	GLTFARRAYITEM( textureInfo, index,				gltfItem_integer);
+	GLTFARRAYITEM( textureInfo, texCoord,			gltfItem_integer );
+	GLTFARRAYITEM( textureInfo, scale,				gltfItem_number);
+	GLTFARRAYITEM( textureInfo, extensions,			gltfItem );
+	GLTFARRAYITEM( textureInfo, extras,				gltfItem );
+
+	GLTFARRAYITEMREF( item, index );
+	GLTFARRAYITEMREF( item, texCoord );
+	GLTFARRAYITEMREF( item, scale );
+	GLTFARRAYITEMREF( item, extensions );
+	GLTFARRAYITEMREF( item, extras );
+	textureInfo.Parse( parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
 
 void gltfItem_texture_info::parse( idToken &token ) {
-	//parser->UnreadToken( &token );
-	//gltfItemArray pbrMetallicRoughness;
-	//GLTFARRAYITEM( pbrMetallicRoughness, baseColorFactor, gltfItem_vec4 );
-	//GLTFARRAYITEM( pbrMetallicRoughness, baseColorTexture, gltfItem_Texture_Info );
-	//GLTFARRAYITEM( pbrMetallicRoughness, metallicFactor, gltfItem_number );
-	//GLTFARRAYITEM( pbrMetallicRoughness, roughnessFactor, gltfItem_number );
-	//GLTFARRAYITEM( pbrMetallicRoughness, metallicRoughnessTexture, gltfItem_number );
-	//GLTFARRAYITEM( pbrMetallicRoughness, extensions, gltfItem );
-	//GLTFARRAYITEM( pbrMetallicRoughness, extras, gltfItem );
+	parser->UnreadToken( &token );
+	gltfItemArray textureInfo;
+	GLTFARRAYITEM( textureInfo, index,				gltfItem_integer);
+	GLTFARRAYITEM( textureInfo, texCoord,			gltfItem_integer );
+	GLTFARRAYITEM( textureInfo, extensions,			gltfItem );
+	GLTFARRAYITEM( textureInfo, extras,				gltfItem );
 
-	//GLTFARRAYITEMREF( item, aspectRatio );
-	//GLTFARRAYITEMREF( item, yfov );
-	//GLTFARRAYITEMREF( item, zfar );
-	//GLTFARRAYITEMREF( item, znear );
-	//GLTFARRAYITEMREF( item, extensions );
-	//GLTFARRAYITEMREF( item, extras );
-	//cameraPerspective.Parse( parser );
+	GLTFARRAYITEMREF( item, index );
+	GLTFARRAYITEMREF( item, texCoord );
+	GLTFARRAYITEMREF( item, extensions );
+	GLTFARRAYITEMREF( item, extras );
+	textureInfo.Parse( parser );
 
-	//if ( gltf_parseVerbose.GetBool( ) )
-	//	common->Printf( "%s", token.c_str( ) );
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
 }
+
 void gltfItem_pbrMetallicRoughness::parse( idToken &token )
 {
 	parser->UnreadToken( &token );
 	gltfItemArray pbrMetallicRoughness;
 	GLTFARRAYITEM( pbrMetallicRoughness, baseColorFactor,			gltfItem_vec4);
-	GLTFARRAYITEM( pbrMetallicRoughness, baseColorTexture,			gltfItem_texture_info );
+	GLTFARRAYITEM( pbrMetallicRoughness, baseColorTexture,			gltfItem_texture_info);
 	GLTFARRAYITEM( pbrMetallicRoughness, metallicFactor,			gltfItem_number );
 	GLTFARRAYITEM( pbrMetallicRoughness, roughnessFactor,			gltfItem_number );
 	GLTFARRAYITEM( pbrMetallicRoughness, metallicRoughnessTexture,	gltfItem_texture_info );
@@ -591,7 +629,6 @@ void GLTF_Parser::Parse_SCENES( idToken &token )
 	}
 	parser.ExpectTokenString( "]" );
 }
-
 void GLTF_Parser::Parse_CAMERAS( idToken &token )
 {
 	gltfItemArray camera;
@@ -667,9 +704,6 @@ void GLTF_Parser::Parse_NODES( idToken &token )
 			common->Printf( "%s", prop.item.c_str( ) );
 	}
 	parser.ExpectTokenString( "]" );
-
-	
-
 }
 void GLTF_Parser::Parse_MATERIALS( idToken &token ) 
 {
@@ -687,8 +721,28 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 	GLTFARRAYITEM( material, extras,				gltfItem );
 
 	gltfPropertyArray array = gltfPropertyArray( &parser );
-	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	for ( auto &prop : array ) {
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfMesh", 0 );
+
+		gltfMaterial * gltfmaterial = currentAsset->Material( );
+
+		pbrMetallicRoughness->Set	( &gltfmaterial->pbrMetallicRoughness, &lexer );
+		normalTexture->Set			( &gltfmaterial->normalTexture, &lexer );
+		occlusionTexture->Set		( &gltfmaterial->occlusionTexture, &lexer );
+		emissiveTexture->Set		( &gltfmaterial->emissiveTexture, &lexer );
+		emissiveFactor->Set			( &gltfmaterial->emissiveFactor, &lexer );
+		GLTFARRAYITEMREF			( gltfmaterial, alphaMode );
+		GLTFARRAYITEMREF			( gltfmaterial, alphaCutoff );
+		GLTFARRAYITEMREF			( gltfmaterial, doubleSided );
+		GLTFARRAYITEMREF			( gltfmaterial, name );
+		GLTFARRAYITEMREF			( gltfmaterial, extensions );
+		GLTFARRAYITEMREF			( gltfmaterial, extras );
+		material.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_MESHES( idToken &token ) 
