@@ -72,6 +72,8 @@ gltfItemClassParser( accessor_sparse_indices,		gltfAccessor_Sparse_Indices );
 gltfItemClassParser( accessor_sparse_values,		gltfAccessor_Sparse_Values );
 gltfItemClassParser( camera_perspective,			gltfCamera_Perspective );
 gltfItemClassParser( camera_orthographic,			gltfCamera_Orthographic );
+gltfItemClassParser( pbrMetallicRoughness,			gltfMaterial_pbrMetallicRoughness );
+gltfItemClassParser( texture_info,					gltfTexture_Info);
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token
