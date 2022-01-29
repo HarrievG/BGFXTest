@@ -9,7 +9,7 @@ void main()
 {
     v_position = mul(u_model[0], vec4(a_position, 1.0)).xyz;
 
-    v_normal    = normalize(mul(normalTransform, vec4(a_normal, 0.0)).xyz);
+    v_normal    = abs(a_normal);//normalize(mul(normalTransform, vec4(a_normal, 0.0)).xyz);
     v_tangent   = normalize(mul(u_model[0], vec4(a_tangent, 0.0)).xyz);
     v_bitangent = normalize(mul(u_model[0], vec4(a_bitangent, 0.0)).xyz);
 

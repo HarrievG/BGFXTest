@@ -845,21 +845,10 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 		//bx::mtxMul( tmp, modelScale, xtmp );
 		//bx::mtxMul( modelTransform, tmp, modelTranslation );
 	    bgfx::setTransform( modelTransform );
+		bgfx::setUniform(context->pbrContext.u_normalTransform,&modelTransform);
 		for ( auto prim : selectedMesh->primitives )
 		{
-			float modelScale[16];
-			float tmp[16];
-			bx::mtxScale( modelScale, 0.08f + idMath::ClampFloat( 0.01f, 10.0f, ( abs( sin( 0.001f * com_frameTime ) ) ) ) );// sin( com_frameTime ) );
 
-			idVec3 dir = idVec3( -1, -1, 0 );
-			dir.Normalize( );
-			idRotation modelRot( idVec3( 0, 0, 0 ), dir, RAD2DEG( abs( 0.001f * com_frameTime ) ) );
-			idRotation modelRot2( idVec3( 0, 0, 0 ), idVec3( 0, -1, 0 ), RAD2DEG( abs( 0.001f * com_frameTime ) ) );
-			idMat4 rotmat = modelRot.ToMat4( );
-			float * modelTransform = rotmat.ToFloatPtr( );
-			bx::mtxMul( tmp, modelScale, modelTransform );
-			//bgfx::setTransform( tmp );
-			
 			if ( selectedImage )
 				bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
 

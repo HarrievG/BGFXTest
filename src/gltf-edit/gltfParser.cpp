@@ -1403,10 +1403,18 @@ void GLTF_Parser::CreateBgfxData( )
 							vtxData[i].abgr = 0xff000000 + ( b << 16 ) + ( g << 8 ) + r;
 						}
 						vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						break;
 					}
 					case bgfx::Attrib::Enum::Normal : {
-
-						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						for ( int i = 0; i < attrAcc->count; i++ ) {
+							bin.Read( ( void * ) ( &vtxData[i].normal.x ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].normal.y ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].normal.z ), attrAcc->typeSize );
+							if ( attrBv->byteStride )
+								bin.Seek( attrBv->byteStride - ( 3 * attrAcc->typeSize ), FS_SEEK_CUR );
+						}
+						vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						break;
 					}
 				}
 			}
