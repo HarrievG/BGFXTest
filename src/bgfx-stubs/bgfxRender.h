@@ -88,8 +88,8 @@ struct bgfxContext_t {
 
 struct pbrVertex {
     idVec3 pos;
-    //idVec3 normal;
-    //idVec2 uv;
+    idVec3 normal;
+    idVec2 uv;
     //idVec3 tangent;
     //idVec3 bitangent;
     uint32_t abgr;
@@ -153,7 +153,7 @@ struct PBRMaterial
     // Uniform Data
     idVec4 baseColorFactor = idVec4( 1.0f, 1.0f, 1.0f, 1.0f );
     idVec4 emissiveFactor = idVec4( 0.0f, 0.0f, 0.0f, 1.0f );
-    float alphaCutoff = 1.0f;
+    float alphaCutoff = .5f;
     float metallicFactor = 1.0f;
     float roughnessFactor = 1.0f;
     bgfx::TextureHandle baseColorTexture = BGFX_INVALID_HANDLE;

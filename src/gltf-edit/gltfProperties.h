@@ -29,6 +29,17 @@ enum gltfProperty {
 };
 class gltfData;
 
+struct gltf_sampler_mag_type_map {
+	int id;
+	uint bgfxFlagMag;
+};
+
+struct gltf_sampler_wrap_type_map {
+	   int id;
+	   uint bgfxFlagU;
+	   uint bgfxFlagV;
+};
+
 struct gltf_mesh_attribute_map {
 	idStr stringID;
 	bgfx::Attrib::Enum attib;
@@ -266,9 +277,6 @@ public:
 };
 
 
-//33071 CLAMP_TO_EDGE
-//33648 MIRRORED_REPEAT
-//10497 REPEAT
 class gltfSampler {
 public:
 	gltfSampler( ) : magFilter( 0 ), minFilter( 0 ), wrapS( 10497 ), wrapT( 10497 ) { };
@@ -279,6 +287,8 @@ public:
 	idStr name;
 	idStr extensions;
 	idStr extras;
+	//
+	uint bgfxSamplerFlags;
 };
 
 class gltfImage {
@@ -370,6 +380,8 @@ public:
 	idStr								name;
 	idStr								extensions;
 	idStr								extras;
+	//
+	bgfxMaterial						bgfxMaterial;
 };
 
 class gltfAsset {

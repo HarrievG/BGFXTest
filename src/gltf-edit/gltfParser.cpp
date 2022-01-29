@@ -5,6 +5,43 @@
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 
+gltf_sampler_wrap_type_map s_samplerWrapTypeMap[] = {
+	//33071 CLAMP_TO_EDGE
+	33071, BGFX_SAMPLER_U_CLAMP, BGFX_SAMPLER_V_CLAMP,
+	//33648 MIRRORED_REPEAT
+	33648, BGFX_SAMPLER_U_MIRROR, BGFX_SAMPLER_V_MIRROR,
+	//10497 REPEAT
+	10497, BGFX_SAMPLER_U_BORDER, BGFX_SAMPLER_V_BORDER,
+	0,0,0
+};
+//todo
+gltf_sampler_mag_type_map s_samplerMagTypeMap[] = {
+	//9728 NEAREST //mag/min
+	9728 , BGFX_SAMPLER_MIN_ANISOTROPIC
+	//9729 LINEAR // mag/min 
+	//
+	//9984 NEAREST_MIPMAP_NEAREST //min
+	//
+	//9985 LINEAR_MIPMAP_NEAREST //min
+	//
+	//9986 NEAREST_MIPMAP_LINEAR  //min
+	//
+	//9987 LINEAR_MIPMAP_LINEAR //min
+};
+
+uint64_t GetSamplerFlags( gltfSampler * sampler) {
+	// Ignore the sampling options for filter -- always use mag: LINEAR and min: LINEAR_MIPMAP_LINEAR
+	uint64_t flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_MIN_ANISOTROPIC ;
+	int i = -1;
+	while ( s_samplerWrapTypeMap[++i].id != 0 )
+	{
+		if ( s_samplerWrapTypeMap[i].id == sampler->wrapS)
+			flags |= s_samplerWrapTypeMap[i].bgfxFlagU;
+		if ( s_samplerWrapTypeMap[i].id == sampler->wrapT )
+			flags |= s_samplerWrapTypeMap[i].bgfxFlagV;
+	}
+	return flags;
+}
 gltf_mesh_attribute_map s_meshAttributeMap[] = {
 	"POSITION",		bgfx::Attrib::Position,	3,
 	"NORMAL",		bgfx::Attrib::Normal,	3,
@@ -723,7 +760,7 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 	gltfPropertyArray array = gltfPropertyArray( &parser );
 	for ( auto &prop : array ) {
 		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
-		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfMesh", 0 );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfMaterial", 0 );
 
 		gltfMaterial * gltfmaterial = currentAsset->Material( );
 
@@ -774,9 +811,30 @@ void GLTF_Parser::Parse_MESHES( idToken &token )
 }
 void GLTF_Parser::Parse_TEXTURES( idToken &token )
 {
+	gltfItemArray texture;
+	GLTFARRAYITEM( texture, sampler, gltfItem_integer );
+	GLTFARRAYITEM( texture, source, gltfItem_integer );
+	GLTFARRAYITEM( texture, name, gltfItem );
+	GLTFARRAYITEM( texture, extensions, gltfItem );
+	GLTFARRAYITEM( texture, extras, gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
-	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	for ( auto &prop : array ) {
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfTexture", 0 );
+
+		gltfTexture *gltftexture = currentAsset->Texture( );
+
+		GLTFARRAYITEMREF( gltftexture, sampler );
+		GLTFARRAYITEMREF( gltftexture, source );
+		GLTFARRAYITEMREF( gltftexture, name );
+		GLTFARRAYITEMREF( gltftexture, extensions );
+		GLTFARRAYITEMREF( gltftexture, extras );
+		texture.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_IMAGES( idToken &token )
@@ -1411,7 +1469,17 @@ void GLTF_Parser::CreateBgfxData( )
 							bin.Read( ( void * ) ( &vtxData[i].normal.y ), attrAcc->typeSize );
 							bin.Read( ( void * ) ( &vtxData[i].normal.z ), attrAcc->typeSize );
 							if ( attrBv->byteStride )
-								bin.Seek( attrBv->byteStride - ( 3 * attrAcc->typeSize ), FS_SEEK_CUR );
+								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
+						}
+						vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						break;
+					}
+					case bgfx::Attrib::Enum::TexCoord0:{
+						for ( int i = 0; i < attrAcc->count; i++ ) {
+							bin.Read( ( void * ) ( &vtxData[i].uv.x ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].uv.y ), attrAcc->typeSize );
+							if ( attrBv->byteStride )
+								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
 						}
 						vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
 						break;
@@ -1430,7 +1498,12 @@ void GLTF_Parser::CreateBgfxData( )
 				common->FatalError("Failed to read vertex info" );
 		}
 	}
-	//textures
+
+	//Samplers
+	for (auto &sampler : currentAsset->SamplerList( ) )
+		sampler->bgfxSamplerFlags = GetSamplerFlags(sampler);
+
+	//images
 	for ( auto &image : currentAsset->ImageList( ) ) 
 	{
 		if(image->bgfxTexture.handle.idx == UINT16_MAX )
@@ -1442,7 +1515,31 @@ void GLTF_Parser::CreateBgfxData( )
 			image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
 		}
 	}
+
+	//materials
+	auto& texList = currentAsset->TextureList();
+	auto& imgList = currentAsset->ImageList();
+	for ( auto & material : currentAsset->MaterialList( ) )
+	{
+		material->bgfxMaterial.material.alphaCutoff = material->alphaCutoff;
+		
+		if ( material->normalTexture.index != -1)
+			material->bgfxMaterial.material.normalTexture = imgList[texList[material->normalTexture.index]->source]->bgfxTexture.handle;
+		
+		if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 )
+			material->bgfxMaterial.material.baseColorTexture = imgList[texList[material->pbrMetallicRoughness.baseColorTexture.index]->source]->bgfxTexture.handle;
+		
+		material->bgfxMaterial.material.baseColorFactor = material->pbrMetallicRoughness.baseColorFactor;
+		
+		if ( material->pbrMetallicRoughness.metallicRoughnessTexture.index != -1 )
+			material->bgfxMaterial.material.metallicRoughnessTexture = imgList[texList[material->pbrMetallicRoughness.metallicRoughnessTexture.index]->source]->bgfxTexture.handle;
+		
+		material->bgfxMaterial.material.metallicFactor =  material->pbrMetallicRoughness.metallicFactor;
+		material->bgfxMaterial.material.roughnessFactor = material->pbrMetallicRoughness.roughnessFactor;
+
+	}
 }
+
 
 gltfData::~gltfData() {
 	//hvg_todo
