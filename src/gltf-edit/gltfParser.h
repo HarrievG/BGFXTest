@@ -76,6 +76,7 @@ gltfItemClassParser( pbrMetallicRoughness,			gltfMaterial_pbrMetallicRoughness )
 gltfItemClassParser( texture_info,					gltfTexture_Info);
 gltfItemClassParser( normal_texture,				gltfNormalTexture_Info);
 gltfItemClassParser( occlusion_texture,				gltfOcclusionTexture_Info );
+gltfItemClassParser( extension,						idList<gltfExtension* > );
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token

@@ -366,6 +366,7 @@ public:
 	idStr				extras;
 };
 
+class gltfExtension;
 class gltfMaterial {
 public:
 	gltfMaterial( ) : emissiveFactor( vec3_zero ), alphaMode( "OPAQUE" ), alphaCutoff( 0.5f ), doubleSided( false ) { }
@@ -378,7 +379,7 @@ public:
 	float								alphaCutoff;
 	bool								doubleSided;
 	idStr								name;
-	idStr								extensions;
+	idList< gltfExtension* >			extensions;
 	idStr								extras;
 	//
 	bgfxMaterial						bgfxMaterial;
@@ -399,6 +400,19 @@ class gltfExtensionsUsed {
 public:
 	gltfExtensionsUsed( ) { }
 	idStr	extension;
+};
+
+class gltfExt_KHR_materials_pbrSpecularGlossiness
+{
+public:
+	gltfExt_KHR_materials_pbrSpecularGlossiness( ) { }
+};
+class gltfExtension
+{
+public:
+	gltfExtension( ) { }
+	idStr name;
+	idStr json;
 };
 
 /////////////////////////////////////////////////////////////////////////////

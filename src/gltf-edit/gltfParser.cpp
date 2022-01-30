@@ -624,6 +624,28 @@ void gltfItem_pbrMetallicRoughness::parse( idToken &token )
 		common->Printf( "%s", token.c_str( ) );
 }
 
+void gltfItem_extension::parse( idToken &token ) {
+	parser->UnreadToken( &token );
+
+	gltfItemArray extension;
+	GLTFARRAYITEM( extension, KHR_materials_pbrSpecularGlossiness, gltfItem );
+
+	gltfPropertyArray array = gltfPropertyArray( parser );
+	for ( auto &prop : array ) 	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfItem_extension", 0 );
+
+		item->AssureSizeAlloc(item->Num() + 1,idListNewElement<gltfExtension>);
+		gltfExtension *gltfExt =(*item)[item->Num() - 1];
+		KHR_materials_pbrSpecularGlossiness->Set( &gltfExt->json );
+		extension.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
+	parser->ExpectTokenString( "}" );
+}
+
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) , buffersDone(false), bufferViewsDone( false ) { }
 
@@ -754,7 +776,7 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 	GLTFARRAYITEM( material, alphaCutoff,			gltfItem_number );
 	GLTFARRAYITEM( material, doubleSided,			gltfItem_boolean );
 	GLTFARRAYITEM( material, name,					gltfItem );
-	GLTFARRAYITEM( material, extensions,			gltfItem );
+	GLTFARRAYITEM( material, extensions,			gltfItem_extension );
 	GLTFARRAYITEM( material, extras,				gltfItem );
 
 	gltfPropertyArray array = gltfPropertyArray( &parser );
@@ -773,7 +795,8 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 		GLTFARRAYITEMREF			( gltfmaterial, alphaCutoff );
 		GLTFARRAYITEMREF			( gltfmaterial, doubleSided );
 		GLTFARRAYITEMREF			( gltfmaterial, name );
-		GLTFARRAYITEMREF			( gltfmaterial, extensions );
+		//GLTFARRAYITEMREF			( gltfmaterial, extensions );
+		extensions->Set				( &gltfmaterial->extensions,&lexer );
 		GLTFARRAYITEMREF			( gltfmaterial, extras );
 		material.Parse( &lexer );
 
