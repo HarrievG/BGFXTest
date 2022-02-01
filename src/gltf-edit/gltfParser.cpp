@@ -624,26 +624,49 @@ void gltfItem_pbrMetallicRoughness::parse( idToken &token )
 		common->Printf( "%s", token.c_str( ) );
 }
 
+void gltfItem_extra::parse( idToken &token )
+{
+	parser->UnreadToken( &token );
+	parser->ParseBracedSection(item->json);
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", item->json.c_str( ) );
+}
+
+void gltfItem_KHR_materials_pbrSpecularGlossiness::parse( idToken &token ) 
+{
+	item->KHR_materials_pbrSpecularGlossiness = new gltfExt_KHR_materials_pbrSpecularGlossiness();
+	
+	parser->UnreadToken( &token );
+	gltfItemArray khrPbr;
+	GLTFARRAYITEM( khrPbr, diffuseFactor,				gltfItem_vec4 );
+	GLTFARRAYITEM( khrPbr, diffuseTexture,				gltfItem_texture_info );
+	GLTFARRAYITEM( khrPbr, specularFactor,				gltfItem_vec3 );
+	GLTFARRAYITEM( khrPbr, glossinessFactor,			gltfItem_number );
+	GLTFARRAYITEM( khrPbr, specularGlossinessTexture,	gltfItem_texture_info );
+
+	diffuseFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseFactor,				parser	);
+	diffuseTexture->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseTexture,				parser	);
+	specularFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->specularFactor,				parser	);
+	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, glossinessFactor						);
+	specularGlossinessTexture->Set	( &item->KHR_materials_pbrSpecularGlossiness->specularGlossinessTexture,	parser	);
+
+	khrPbr.Parse( parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
+
 void gltfItem_extension::parse( idToken &token ) {
 	parser->UnreadToken( &token );
 
 	gltfItemArray extension;
-	GLTFARRAYITEM( extension, KHR_materials_pbrSpecularGlossiness, gltfItem );
+	GLTFARRAYITEM( extension, KHR_materials_pbrSpecularGlossiness, gltfItem_KHR_materials_pbrSpecularGlossiness );
 
-	gltfPropertyArray array = gltfPropertyArray( parser );
-	for ( auto &prop : array ) 	{
-		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
-		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfItem_extension", 0 );
-
-		item->AssureSizeAlloc(item->Num() + 1,idListNewElement<gltfExtension>);
-		gltfExtension *gltfExt =(*item)[item->Num() - 1];
-		KHR_materials_pbrSpecularGlossiness->Set( &gltfExt->json );
-		extension.Parse( &lexer );
-
-		if ( gltf_parseVerbose.GetBool( ) )
-			common->Printf( "%s", prop.item.c_str( ) );
-	}
-	parser->ExpectTokenString( "}" );
+	KHR_materials_pbrSpecularGlossiness->Set( item, parser );
+	extension.Parse( parser );
+	gltfPropertyArray array = gltfPropertyArray( parser);
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
 }
 
 GLTF_Parser::GLTF_Parser()
@@ -777,7 +800,7 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 	GLTFARRAYITEM( material, doubleSided,			gltfItem_boolean );
 	GLTFARRAYITEM( material, name,					gltfItem );
 	GLTFARRAYITEM( material, extensions,			gltfItem_extension );
-	GLTFARRAYITEM( material, extras,				gltfItem );
+	GLTFARRAYITEM( material, extras,				gltfItem_extra );
 
 	gltfPropertyArray array = gltfPropertyArray( &parser );
 	for ( auto &prop : array ) {
@@ -786,18 +809,17 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 
 		gltfMaterial * gltfmaterial = currentAsset->Material( );
 
-		pbrMetallicRoughness->Set	( &gltfmaterial->pbrMetallicRoughness, &lexer );
-		normalTexture->Set			( &gltfmaterial->normalTexture, &lexer );
-		occlusionTexture->Set		( &gltfmaterial->occlusionTexture, &lexer );
-		emissiveTexture->Set		( &gltfmaterial->emissiveTexture, &lexer );
-		emissiveFactor->Set			( &gltfmaterial->emissiveFactor, &lexer );
-		GLTFARRAYITEMREF			( gltfmaterial, alphaMode );
-		GLTFARRAYITEMREF			( gltfmaterial, alphaCutoff );
-		GLTFARRAYITEMREF			( gltfmaterial, doubleSided );
-		GLTFARRAYITEMREF			( gltfmaterial, name );
-		//GLTFARRAYITEMREF			( gltfmaterial, extensions );
-		extensions->Set				( &gltfmaterial->extensions,&lexer );
-		GLTFARRAYITEMREF			( gltfmaterial, extras );
+		pbrMetallicRoughness->Set	( &gltfmaterial->pbrMetallicRoughness,	&lexer	);
+		normalTexture->Set			( &gltfmaterial->normalTexture,			&lexer	);
+		occlusionTexture->Set		( &gltfmaterial->occlusionTexture,		&lexer	);
+		emissiveTexture->Set		( &gltfmaterial->emissiveTexture,		&lexer	);
+		emissiveFactor->Set			( &gltfmaterial->emissiveFactor,		&lexer	);
+		GLTFARRAYITEMREF			( gltfmaterial, alphaMode						);
+		GLTFARRAYITEMREF			( gltfmaterial, alphaCutoff						);
+		GLTFARRAYITEMREF			( gltfmaterial, doubleSided						);
+		GLTFARRAYITEMREF			( gltfmaterial, name							);
+		extensions->Set				( &gltfmaterial->extensions,			&lexer	);
+		extras->Set					( &gltfmaterial->extras,				&lexer	);
 		material.Parse( &lexer );
 
 		if ( gltf_parseVerbose.GetBool( ) )

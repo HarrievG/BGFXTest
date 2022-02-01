@@ -53,6 +53,22 @@ struct gltf_accessor_component_type_map {
 	uint sizeInBytes;//single element
 };
 
+class gltfExtra
+{
+public:
+	gltfExtra( ) { }
+	idStr json;
+};
+
+//All supported extensions should go here.
+//After parsing, the extensions that are not nullptr are used.
+class gltfExt_KHR_materials_pbrSpecularGlossiness;
+class gltfExtension {
+public:
+	gltfExtension( ) :
+		KHR_materials_pbrSpecularGlossiness( nullptr ) 	{ }
+	gltfExt_KHR_materials_pbrSpecularGlossiness *KHR_materials_pbrSpecularGlossiness;
+};
 
 // todo:
 //materials,
@@ -366,7 +382,6 @@ public:
 	idStr				extras;
 };
 
-class gltfExtension;
 class gltfMaterial {
 public:
 	gltfMaterial( ) : emissiveFactor( vec3_zero ), alphaMode( "OPAQUE" ), alphaCutoff( 0.5f ), doubleSided( false ) { }
@@ -379,8 +394,8 @@ public:
 	float								alphaCutoff;
 	bool								doubleSided;
 	idStr								name;
-	idList< gltfExtension* >			extensions;
-	idStr								extras;
+	gltfExtension						extensions;
+	gltfExtra							extras;
 	//
 	bgfxMaterial						bgfxMaterial;
 };
@@ -396,24 +411,29 @@ public:
 	idStr	extras;
 };
 
+
+//this is not used.
+//if an extension is found, it _will_ be used. (if implemented)
 class gltfExtensionsUsed {
 public:
 	gltfExtensionsUsed( ) { }
 	idStr	extension;
 };
 
+//ARCHIVED?
+//https://github.com/KhronosGroup/glTF/tree/main/extensions/2.0/Archived/KHR_materials_pbrSpecularGlossiness
 class gltfExt_KHR_materials_pbrSpecularGlossiness
 {
 public:
 	gltfExt_KHR_materials_pbrSpecularGlossiness( ) { }
+	idVec4					diffuseFactor;
+	gltfTexture_Info		diffuseTexture;
+	idVec3					specularFactor;
+	float					glossinessFactor;
+	gltfTexture_Info		specularGlossinessTexture;
 };
-class gltfExtension
-{
-public:
-	gltfExtension( ) { }
-	idStr name;
-	idStr json;
-};
+
+
 
 /////////////////////////////////////////////////////////////////////////////
 //// For these to function you need to add an private idList<gltf{name}*> {target}
@@ -510,17 +530,17 @@ public:
 
 	int &DefaultScene( ) { return scene; }
 	GLTFCACHEITEM( Buffer, buffers )
-		GLTFCACHEITEM( Sampler, samplers )
-		GLTFCACHEITEM( BufferView, bufferViews )
-		GLTFCACHEITEM( Image, images )
-		GLTFCACHEITEM( Texture, textures )
-		GLTFCACHEITEM( Accessor, accessors )
-		GLTFCACHEITEM( ExtensionsUsed, extensionsUsed )
-		GLTFCACHEITEM( Mesh, meshes )
-		GLTFCACHEITEM( Scene, scenes )
-		GLTFCACHEITEM( Node, nodes )
-		GLTFCACHEITEM( Camera, cameras )
-		GLTFCACHEITEM( Material, materials )
+	GLTFCACHEITEM( Sampler, samplers )
+	GLTFCACHEITEM( BufferView, bufferViews )
+	GLTFCACHEITEM( Image, images )
+	GLTFCACHEITEM( Texture, textures )
+	GLTFCACHEITEM( Accessor, accessors )
+	GLTFCACHEITEM( ExtensionsUsed, extensionsUsed )
+	GLTFCACHEITEM( Mesh, meshes )
+	GLTFCACHEITEM( Scene, scenes )
+	GLTFCACHEITEM( Node, nodes )
+	GLTFCACHEITEM( Camera, cameras )
+	GLTFCACHEITEM( Material, materials )
 private:
 	idStr fileName;
 	int	fileNameHash;
