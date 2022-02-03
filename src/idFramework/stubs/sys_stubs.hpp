@@ -23,14 +23,6 @@ Sys_GetEvent
 ================
 */
 sysEvent_t Sys_GetEvent( );
-/*
-================
-Sys_Milliseconds
-================
-*/
-unsigned int Sys_Milliseconds( ) {
-	return SDL_GetTicks( );
-}
 
 const char *Sys_Cwd( void ) {
 	static char cwd[1024];
@@ -107,14 +99,6 @@ int				Sys_ListFiles( const char *directory, const char *extension, idStrList &l
 
 #endif
 
-void			Sys_CreateThread( xthread_t function, void *parms, xthreadInfo &info, const char *name ) { }
-void			Sys_DestroyThread( xthreadInfo &info ) { }
-
-void			Sys_EnterCriticalSection( int index ) { }
-void			Sys_LeaveCriticalSection( int index ) { }
-
-void			Sys_WaitForEvent( int index ) { }
-void			Sys_TriggerEvent( int index ) { }
 
 /*
 ==============
@@ -143,5 +127,3 @@ sysEvent_t		idSysLocal::GenerateMouseMoveEvent( int deltax, int deltay ) { sysEv
 
 void			idSysLocal::OpenURL( const char *url, bool quit ) { }
 void			idSysLocal::StartProcess( const char *exeName, bool quit ) { }
-
-unsigned int	idSysLocal::GetMilliseconds( void ) { return 0; }

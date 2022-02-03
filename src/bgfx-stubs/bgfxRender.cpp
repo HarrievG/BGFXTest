@@ -4,7 +4,7 @@
 #include "CVarSystem.h"
 #include "CmdSystem.h"
 #include <ImGuizmo.h>
-
+#include "bgfxImage.h"
 
 static PosColorVertex cube_vertices[] = {
     {-1.0f, 1.0f, 1.0f, 0xff000000},   {1.0f, 1.0f, 1.0f, 0xff0000ff},
@@ -24,6 +24,9 @@ idCVar r_aspectRatio( "r_aspectRatio", "-1", CVAR_RENDERER | CVAR_INTEGER | CVAR
 idCVar r_mode( "r_mode", "-1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "video mode number" );
 
 idList<bgfxCallback> bgfxCallbackList;
+
+xthreadInfo RenderThread;
+bool	    RenderThreadRunning;
 
 bgfx::ShaderHandle bgfxCreateShader( const char * shaderFile, const char *name ) {
     int fSize = 0;
@@ -72,7 +75,7 @@ void bgfxCreatePbrContext(bgfxPbrContext_t & context )
 void bgfxInitShaders( bgfxContext_t *context ) {
 
     bgfxCreatePbrContext(context->pbrContext);
-
+    bgfxStartImageLoadThread();
     bgfx::VertexLayout pos_col_vert_layout;
     pos_col_vert_layout.begin( )
         .add( bgfx::Attrib::Position, 3, bgfx::AttribType::Float )
@@ -288,3 +291,23 @@ void bgfxRegisterCallback( bgfxCallback callback )
 { 
     bgfxCallbackList.Append( callback );
 }
+
+int bgfxRenderThread( void *prunning ) {
+	bool *running = ( bool * ) prunning;
+
+	while ( ( *running ) ) {
+        bgfx::renderFrame();
+	}
+	return 0;
+}
+
+void bgfxStartRenderThread( ) {
+    if ( !RenderThread.threadHandle ) {
+        RenderThreadRunning = true;
+        Sys_CreateThread( bgfxRenderThread, &RenderThreadRunning, RenderThread, "BgfxRenderThread" );
+    } else {
+        common->Printf( "background thread already running\n" );
+    }
+}
+
+

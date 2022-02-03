@@ -180,6 +180,12 @@ inline void idCommonLocal::Init( int argc, char **argv ) {
 			( int ) ID_SIZEOFPTR, ( int ) sizeof( void * ) );
 	}
 
+	if ( SDL_Init( SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK ) < 0 ) {
+		common->FatalError( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );
+	}
+
+	Sys_InitThreads();
+
 	ParseCommandLine( argc, argv );
 	AddStartupCommands( );
 	

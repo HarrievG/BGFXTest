@@ -308,26 +308,28 @@ const char *		Sys_GetThreadName( int *index = 0 );
 extern void Sys_InitThreads();
 extern void Sys_ShutdownThreads();
 
-const int MAX_CRITICAL_SECTIONS		= 5;
+const int MAX_CRITICAL_SECTIONS		= 6;
 
 enum {
 	CRITICAL_SECTION_ZERO = 0,
 	CRITICAL_SECTION_ONE,
 	CRITICAL_SECTION_TWO,
 	CRITICAL_SECTION_THREE,
-	CRITICAL_SECTION_SYS
+	CRITICAL_SECTION_SYS,
+	CRITICAL_SECTION_IMAGE_LOAD
 };
 
 void				Sys_EnterCriticalSection( int index = CRITICAL_SECTION_ZERO );
 void				Sys_LeaveCriticalSection( int index = CRITICAL_SECTION_ZERO );
 
-const int MAX_TRIGGER_EVENTS		= 4;
+const int MAX_TRIGGER_EVENTS		= 5;
 
 enum {
 	TRIGGER_EVENT_ZERO = 0,
 	TRIGGER_EVENT_ONE,
 	TRIGGER_EVENT_TWO,
-	TRIGGER_EVENT_THREE
+	TRIGGER_EVENT_THREE,
+	TRIGGER_EVENT_IMAGE_LOAD
 };
 
 void				Sys_WaitForEvent( int index = TRIGGER_EVENT_ZERO );

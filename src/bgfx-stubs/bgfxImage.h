@@ -1,3 +1,12 @@
 #pragma once
 #include "bgfxRender.h"
-bgfxTextureHandle bgfxImageLoad( byte *data, int length );
+
+struct imageLoad_t {
+	byte *data;
+	size_t length;
+	bgfxTextureHandle * targetHandle;
+};
+
+void bgfxStartImageLoadThread();
+bgfxTextureHandle bgfxImageLoad( byte *data, size_t length );
+void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle *targetHandle );

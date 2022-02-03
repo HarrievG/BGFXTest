@@ -82,6 +82,7 @@ private:
 	int selectedFileHash;
 	gltfImage	*		selectedImage;
 	gltfMesh	*		selectedMesh;
+	gltfData	*		currentData;
 	idMat4				cameraView;
 	idMat4				cameraProjection;
 

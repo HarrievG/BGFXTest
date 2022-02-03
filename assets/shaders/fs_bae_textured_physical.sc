@@ -94,4 +94,5 @@ void main()
 
     gl_FragColor = vec4(toGammaAccurate(color * matColor.w), matColor.w);
     gl_FragColor = vec4(normalize(v_normal), 1);
+    gl_FragColor = texture2D(diffuseMap, v_texcoord);
 }

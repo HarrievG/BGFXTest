@@ -179,6 +179,7 @@ struct MeshGroup
 struct bgfxTextureHandle {
     bgfx::TextureHandle handle;
     idVec2 dim;
+    bool loaded;
 };
 
 struct bgfxModel
@@ -215,3 +216,4 @@ void bgfxRender( bgfxContext_t* context );
 void bgfxRegisterCallback( bgfxCallback callback );
 void bgfxCreateMrtTarget( bgfxMrtContext_t &context, const char *name );
 bgfx::ShaderHandle  bgfxCreateShader( const char *shaderFile, const char *name );
+void bgfxStartRenderThread( );

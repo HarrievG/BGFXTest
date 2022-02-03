@@ -1343,7 +1343,7 @@ bool GLTF_Parser::Parse( ) {
 		else
 		{
 			//we are at the end, and no bufferview or buffer has been found.
-			if ( !buffersDone || !buffersDone )
+			if ( !buffersDone || !bufferViewsDone )
 			{
 				if ( !buffersDone ) 
 				{
@@ -1557,7 +1557,8 @@ void GLTF_Parser::CreateBgfxData( )
 			gltfData *data = bv->parent;
 			gltfBuffer *buff = data->BufferList( )[bv->buffer];
 			
-			image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
+			//image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
+			bgfxImageLoadAsync( data->GetData( bv->buffer ) + bv->byteOffset, bv->byteLength, &image->bgfxTexture );
 		}
 	}
 

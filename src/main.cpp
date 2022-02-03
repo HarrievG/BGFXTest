@@ -25,6 +25,7 @@ idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
+idCVar r_useRenderThread( "r_useRenderThread", "1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "Multithreaded renderering" );
 
 idSession *session = NULL;
 
@@ -116,11 +117,6 @@ int main( int argc, char **argv )
 
     cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
 
-    if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
-         common->FatalError( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );
-        return 1;
-    }
-
     const int width = WINDOW_WIDTH;
     const int height = WINDOW_HEIGHT;
     SDL_Window *window = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
@@ -140,8 +136,13 @@ int main( int argc, char **argv )
             SDL_GetError( ) );
         return 1;
     }
-    bgfx::renderFrame( ); // single threaded mode
+
 #endif // !BX_PLATFORM_EMSCRIPTEN
+
+    if ( !r_useRenderThread.GetBool( ) )
+        bgfx::renderFrame( );
+    else
+        bgfxStartRenderThread( );
 
     bgfx::PlatformData pd{};
 #if BX_PLATFORM_WINDOWS
@@ -279,4 +280,8 @@ void Sys_Printf( const char *fmt, ... ) {
 	//		LeaveCriticalSection( &printfCritSect );
 	//	}
 	//}
+}
+
+unsigned int idSysLocal::GetMilliseconds( void ) {
+    return Sys_Milliseconds( );
 }

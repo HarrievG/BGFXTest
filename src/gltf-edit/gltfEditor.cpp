@@ -73,14 +73,14 @@ void gltfSceneEditor::Init( )
 
 	cmdSystem->AddCommand( "gltf_listTextures", []( const idCmdArgs &args )
 		-> auto {
-		common->Printf(" - Textures (^2green ^7= data loaded)\n");
+		common->Printf(" - Textures [imageName : bgfxTextureHandle] (^2green ^7= data loaded)\n");
 		auto &dataList = gltfData::DataList( );
 		for ( auto &data : dataList )
 		{
 			auto &imgList = data->ImageList( );
 			for (auto& img : imgList )
-				common->Printf( "  %-21s : %i\n", !img->name.IsEmpty() ? img->name.c_str() : "<No Image Name>",
-					img->bgfxTexture.handle.idx != bgfx::kInvalidHandle ? "^1" : "^2", img->bgfxTexture.handle.idx );
+				common->Printf( "%s :%s %i\n", !img->name.IsEmpty() ? img->name.c_str() : "<No Image Name>",
+					img->bgfxTexture.handle.idx == bgfx::kInvalidHandle ? "^1" : "^2", img->bgfxTexture.handle.idx );
 		}
 	}, CMD_FL_RENDERER, "list (loaded) textures" );
 
@@ -846,11 +846,26 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 		//bx::mtxMul( modelTransform, tmp, modelTranslation );
 	    bgfx::setTransform( modelTransform );
 		bgfx::setUniform(context->pbrContext.u_normalTransform,&modelTransform);
+		auto & matList = currentData->MaterialList();
+		auto & texList = currentData->TextureList();
+		auto & imgList = currentData->ImageList();
+		auto & smpList = currentData->SamplerList();
 		for ( auto prim : selectedMesh->primitives )
 		{
 
-			if ( selectedImage )
-				bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
+			if ( prim->material != -1 ) 
+			{
+				gltfMaterial *material = matList[prim->material];
+				//prim->material 
+				if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) 			{
+					gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
+					gltfSampler *sampler = smpList[texture->sampler];
+					gltfImage *image = imgList[texture->source];
+					bgfx::setTexture( 0, g_AttribLocationTex, image->bgfxTexture.handle );
+				}
+			}
+			//if ( selectedImage )
+			//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
 
 			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
 			bgfx::setIndexBuffer( prim->indexBufferHandle );
@@ -1048,6 +1063,7 @@ void gltfAssetExplorer::DrawImAssetTree( )
 						if(ImGui::Selectable( name.c_str( ), selected, ImGuiSelectableFlags_AllowDoubleClick ))
 						{
 							selectedMesh = mesh;
+							currentData = data;
 							//selectedImage = nullptr;
 						}
 						ImGui::PopID(/*image*/ );}
