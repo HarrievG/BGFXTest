@@ -74,8 +74,8 @@ class gltfExt_KHR_lights_punctual;
 class gltfExtensions {
 public:
 	gltfExtensions( ) { }
-	// material extension
-	idList<gltfExt_KHR_materials_pbrSpecularGlossiness *>	KHR_materials_pbrSpecularGlossiness;
+	//// material extension
+	//idList<gltfExt_KHR_materials_pbrSpecularGlossiness *>	KHR_materials_pbrSpecularGlossiness;
 	//general extension
 	idList<gltfExt_KHR_lights_punctual *>					KHR_lights_punctual;
 };
@@ -88,7 +88,7 @@ public:
 class gltfNode_Extensions {
 public:
 	gltfNode_Extensions( ) { }
-	gltfNode_KHR_lights_punctual KHR_lights_punctual;
+	idList<gltfNode_KHR_lights_punctual*>KHR_lights_punctual;
 };
 
 // todo:
@@ -99,18 +99,18 @@ public:
 	gltfNode( ) : camera( -1 ), skin( -1 ), matrix( mat4_zero ),
 		mesh( -1 ), rotation( 0.f, 0.f, 0.f, 0.f ), scale( 1.f, 1.f, 1.f ),
 		translation( vec3_zero ), parent( nullptr ), dirty( true ) { }
-	int				camera;
-	idList<int>		children;
-	int				skin;
-	idMat4			matrix;
-	int				mesh;
-	idQuat			rotation;
-	idVec3			scale;
-	idVec3			translation;
-	idList<double>	weights;
-	idStr			name;
-	idStr			extensions;
-	idStr			extras;
+	int						camera;
+	idList<int>				children;
+	int						skin;
+	idMat4					matrix;
+	int						mesh;
+	idQuat					rotation;
+	idVec3					scale;
+	idVec3					translation;
+	idList<double>			weights;
+	idStr					name;
+	gltfNode_Extensions		extensions;
+	idStr					extras;
 
 	//
 	gltfNode *parent;
@@ -415,7 +415,7 @@ public:
 	float								alphaCutoff;
 	bool								doubleSided;
 	idStr								name;
-	gltfExtension						extensions;
+	idStr						extensions;
 	gltfExtra							extras;
 	//
 	bgfxMaterial						bgfxMaterial;
