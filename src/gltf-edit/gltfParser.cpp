@@ -212,27 +212,36 @@ auto gltfPropertyArray::end( )  {
 	return Iterator{ this , endPtr};
 }
 
-void gltfItemArray::Parse(idLexer * lexer) {
+int gltfItemArray::Parse(idLexer * lexer) {
 	idToken token;
 	bool parsing = true;
+	int parseCount = 0;
 	lexer->ExpectTokenString( "{" );
 	while ( parsing && lexer->ExpectAnyToken( &token ) ) 
 	{
 		lexer->ExpectTokenString( ":" );
+		bool parsed = false;
 		for ( auto item : items ) 		
 		{
 			if ( item->Name( ) == token ) 
 			{
 				lexer->ExpectAnyToken( &token );
 				item->parse( token );
+				parsed = true;
 				break;
 			}
 		}
+		if (!parsed)
+			lexer->SkipBracedSection();
+		else
+			parseCount++;
+
 		parsing = lexer->PeekTokenString( "," );
 		if ( parsing )
 			lexer->ExpectTokenString( "," );
 	}
 	lexer->ExpectTokenString( "}" );
+	return parseCount;
 }
 
 byte * gltfData::AddData(int size, int * bufferID/*=nullptr*/)
@@ -634,37 +643,46 @@ void gltfItem_extra::parse( idToken &token )
 
 void gltfItem_KHR_materials_pbrSpecularGlossiness::parse( idToken &token ) 
 {
-	item->KHR_materials_pbrSpecularGlossiness = new gltfExt_KHR_materials_pbrSpecularGlossiness();
-	
-	parser->UnreadToken( &token );
+	item->KHR_materials_pbrSpecularGlossiness.AssureSizeAlloc(
+		item->KHR_materials_pbrSpecularGlossiness.Num( ) + 1,
+		idListNewElement<gltfExt_KHR_materials_pbrSpecularGlossiness> );
+
+	gltfExt_KHR_materials_pbrSpecularGlossiness * material = 
+		item->KHR_materials_pbrSpecularGlossiness[item->KHR_materials_pbrSpecularGlossiness.Num() - 1];
+
+
+	/*parser->UnreadToken( &token );
 	gltfItemArray khrPbr;
 	GLTFARRAYITEM( khrPbr, diffuseFactor,				gltfItem_vec4 );
 	GLTFARRAYITEM( khrPbr, diffuseTexture,				gltfItem_texture_info );
 	GLTFARRAYITEM( khrPbr, specularFactor,				gltfItem_vec3 );
 	GLTFARRAYITEM( khrPbr, glossinessFactor,			gltfItem_number );
 	GLTFARRAYITEM( khrPbr, specularGlossinessTexture,	gltfItem_texture_info );
+	GLTFARRAYITEM( khrPbr, extensions,					gltfItem);
+	GLTFARRAYITEM( khrPbr, extras,						gltfItem_extra );
 
 	diffuseFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseFactor,				parser	);
 	diffuseTexture->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseTexture,				parser	);
 	specularFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->specularFactor,				parser	);
 	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, glossinessFactor						);
 	specularGlossinessTexture->Set	( &item->KHR_materials_pbrSpecularGlossiness->specularGlossinessTexture,	parser	);
-
-	khrPbr.Parse( parser );
+	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, extensions								);
+	extras->Set						( &item->KHR_materials_pbrSpecularGlossiness->extras,						parser	);
+	khrPbr.Parse( parser );*/
 
 	if ( gltf_parseVerbose.GetBool( ) )
 		common->Printf( "%s", token.c_str( ) );
 }
 
 void gltfItem_extension::parse( idToken &token ) {
-	parser->UnreadToken( &token );
+	//parser->UnreadToken( &token );
 
-	gltfItemArray extension;
-	GLTFARRAYITEM( extension, KHR_materials_pbrSpecularGlossiness, gltfItem_KHR_materials_pbrSpecularGlossiness );
+	//gltfItemArray extension;
+	//GLTFARRAYITEM( extension, KHR_materials_pbrSpecularGlossiness, gltfItem_KHR_materials_pbrSpecularGlossiness );
 
-	KHR_materials_pbrSpecularGlossiness->Set( item, parser );
-	extension.Parse( parser );
-	gltfPropertyArray array = gltfPropertyArray( parser);
+	//KHR_materials_pbrSpecularGlossiness->Set( item, parser );
+	//extension.Parse( parser );
+	//gltfPropertyArray array = gltfPropertyArray( parser);
 	if ( gltf_parseVerbose.GetBool( ) )
 		common->Printf( "%s", token.c_str( ) );
 }
@@ -1069,6 +1087,28 @@ void GLTF_Parser::Parse_SKINS( idToken &token ) {
 		common->Printf( "%s \n", prop.item.c_str( ) );
 	parser.ExpectTokenString( "]" );
 }
+void GLTF_Parser::Parse_EXTENSIONS( idToken &token )
+{
+	idStr json;
+	parser.ParseBracedSection( json );
+
+	gltfItemArray extensions;
+	GLTFARRAYITEM( extensions, KHR_materials_pbrSpecularGlossiness, gltfItem_KHR_materials_pbrSpecularGlossiness );
+
+	idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+	lexer.LoadMemory( json.c_str( ), json.Size( ), "Extensions", 0 );
+
+	gltfExtensions gltfextensions;
+	KHR_materials_pbrSpecularGlossiness->Set( &gltfextensions, &lexer );
+	extensions.Parse( &lexer );
+	//"extensions":{"KHR_lights_punctual":{"lights":[{"color":[1,1,1],"intensity":1,"type":"directional","name":"Sun"}]}}
+
+	//add if an entry is !NULL
+	//gltfExtensions *gltfextensions = currentAsset->Extensions( );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
 void GLTF_Parser::Parse_EXTENSIONS_USED( idToken &token )
 {
 	gltfPropertyArray array = gltfPropertyArray( &parser,false );
@@ -1195,6 +1235,9 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 		case SKINS:
 			Parse_SKINS( token );
 			break;
+		case EXTENSIONS:
+			Parse_EXTENSIONS( token );
+			break;
 		case EXTENSIONS_USED:
 			Parse_EXTENSIONS_USED( token );
 			break;
@@ -1208,39 +1251,41 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 }
 gltfProperty GLTF_Parser::ResolveProp( idToken & token )
 {
-		if ( !idStr::Icmp( token.c_str( ), "asset"       ) )
+		if ( !idStr::Icmp( token.c_str( ), "asset"				) )
 		return gltfProperty::ASSET;
-	else if ( !idStr::Icmp( token.c_str( ), "cameras"       ) )
+	else if ( !idStr::Icmp( token.c_str( ), "cameras"			) )
 		return gltfProperty::CAMERAS;
-	else if ( !idStr::Icmp( token.c_str( ), "scene"       ) )
+	else if ( !idStr::Icmp( token.c_str( ), "scene"				) )
 		return gltfProperty::SCENE;
-	else if ( !idStr::Icmp( token.c_str( ), "scenes"      ) )
+	else if ( !idStr::Icmp( token.c_str( ), "scenes"			) )
 		return gltfProperty::SCENES;
-	else if ( !idStr::Icmp( token.c_str( ), "nodes"       ) )
+	else if ( !idStr::Icmp( token.c_str( ), "nodes"				) )
 		return gltfProperty::NODES;
-	else if ( !idStr::Icmp( token.c_str( ), "materials"   ) )
+	else if ( !idStr::Icmp( token.c_str( ), "materials"			) )
 		return gltfProperty::MATERIALS;
-	else if ( !idStr::Icmp( token.c_str( ), "meshes"      ) )
+	else if ( !idStr::Icmp( token.c_str( ), "meshes"			) )
 		return gltfProperty::MESHES;
-	else if ( !idStr::Icmp( token.c_str( ), "textures"    ) )
+	else if ( !idStr::Icmp( token.c_str( ), "textures"			) )
 		return gltfProperty::TEXTURES;
-	else if ( !idStr::Icmp( token.c_str( ), "images"      ) )
+	else if ( !idStr::Icmp( token.c_str( ), "images"			) )
 		return gltfProperty::IMAGES;
-	else if ( !idStr::Icmp( token.c_str( ), "accessors"   ) )
+	else if ( !idStr::Icmp( token.c_str( ), "accessors"			) )
 		return gltfProperty::ACCESSORS;
-	else if ( !idStr::Icmp( token.c_str( ), "bufferViews" ) )
+	else if ( !idStr::Icmp( token.c_str( ), "bufferViews"		) )
 		return gltfProperty::BUFFERVIEWS;
-	else if ( !idStr::Icmp( token.c_str( ), "samplers"    ) )
+	else if ( !idStr::Icmp( token.c_str( ), "samplers"			) )
 		return gltfProperty::SAMPLERS;
-	else if ( !idStr::Icmp( token.c_str( ), "buffers"     ) )
+	else if ( !idStr::Icmp( token.c_str( ), "buffers"			) )
 		return gltfProperty::BUFFERS;
-	else if ( !idStr::Icmp( token.c_str( ), "animations"  ) )
+	else if ( !idStr::Icmp( token.c_str( ), "animations"		) )
 		return gltfProperty::ANIMATIONS;
-	else if ( !idStr::Icmp( token.c_str( ), "skins" ) )
+	else if ( !idStr::Icmp( token.c_str( ), "skins"				) )
 		return gltfProperty::SKINS;
-	else if ( !idStr::Icmp( token.c_str( ), "extensionsused" ) )
+	else if ( !idStr::Icmp( token.c_str( ), "extensions"		) )
+		return gltfProperty::EXTENSIONS;
+	else if ( !idStr::Icmp( token.c_str( ), "extensionsused"	) )
 		return gltfProperty::EXTENSIONS_USED;
-	else if ( !idStr::Icmp( token.c_str( ), "extensionsrequired" ) )
+	else if ( !idStr::Icmp( token.c_str( ), "extensionsrequired") )
 		return gltfProperty::EXTENSIONS_REQUIRED;
 
 	return gltfProperty::INVALID;

@@ -62,7 +62,7 @@ private:																				\
 gltfItemClassParser( mesh_primitive,				idList<gltfMesh_Primitive *>);
 gltfItemClassParser( mesh_primitive_attribute,		idList<gltfMesh_Primitive_Attribute *> );
 gltfItemClassParser( integer_array,					idList<int>);
-gltfItemClassParser( number_array,					idList<double>);
+gltfItemClassParser( number_array,					idList<double>);//does float suffice?
 gltfItemClassParser( mat4,							idMat4 );
 gltfItemClassParser( vec4,							idVec4 );
 gltfItemClassParser( vec3,							idVec3 );
@@ -78,8 +78,10 @@ gltfItemClassParser( normal_texture,				gltfNormalTexture_Info);
 gltfItemClassParser( occlusion_texture,				gltfOcclusionTexture_Info );
 gltfItemClassParser( extension,						gltfExtension );
 gltfItemClassParser( extra,							gltfExtra );
+gltfItemClassParser( node_extensions,				gltfNode_Extensions );
 //extensions
-gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtension );
+//gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtension );
+gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtensions );
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token
@@ -104,7 +106,7 @@ public:
 	~gltfItemArray( ) { items.DeleteContents(true); }
 	gltfItemArray( ){ };
 	void AddItemDef( parsable *item ) { items.Alloc( ) = item;}
-	void Parse(idLexer * lexer );
+	int Parse(idLexer * lexer );
 private:
 	idList<parsable*> items;
 };
@@ -177,6 +179,7 @@ private:
 	void Parse_BUFFERS( idToken &token );
 	void Parse_ANIMATIONS( idToken &token );
 	void Parse_SKINS( idToken &token );
+	void Parse_EXTENSIONS( idToken &token );
 	void Parse_EXTENSIONS_USED( idToken &token );
 	void Parse_EXTENSIONS_REQUIRED( idToken &token );
 	

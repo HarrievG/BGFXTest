@@ -861,7 +861,13 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 					gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
 					gltfSampler *sampler = smpList[texture->sampler];
 					gltfImage *image = imgList[texture->source];
-					bgfx::setTexture( 0, g_AttribLocationTex, image->bgfxTexture.handle );
+					bgfx::setTexture( 0, context->pbrContext.s_baseColor, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+				}
+				if ( material->normalTexture.index!= -1 ) {
+					gltfTexture *texture = texList[material->normalTexture.index];
+					gltfSampler *sampler = smpList[texture->sampler];
+					gltfImage *image = imgList[texture->source];
+					bgfx::setTexture( 1, context->pbrContext.s_normal, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
 				}
 			}
 			//if ( selectedImage )
