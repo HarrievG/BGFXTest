@@ -165,7 +165,7 @@ int main( int argc, char **argv )
     bgfx_init.platformData = pd;
     bgfx_init.callback = (bgfx::CallbackI *)&bgfx::bgfxCallbacksLocal;
     bgfx::init( bgfx_init );
-
+	bgfxCreateSysCommands( &context );
     bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
     bgfx::setViewClear(1, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
     

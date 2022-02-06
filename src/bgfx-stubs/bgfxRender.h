@@ -29,6 +29,14 @@ struct bgfxMrtContext_t{
 
     bgfx::UniformHandle colorUniformHandle = BGFX_INVALID_HANDLE;;
 
+
+    bgfx::TextureHandle gbufferTex[6] = {   BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE,
+                                            BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE };
+    bgfx::FrameBufferHandle gBuffer;
+    bgfx::FrameBufferHandle lightGBuffer;
+    bgfx::TextureHandle hdrFbTextures[2];
+    bgfx::FrameBufferHandle hdrFrameBuffer;
+
     int width = 0;
     int height = 0;
     bgfx::ViewId viewId;
@@ -210,6 +218,7 @@ public:
 };
 
 typedef void ( *bgfxCallback )( bgfxContext_t *context );
+void bgfxCreateSysCommands( bgfxContext_t *context );
 void bgfxShutdown( bgfxContext_t *context);
 void bgfxInitShaders( bgfxContext_t *context );
 void bgfxRender( bgfxContext_t* context );
