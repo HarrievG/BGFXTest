@@ -62,20 +62,10 @@ public:
 };
 
 
-class gltfExt_KHR_materials_pbrSpecularGlossiness;
-class gltfExtension {
-public:
-	gltfExtension( ) :
-		KHR_materials_pbrSpecularGlossiness( nullptr ) 	{ }
-	gltfExt_KHR_materials_pbrSpecularGlossiness *KHR_materials_pbrSpecularGlossiness;
-};
-
 class gltfExt_KHR_lights_punctual;
 class gltfExtensions {
 public:
 	gltfExtensions( ) { }
-	//// material extension
-	//idList<gltfExt_KHR_materials_pbrSpecularGlossiness *>	KHR_materials_pbrSpecularGlossiness;
 	idList<gltfExt_KHR_lights_punctual *>	KHR_lights_punctual;
 };
 
@@ -86,8 +76,17 @@ public:
 
 class gltfNode_Extensions {
 public:
-	gltfNode_Extensions( ) { }
+	gltfNode_Extensions( ) : 
+		KHR_lights_punctual( nullptr) { }
 	gltfNode_KHR_lights_punctual* KHR_lights_punctual;
+};
+
+class gltfExt_KHR_materials_pbrSpecularGlossiness;
+class gltfMaterial_Extensions {
+public:
+	gltfMaterial_Extensions( ) :
+		KHR_materials_pbrSpecularGlossiness( nullptr ) { }
+	gltfExt_KHR_materials_pbrSpecularGlossiness *KHR_materials_pbrSpecularGlossiness;
 };
 
 // todo:
@@ -414,7 +413,7 @@ public:
 	float								alphaCutoff;
 	bool								doubleSided;
 	idStr								name;
-	idStr						extensions;
+	gltfMaterial_Extensions				extensions;
 	gltfExtra							extras;
 	//
 	bgfxMaterial						bgfxMaterial;
@@ -452,7 +451,7 @@ public:
 	float				glossinessFactor;
 	gltfTexture_Info	specularGlossinessTexture;
 	idStr				extensions;
-	gltfExtra			extras;
+	idStr				extras;
 };
 
 //KHR_lights_punctual_spot

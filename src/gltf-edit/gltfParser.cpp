@@ -641,17 +641,9 @@ void gltfItem_extra::parse( idToken &token )
 		common->Printf( "%s", item->json.c_str( ) );
 }
 
-void gltfItem_KHR_materials_pbrSpecularGlossiness::parse( idToken &token ) 
+void gltfItem_Material_KHR_materials_pbrSpecularGlossiness::parse( idToken &token ) 
 {
-	//item->KHR_materials_pbrSpecularGlossiness.AssureSizeAlloc(
-	//	item->KHR_materials_pbrSpecularGlossiness.Num( ) + 1,
-	//	idListNewElement<gltfExt_KHR_materials_pbrSpecularGlossiness> );
-
-	//gltfExt_KHR_materials_pbrSpecularGlossiness * material = 
-	//	item->KHR_materials_pbrSpecularGlossiness[item->KHR_materials_pbrSpecularGlossiness.Num() - 1];
-
-
-	/*parser->UnreadToken( &token );
+	parser->UnreadToken( &token );
 	gltfItemArray khrPbr;
 	GLTFARRAYITEM( khrPbr, diffuseFactor,				gltfItem_vec4 );
 	GLTFARRAYITEM( khrPbr, diffuseTexture,				gltfItem_texture_info );
@@ -659,16 +651,18 @@ void gltfItem_KHR_materials_pbrSpecularGlossiness::parse( idToken &token )
 	GLTFARRAYITEM( khrPbr, glossinessFactor,			gltfItem_number );
 	GLTFARRAYITEM( khrPbr, specularGlossinessTexture,	gltfItem_texture_info );
 	GLTFARRAYITEM( khrPbr, extensions,					gltfItem);
-	GLTFARRAYITEM( khrPbr, extras,						gltfItem_extra );
+	GLTFARRAYITEM( khrPbr, extras,						gltfItem );
+
+	item->KHR_materials_pbrSpecularGlossiness = new gltfExt_KHR_materials_pbrSpecularGlossiness( );
 
 	diffuseFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseFactor,				parser	);
 	diffuseTexture->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseTexture,				parser	);
 	specularFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->specularFactor,				parser	);
-	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, glossinessFactor						);
+	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness,						glossinessFactor);
 	specularGlossinessTexture->Set	( &item->KHR_materials_pbrSpecularGlossiness->specularGlossinessTexture,	parser	);
-	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, extensions								);
-	extras->Set						( &item->KHR_materials_pbrSpecularGlossiness->extras,						parser	);
-	khrPbr.Parse( parser );*/
+	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness,							extensions	);
+	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness,								extras	);
+	khrPbr.Parse( parser );
 
 	if ( gltf_parseVerbose.GetBool( ) )
 		common->Printf( "%s", token.c_str( ) );
@@ -747,15 +741,15 @@ void gltfItem_node_extensions::parse( idToken &token )
 
 }
 
-void gltfItem_extension::parse( idToken &token ) {
-	//parser->UnreadToken( &token );
+void gltfItem_material_extensions::parse( idToken &token ) {
+	parser->UnreadToken( &token );
 
-	//gltfItemArray extension;
-	//GLTFARRAYITEM( extension, KHR_materials_pbrSpecularGlossiness, gltfItem_KHR_materials_pbrSpecularGlossiness );
+	gltfItemArray extensions;
+	GLTFARRAYITEM( extensions, KHR_materials_pbrSpecularGlossiness, gltfItem_Material_KHR_materials_pbrSpecularGlossiness );
 
-	//KHR_materials_pbrSpecularGlossiness->Set( item, parser );
-	//extension.Parse( parser );
-	//gltfPropertyArray array = gltfPropertyArray( parser);
+	KHR_materials_pbrSpecularGlossiness->Set( item, parser );
+	extensions.Parse( parser );
+	gltfPropertyArray array = gltfPropertyArray( parser);
 	if ( gltf_parseVerbose.GetBool( ) )
 		common->Printf( "%s", token.c_str( ) );
 }
@@ -890,7 +884,7 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 	GLTFARRAYITEM( material, alphaCutoff,			gltfItem_number );
 	GLTFARRAYITEM( material, doubleSided,			gltfItem_boolean );
 	GLTFARRAYITEM( material, name,					gltfItem );
-	GLTFARRAYITEM( material, extensions,			gltfItem );
+	GLTFARRAYITEM( material, extensions,			gltfItem_material_extensions );
 	GLTFARRAYITEM( material, extras,				gltfItem_extra );
 
 	gltfPropertyArray array = gltfPropertyArray( &parser );
@@ -909,8 +903,7 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 		GLTFARRAYITEMREF			( gltfmaterial, alphaCutoff						);
 		GLTFARRAYITEMREF			( gltfmaterial, doubleSided						);
 		GLTFARRAYITEMREF			( gltfmaterial, name							);
-		//extensions->Set				( &gltfmaterial->extensions,			&lexer	);
-		GLTFARRAYITEMREF			( gltfmaterial, extensions						);
+		extensions->Set				( &gltfmaterial->extensions,			&lexer	);
 		extras->Set					( &gltfmaterial->extras,				&lexer	);
 		material.Parse( &lexer );
 

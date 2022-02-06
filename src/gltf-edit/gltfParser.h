@@ -76,15 +76,16 @@ gltfItemClassParser( pbrMetallicRoughness,			gltfMaterial_pbrMetallicRoughness )
 gltfItemClassParser( texture_info,					gltfTexture_Info);
 gltfItemClassParser( normal_texture,				gltfNormalTexture_Info);
 gltfItemClassParser( occlusion_texture,				gltfOcclusionTexture_Info );
-gltfItemClassParser( extension,						gltfExtension );
 gltfItemClassParser( extra,							gltfExtra );
 gltfItemClassParser( node_extensions,				gltfNode_Extensions );
+gltfItemClassParser( material_extensions,			gltfMaterial_Extensions );
 
 //extensions
 //gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtension );
-gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtensions );//gltfMaterial_Extensions
+//gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfMaterial_Extensions );
 gltfItemClassParser( KHR_lights_punctual, gltfExtensions );
 gltfItemClassParser( Node_KHR_lights_punctual, gltfNode_Extensions );
+gltfItemClassParser( Material_KHR_materials_pbrSpecularGlossiness, gltfMaterial_Extensions );
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token
