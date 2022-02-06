@@ -675,43 +675,23 @@ void gltfItem_KHR_materials_pbrSpecularGlossiness::parse( idToken &token )
 }
 
 void gltfItem_Node_KHR_lights_punctual::parse( idToken &token ) {
-	item->KHR_lights_punctual.AssureSizeAlloc(
-		item->KHR_lights_punctual.Num( ) + 1,
-		idListNewElement<gltfExt_KHR_lights_punctual> );
 
-	//gltfExt_KHR_materials_pbrSpecularGlossiness *material =
-	//	item->KHR_materials_pbrSpecularGlossiness[item->KHR_materials_pbrSpecularGlossiness.Num( ) - 1];
-
-	gltfItemArray light;
-	//GLTFARRAYITEM( khrPbr, diffuseFactor, gltfItem_vec4 );
-
-	/*parser->UnreadToken( &token );
-	gltfItemArray khrPbr;
-	GLTFARRAYITEM( khrPbr, diffuseFactor,				gltfItem_vec4 );
-	GLTFARRAYITEM( khrPbr, diffuseTexture,				gltfItem_texture_info );
-	GLTFARRAYITEM( khrPbr, specularFactor,				gltfItem_vec3 );
-	GLTFARRAYITEM( khrPbr, glossinessFactor,			gltfItem_number );
-	GLTFARRAYITEM( khrPbr, specularGlossinessTexture,	gltfItem_texture_info );
-	GLTFARRAYITEM( khrPbr, extensions,					gltfItem);
-	GLTFARRAYITEM( khrPbr, extras,						gltfItem_extra );
-
-	diffuseFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseFactor,				parser	);
-	diffuseTexture->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseTexture,				parser	);
-	specularFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->specularFactor,				parser	);
-	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, glossinessFactor						);
-	specularGlossinessTexture->Set	( &item->KHR_materials_pbrSpecularGlossiness->specularGlossinessTexture,	parser	);
-	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, extensions								);
-	extras->Set						( &item->KHR_materials_pbrSpecularGlossiness->extras,						parser	);
-	khrPbr.Parse( parser );*/
+	parser->UnreadToken( &token );
+	gltfItemArray xlight;
+	GLTFARRAYITEM( xlight, light, gltfItem_integer );
+	item->KHR_lights_punctual = new gltfNode_KHR_lights_punctual( );
+	light->Set( &item->KHR_lights_punctual->light );
+	xlight.Parse( parser );
 
 	if ( gltf_parseVerbose.GetBool( ) )
 		common->Printf( "%s", token.c_str( ) );
 }
 
-
 void gltfItem_KHR_lights_punctual::parse( idToken &token ) {
+	idToken localToken;
+	parser->ExpectTokenString( "lights" );
+	parser->ExpectTokenString( ":" );
 
-	parser->UnreadToken( &token );
 	gltfItemArray light;
 	GLTFARRAYITEM( light, color,		gltfItem_vec3 );
 	GLTFARRAYITEM( light, intensity,	gltfItem_number );
@@ -746,47 +726,25 @@ void gltfItem_KHR_lights_punctual::parse( idToken &token ) {
 		light.Parse( &lexer );
 
 		if ( gltf_parseVerbose.GetBool( ) )
-			common->Printf( "%s", token.c_str( ) );
+			common->Printf( "%s", prop.item.c_str( ) );
 	}
 
 	parser->ExpectTokenString( "]" );
-	/*parser->UnreadToken( &token );
-
-	diffuseFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseFactor,				parser	);
-	diffuseTexture->Set				( &item->KHR_materials_pbrSpecularGlossiness->diffuseTexture,				parser	);
-	specularFactor->Set				( &item->KHR_materials_pbrSpecularGlossiness->specularFactor,				parser	);
-	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, glossinessFactor						);
-	specularGlossinessTexture->Set	( &item->KHR_materials_pbrSpecularGlossiness->specularGlossinessTexture,	parser	);
-	GLTFARRAYITEMREF				( item->KHR_materials_pbrSpecularGlossiness, extensions								);
-	extras->Set						( &item->KHR_materials_pbrSpecularGlossiness->extras,						parser	);
-	khrPbr.Parse( parser );*/
-
-	if ( gltf_parseVerbose.GetBool( ) )
-		common->Printf( "%s", token.c_str( ) );
+	parser->ExpectTokenString( "}" );
 }
 
 void gltfItem_node_extensions::parse( idToken &token )
 {
-	gltfItemArray extension;
-	GLTFARRAYITEM( extension, KHR_lights_puntual,gltfItem_Node_KHR_lights_punctual);
+	parser->UnreadToken( &token );
+	gltfItemArray extensions;
+	GLTFARRAYITEM( extensions, KHR_lights_punctual, gltfItem_Node_KHR_lights_punctual );
 
+	KHR_lights_punctual->Set( item, parser);
+	extensions.Parse( parser );
 
-	gltfPropertyArray array = gltfPropertyArray( parser );
-	for ( auto &prop : array ) {
-		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
-		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfNode_light", 0 );
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
 
-		int idx = item->KHR_lights_punctual.Num( ) ;
-		item->KHR_lights_punctual.AssureSizeAlloc( idx + 1, idListNewElement<gltfNode_KHR_lights_punctual> );
-		gltfNode_KHR_lights_punctual * light = item->KHR_lights_punctual[idx];
-		//KHR_lights_puntual->Set( light , parser );
-
-		if ( gltf_parseVerbose.GetBool( ) )
-			common->Printf( "%s", prop.item.c_str( ) );
-	}
-	parser->ExpectTokenString( "]" );
-	//KHR_lights_puntual->Set(&item->KHR_lights_punctual, parser );
-	// { "KHR_lights_punctual" : { "light" : 0 } } , "name" : "Sun_Orientation" , "rotation" : [ - 0.7071067690849304 , 0 , 0 , 0.7071067690849304 ] } 
 }
 
 void gltfItem_extension::parse( idToken &token ) {
@@ -872,7 +830,7 @@ void GLTF_Parser::Parse_CAMERAS( idToken &token )
 		camera.Parse( &lexer );
 
 		if ( gltf_parseVerbose.GetBool( ) )
-			common->Printf( "%s", token.c_str( ) );
+			common->Printf( "%s", prop.item.c_str( ) );
 	}
 	parser.ExpectTokenString( "]" );
 }
@@ -1209,25 +1167,18 @@ void GLTF_Parser::Parse_EXTENSIONS( idToken &token )
 	parser.ParseBracedSection( json );
 
 	gltfItemArray extensions;
-	GLTFARRAYITEM( extensions, KHR_materials_pbrSpecularGlossiness, gltfItem_KHR_materials_pbrSpecularGlossiness );
+	//GLTFARRAYITEM( extensions, KHR_materials_pbrSpecularGlossiness, gltfItem_KHR_materials_pbrSpecularGlossiness );
 	GLTFARRAYITEM( extensions, KHR_lights_punctual, gltfItem_KHR_lights_punctual );
 
 	idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
 	lexer.LoadMemory( json.c_str( ), json.Size( ), "Extensions", 0 );
-
-	gltfExtensions gltfextensions;
-	KHR_materials_pbrSpecularGlossiness->Set( &gltfextensions, &lexer );
-	KHR_lights_punctual->Set(&gltfextensions, &lexer );
-
-
+	gltfExtensions * gltfextension = currentAsset->Extensions();
+	//KHR_materials_pbrSpecularGlossiness->Set( &gltfextensions, &lexer );
+	KHR_lights_punctual->Set(gltfextension, &lexer );
 	extensions.Parse( &lexer );
-	//"extensions":{"KHR_lights_punctual":{"lights":[{"color":[1,1,1],"intensity":1,"type":"directional","name":"Sun"}]}}
-
-	//add if an entry is !NULL
-	//gltfExtensions *gltfextensions = currentAsset->Extensions( );
 
 	if ( gltf_parseVerbose.GetBool( ) )
-		common->Printf( "%s", token.c_str( ) );
+		common->Printf( "%s", json.c_str( ) );
 }
 void GLTF_Parser::Parse_EXTENSIONS_USED( idToken &token )
 {

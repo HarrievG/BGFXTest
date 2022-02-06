@@ -82,9 +82,9 @@ gltfItemClassParser( node_extensions,				gltfNode_Extensions );
 
 //extensions
 //gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtension );
-gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtensions );
+gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtensions );//gltfMaterial_Extensions
 gltfItemClassParser( KHR_lights_punctual, gltfExtensions );
-gltfItemClassParser( Node_KHR_lights_punctual, gltfExtensions );
+gltfItemClassParser( Node_KHR_lights_punctual, gltfNode_Extensions );
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token

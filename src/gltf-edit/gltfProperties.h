@@ -76,8 +76,7 @@ public:
 	gltfExtensions( ) { }
 	//// material extension
 	//idList<gltfExt_KHR_materials_pbrSpecularGlossiness *>	KHR_materials_pbrSpecularGlossiness;
-	//general extension
-	idList<gltfExt_KHR_lights_punctual *>					KHR_lights_punctual;
+	idList<gltfExt_KHR_lights_punctual *>	KHR_lights_punctual;
 };
 
 class gltfNode_KHR_lights_punctual {
@@ -88,7 +87,7 @@ public:
 class gltfNode_Extensions {
 public:
 	gltfNode_Extensions( ) { }
-	idList<gltfNode_KHR_lights_punctual*>KHR_lights_punctual;
+	gltfNode_KHR_lights_punctual* KHR_lights_punctual;
 };
 
 // todo:
