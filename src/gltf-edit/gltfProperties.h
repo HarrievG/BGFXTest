@@ -552,6 +552,36 @@ public:
 		}
 		return result;
 	}
+
+	//Please note : assumes all nodes are _not_ dirty!
+	idMat4 GetViewMatrix( int camId ) const
+	{
+		idMat4 result = mat4_identity;
+
+		idList<gltfNode*> hierachy;
+		gltfNode* parent = nullptr;
+		hierachy.SetGranularity(2);
+
+		for ( int i = 0; i < nodes.Num( ); i++ )
+		{
+			if ( nodes[i]->camera != -1 && nodes[i]->camera == camId ) 
+			{
+				parent = nodes[i];
+				while ( parent )
+				{
+					hierachy.Append(parent);
+					parent = parent->parent;
+				}
+				break;
+			}
+		}
+
+		for ( int i = hierachy.Num()-1; i >=0; i--) 
+			result *= hierachy[i]->matrix;
+
+		return result;
+	}
+
 	//bgfc = column-major
 	//idmath = row major, except mat3
 	//gltf matrices : column-major.

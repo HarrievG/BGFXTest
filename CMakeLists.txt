@@ -122,6 +122,9 @@ add_globbed_headers(src_idlib "idlib")
 add_library(idFramework STATIC ${src_idlib})
 
 set(Sources 
+	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxRenderer.cpp
+	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/Renderers/LightShader.cpp
+	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/Renderers/PBRShader.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxImage.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxRender.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxCallback.cpp

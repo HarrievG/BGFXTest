@@ -1,4 +1,4 @@
-$input v_position, v_normal, v_tangent, v_bitangent, v_texcoord
+$input v_position, v_normal, v_tangent, v_bitangent, v_texcoord, v_color
 
 #include <common.sh>
 
@@ -92,7 +92,7 @@ void main()
         ) * light;
     }
 
-    gl_FragColor = vec4(toGammaAccurate(color * matColor.w), matColor.w);
-    gl_FragColor = vec4(normalize(v_normal), 1);
+    //gl_FragColor = vec4(toGammaAccurate(color * matColor.w), matColor.w);
+    //gl_FragColor = vec4(normalize(v_normal), 1);
     gl_FragColor = texture2D(diffuseMap, v_texcoord);
 }

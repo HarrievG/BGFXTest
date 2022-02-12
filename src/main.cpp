@@ -21,6 +21,7 @@
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
 
+idCVar com_editing( "edit", "0", CVAR_BOOL | CVAR_SYSTEM, "editor mode" );
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
@@ -90,7 +91,8 @@ int main( int argc, char **argv )
     common->Init( argc, argv );
     fileSystem->Init( );
     eventLoop->Init();
-    sceneEditor->Init( );
+	if ( com_editing.GetBool() )
+		sceneEditor->Init( );
 
     //eventLoop->RegisterCallback([]( const sysEvent_t &event )
     //-> auto { 

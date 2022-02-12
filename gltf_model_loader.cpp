@@ -73,9 +73,9 @@ namespace bae
 
     // Returns a transformation matrix for a given GLTF node
     // Order of operations (right to left) in glTF: parentTransform * (T * R * S)
-    glm::mat4 processTransform(const tinygltf::Node& node, const glm::mat4& parentTransform)
+    idMat4 processTransform(const tinygltf::Node& node, const idMat4& parentTransform)
     {
-        glm::mat4 localTransform = glm::identity<glm::mat4>();
+        idMat4 localTransform = glm::identity<idMat4>();
         if (node.scale.size() == 3)
         {
             localTransform = glm::scale(localTransform, glm::vec3{ node.scale[0], node.scale[0], node.scale[0] });
@@ -220,10 +220,10 @@ namespace bae
         return boundingBox;
     }
 
-    void loadModelNode(Model& output_model, tinygltf::Model& gltf_model, const tinygltf::Node& node, glm::mat4 parentTransform, const MaterialsList& materials_list)
+    void loadModelNode(Model& output_model, tinygltf::Model& gltf_model, const tinygltf::Node& node, idMat4 parentTransform, const MaterialsList& materials_list)
     {
         // Process the transform
-        glm::mat4 transform = processTransform(node, parentTransform);
+        idMat4 transform = processTransform(node, parentTransform);
 
         // Process the mesh (resulting in a Mesh, Material, RenderState and Transform?)
         if (node.mesh != -1)
@@ -475,7 +475,7 @@ namespace bae
         // For each node in the scene
         for (const int node_idx : scene.nodes)
         {
-            loadModelNode(output_model, gltf_model, gltf_model.nodes[node_idx], glm::identity<glm::mat4>(), materials_list);
+            loadModelNode(output_model, gltf_model, gltf_model.nodes[node_idx], glm::identity<idMat4>(), materials_list);
         }
 
         return output_model;

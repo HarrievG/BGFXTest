@@ -5,6 +5,7 @@
 #include "CmdSystem.h"
 #include <ImGuizmo.h>
 #include "bgfxImage.h"
+#include "gltf-edit/gltfProperties.h"
 
 static PosColorVertex cube_vertices[] = {
 	{-1.0f, 1.0f, 1.0f, 0xff000000},	{1.0f, 1.0f, 1.0f, 0xff0000ff},
@@ -22,7 +23,7 @@ idCVar r_customWidth( "r_customWidth", "1920", CVAR_RENDERER | CVAR_ARCHIVE | CV
 idCVar r_customHeight( "r_customHeight", "1080", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen height. set r_mode to -1 to activate" );
 idCVar r_aspectRatio( "r_aspectRatio", "-1", CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "aspect ratio of view:\n0 = 4:3\n1 = 16:9\n2 = 16:10\n-1 = auto (guess from resolution)", -1, 2 );
 idCVar r_mode( "r_mode", "-1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "video mode number" );
-
+idCVar r_forceRenderMode( "r_forceRenderMode", "1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "scene viewer shading mode: \n1=debugColorVertex\n2=debugNormalVertex\n3=PBR" );
 idList<bgfxCallback> bgfxCallbackList;
 
 xthreadInfo RenderThread;
@@ -69,9 +70,12 @@ void bgfxShutdown( bgfxContext_t *context ) {
 
 void bgfxCreatePbrContext(bgfxPbrContext_t & context )
 {
+	static int sCount = 0;
+	idStr vsShaderName;sprintf(vsShaderName, "pbr_vsshader%i", sCount++);
+	idStr fsShaderName;sprintf(fsShaderName, "pbr_fsshader%i", sCount++);
 	//create shaders
-	bgfx::ShaderHandle vsh = bgfxCreateShader( "shaders/v_pbr.bin", "pbr_vshader" );
-	bgfx::ShaderHandle fsh = bgfxCreateShader( "shaders/f_pbr.bin", "pbr_fsshader" );
+	bgfx::ShaderHandle vsh = bgfxCreateShader( "shaders/v_pbr.bin", vsShaderName.c_str());
+	bgfx::ShaderHandle fsh = bgfxCreateShader( "shaders/f_pbr.bin", fsShaderName.c_str() );
 	context.pbrProgram = bgfx::createProgram( vsh, fsh, true );
 	//create Uniforms
 	context.s_baseColor			= bgfx::createUniform( "s_baseColor", bgfx::UniformType::Sampler );
@@ -106,11 +110,13 @@ void bgfxInitShaders( bgfxContext_t *context ) {
 	bgfx::ShaderHandle fsh		= bgfxCreateShader( "shaders/f_simple.bin", "fsshader" );
 	bgfx::ProgramHandle program = bgfx::createProgram( vsh, fsh, true );
 	
-	bgfxCreatePbrContext( context->pbrContext );
-	//context_t context;
 	context->program = program;	
 	context->vbh = vbh;
 	context->ibh = ibh;
+
+	bgfxCreatePbrContext( context->pbrContext );
+	//context_t context;
+
 	
 	context->colorUniformHandle = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
 	context->fbh.idx = bgfx::kInvalidHandle;
@@ -394,4 +400,73 @@ void bgfxStartRenderThread( ) {
 	} else {
 		common->Printf( "background thread already running\n" );
 	}
+}
+
+
+void bgfxSetRenderMode( bgfx::ViewId viewId ,  bgfxContext_t *context, uint mode)
+{
+	switch( mode )
+	{
+	case 1:
+		bgfx::submit( viewId, context->program );
+		break;
+	case 2:
+		break;
+	case 3:
+		bgfx::submit( viewId, context->pbrContext.pbrProgram );
+		break;
+	}
+}
+void bgfxRenderSceneNode( bgfx::ViewId viewId, bgfxContext_t *context, gltfNode *node, idMat4 trans, gltfData* data )
+{
+	auto & nodeList = data->NodeList( ); 
+	auto & meshList = data->MeshList( );
+	auto & matList	= data->MaterialList();
+	auto & texList	= data->TextureList();
+	auto & imgList	= data->ImageList();
+	auto & smpList	= data->SamplerList();
+
+	idMat4 mat;
+	gltfData::ResolveNodeMatrix( node, &mat);
+	idMat4 curTrans = trans * node->matrix ;
+
+	if ( node->mesh != -1 ) 		
+	{
+		for ( auto prim : meshList[node->mesh]->primitives )
+		{
+			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
+			//bgfx::setUniform(context->pbrContext.u_normalTransform,curTrans.Transpose().ToFloatPtr());
+
+			if ( prim->material != -1 ) 
+			{
+				gltfMaterial *material = matList[prim->material];
+				//prim->material 
+				if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) 			{
+					gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
+					gltfSampler *sampler = smpList[texture->sampler];
+					gltfImage *image = imgList[texture->source];
+					bgfx::setTexture( 0, context->pbrContext.s_baseColor, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+				}
+				if ( material->normalTexture.index!= -1 ) {
+					gltfTexture *texture = texList[material->normalTexture.index];
+					gltfSampler *sampler = smpList[texture->sampler];
+					gltfImage *image = imgList[texture->source];
+					bgfx::setTexture( 1, context->pbrContext.s_normal, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+				}
+			}
+
+			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
+			bgfx::setIndexBuffer( prim->indexBufferHandle );
+
+			
+			if (r_forceRenderMode.GetInteger() != -1 )
+				bgfxSetRenderMode(viewId, context ,r_forceRenderMode.GetInteger());
+			
+
+			bgfx::submit( viewId, context->program );
+		}
+	}
+
+	for ( auto &child : node->children )
+		bgfxRenderSceneNode(viewId, context, nodeList[child], curTrans, data );
 }

@@ -226,3 +226,7 @@ void bgfxRegisterCallback( bgfxCallback callback );
 void bgfxCreateMrtTarget( bgfxMrtContext_t &context, const char *name );
 bgfx::ShaderHandle  bgfxCreateShader( const char *shaderFile, const char *name );
 void bgfxStartRenderThread( );
+
+class gltfData;
+class gltfNode;
+void bgfxRenderSceneNode( bgfx::ViewId viewId, bgfxContext_t *context, gltfNode *node, idMat4 trans, gltfData* data );

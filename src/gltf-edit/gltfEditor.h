@@ -22,11 +22,7 @@ public:
 	int IsFileLoaded( const char *file );
 
 	idStrList& GetLoadedFiles( ) {return loadedFiles; }
-	//return BgfxModel if loaded 
-	// meshName : the gltf Mesh to return as rendermodel
-	// assetName : if emtpy, searches all loaded gltf asset files,
-	//				otherwise only in given assetfile.
-	bgfxModel* GetRenderModel(const idStr & meshName, const idStr & assetName );
+
 private:
 	void DrawSceneList ();
 	bool DrawSceneNode ( gltfNode *node, const idList<gltfNode *> &nodeList );

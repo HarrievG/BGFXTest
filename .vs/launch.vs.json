@@ -2,20 +2,36 @@
   "version": "0.2.1",
   "defaults": {},
   "configurations": [
-    {
-      "type": "default",
-      "project": "CMakeLists.txt",
-      "projectTarget": "gfxTest.exe",
-      "name": "gfxTest dev",
-      "args": [
-        "+set fs_basepath \"../../..\" ",
-        "+set fs_devpath  ",
-        "+set r_fullscreen 0",
-        "+set com_allowConsole 1",
-        "+set developer 1",
-		"+set fs_debug 1",
-		"+set win_outputDebugString 1"
-      ]
-    }
+		{
+			"type": "default",
+			"project": "CMakeLists.txt",
+			"projectTarget": "gfxTest.exe",
+			"name": "gfxTest dev",
+			"args": [
+				"+set fs_basepath \"../../..\" ",
+				"+set fs_devpath  ",
+				"+set r_fullscreen 0",
+				"+set com_allowConsole 1",
+				"+set developer 1",
+				"+set fs_debug 1",
+				"+set win_outputDebugString 1"
+			]
+		},
+		{
+			"type": "default",
+			"project": "CMakeLists.txt",
+			"projectTarget": "gfxTest.exe",
+			"name": "gfxTest dev editor",
+			"args": [
+				"+set edit 1",
+				"+set fs_basepath \"../../..\" ",
+				"+set fs_devpath  ",
+				"+set r_fullscreen 0",
+				"+set com_allowConsole 1",
+				"+set developer 1",
+				"+set fs_debug 1",
+				"+set win_outputDebugString 1"
+			]
+		}
   ]
 }

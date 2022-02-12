@@ -98,14 +98,6 @@ void gltfSceneEditor::Init( )
 		}
 		common->Printf( "%i glTF meshes total\n", totalMeshes );
 	}, CMD_FL_RENDERER, "list loaded gltf meshes" );
-	
-	cmdSystem->AddCommand( "gltf_containertest", []( const idCmdArgs &args )
-		-> auto {
-		if ( args.Argc( ) != 2 )
-			common->Printf( "use: gltf_ContainerTest <modelName>" );
-		else
-			thisPtr->GetRenderModel(args.Argv(1),idStr());
-	}, CMD_FL_RENDERER, "test model cache" );
 
 	cmdSystem->AddCommand( "gltf_ShowExplorer", []( const idCmdArgs &args )
 		-> auto {
@@ -243,15 +235,25 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 		0, 0, scale.z, 0,
 		0, 0, 0, 1
 	);
-
-	bgfx::touch( renderTarget.viewId );
+	bgfx::touch(renderTarget.viewId);
 
 	if (selectedScene && currentData)
 	{
 		if (selectedCameraId != -1 )
 		{
+			idMat4 curTrans = currentData->GetViewMatrix(selectedCameraId);
+			idVec3 idup = idVec3(curTrans[0][1],curTrans[1][1],curTrans[2][1]);
+			idVec3 forward = idVec3(- curTrans[0][2],- curTrans[1][2], -curTrans[2][2] );
+			idVec3 pos = idVec3(curTrans[0][3],curTrans[1][3],curTrans[2][3] );
+
+			bx::Vec3 at = bx::Vec3(pos.x + forward.x, pos.y +forward.y ,pos.z+forward.z );
+			bx::Vec3 eye = bx::Vec3(pos.x,pos.y,pos.z);
+			bx::Vec3 up = bx::Vec3(idup.x,idup.y,idup.z );
+			bx::mtxLookAt( cameraView.ToFloatPtr( ), eye, at, up ,bx::Handness::Right );
+
 			gltfCamera_Perspective &sceneCam = currentData->CameraList( )[selectedCameraId]->perspective;
 			bx::mtxProj( cameraProjection.ToFloatPtr( ), RAD2DEG( sceneCam.yfov ), sceneCam.aspectRatio, sceneCam.znear, sceneCam.zfar, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
+			bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 		}
 
 		if (!currentData->CameraList().Num() )
@@ -269,11 +271,11 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 			for ( auto &node : scene->nodes)
 			{
 				idMat4 mat = mat4_identity;
-				RenderSceneNode(context, nodeList[node], mat, nodeList);
+				bgfxRenderSceneNode(renderTarget.viewId,context, nodeList[node], mat, currentData);
 			}
 	}
 
-	bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
+	
 
 	if ( bgfx::isValid( renderTarget.rb ) )
 		bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
@@ -612,175 +614,6 @@ bool gltfSceneEditor::Show( bool visible ) {
 	return false;
 }
 
-bgfxModel * gltfSceneEditor::GetRenderModel(const idStr & meshName, const idStr & assetName )
-{
-	////return cached model
-	//int idx = modelNames.FindIndex(meshName);
-	//if ( idx != -1)
-	//{
-	//	common->DPrintf("%s was already cached" , meshName.c_str());
-	//	return & renderModels[idx];
-	//}
-	//
-	////find mesh
-	//if (1 ) { }
-	//// load / get dummy assets
-	//int textureDummyIdx = IsFileLoaded( "dummies.gltf" );
-	//if ( textureDummyIdx < 0)
-	//{
-	//	if (LoadFile ("dummies.gltf"))
-	//	{
-	//		textureDummyIdx = IsFileLoaded( "dummies.gltf" );
-	//		//auto & dummyAsset = GetLoadedAssets()[textureDummyIdx];
-	//		int newIdx = modelNames.AddUnique( "textureDummy" );
-	//		bgfxModel &textureDummy = renderModels.Alloc( );
-	//		for (auto& img : dummyAsset.images)
-	//		{
-	//			if (!LoadTextureForModel( textureDummy,img))
-	//				return false;
-	//		}
-	//		textureDummyIdx = newIdx;
-	//	}
-	//}else
-	//	textureDummyIdx = modelNames.FindIndex("textureDummy");
-
-	//auto & dummyTextures = renderModels[textureDummyIdx].textures;
-	//
-	////create new 
-	//int newIdx = modelNames.AddUnique( meshName );
-	bgfxModel& out = renderModels.Alloc();
-	//for (auto &asset : GetLoadedAssets())
-	//{
-	//	//always add dummy textures
-	//	for (auto & dtex : dummyTextures )
-	//	{
-	//		auto &texture = out.textures.Alloc();
-	//		texture = dtex;
-	//	}
-	//	//Textures
-	//	for (auto& img : asset.images)
-	//	{
-	//		if (!img.image.empty( ))
-	//		{
-	//			auto &texture = out.textures.Alloc();
-	//			texture.dim = idVec2(img.width,img.height );
-	//			uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
-	//			texture.handle = bgfx::createTexture2D(img.width,img.height,false,1, bgfx::TextureFormat::RGBA8, tex_flags,bgfx::copy(img.image.data(), img.width * img.height * 4));
-	//		}
-	//	}
-	//	//Materials 
-	//	for (auto & mat :  asset.materials )
-	//	{
-	//		if (mat.name.empty() )
-	//			common->FatalError("cant load unnamed gltf materials");
-
-	//		int nameHash = materialIndices.GenerateKey(mat.name.c_str(),true );
-	//		//HVG_TODO
-	//		//NEED TO CHECK TRANSPARANCY MODE
-	//		int materialIndex = materialIndices.First(nameHash);
-
-	//		if ( materialIndex > 0 )
-	//		{
-	//			common->DWarning("skipping gltf material %s (%i), already loaded.",mat.name.c_str(), nameHash );
-	//			continue;
-	//		}
-
-	//		bgfxMaterial & bgfxMaterialRef = materialList.Alloc();
-	//		PBRMaterial & materialData = bgfxMaterialRef.material;
-	//		materialIndices.Add( nameHash,materialList.Num()-1 );
-
-	//		materialData =	PBRMaterial{
-	//			idVec4(1.0f, 1.0f, 1.0f, 1.0f), // baseColorFactor
-	//			idVec4(0.0f, 0.0f, 0.0f, 1.0f), // emissiveFactor
-	//			0.5f,                     // alphaCutoff
-	//			1.0f,                     // metallicFactor
-	//			1.0f,                     // roughnessFactor
-	//			out.textures[0].handle, // baseColorTexture as dummy_white
-	//			out.textures[1].handle, // metallicRoughnessTexture as dummy_metallicRoughness;
-	//			out.textures[2].handle, // normalTexture as dummy_normal_map;
-	//			out.textures[0].handle, // emissiveTexture as dummy_white;
-	//			out.textures[0].handle, // occlusionTexture as dummy_white;
-	//		};
-	//		TransparencyMode transparency_mode = TransparencyMode::OPAQUE_;
-
-	//		auto valuesEnd = mat.values.end( );
-	//		auto p_keyValue = mat.values.find( "baseColorTexture" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			materialData.baseColorTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-	//		};
-
-	//		p_keyValue = mat.values.find( "baseColorFactor" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			const auto &data = p_keyValue->second.ColorFactor( );
-	//			materialData.baseColorFactor = idVec4(
-	//				static_cast< float >( data[0] ),
-	//				static_cast< float >( data[1] ),
-	//				static_cast< float >( data[2] ),
-	//				static_cast< float >( data[3] )
-	//			);
-	//		}
-	//		p_keyValue = mat.values.find( "metallicRoughnessTexture" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			materialData.metallicRoughnessTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-	//		}
-
-	//		p_keyValue = mat.values.find( "metallicFactor" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			materialData.metallicFactor = static_cast< float >( p_keyValue->second.Factor( ) );
-	//		}
-
-	//		// Additional Factors
-	//		valuesEnd = mat.additionalValues.end( );
-	//		p_keyValue = mat.additionalValues.find( "normalTexture" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			materialData.normalTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-	//		}
-
-	//		p_keyValue = mat.additionalValues.find( "emissiveTexture" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			materialData.emissiveTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-
-	//			if ( mat.additionalValues.find( "emissiveFactor" ) != valuesEnd )             {
-	//				const auto &data = mat.additionalValues.at( "emissiveFactor" ).ColorFactor( );
-	//				materialData.emissiveFactor = idVec4(
-	//					static_cast< float >( data[0] ),
-	//					static_cast< float >( data[1] ),
-	//					static_cast< float >( data[2] ),
-	//					1.0f );
-	//			}
-	//		};
-
-	//		p_keyValue = mat.additionalValues.find( "occlusionTexture" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			materialData.occlusionTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-	//		}
-
-	//		p_keyValue = mat.additionalValues.find( "metallicRoughnessTexture" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			materialData.metallicRoughnessTexture = out.textures[p_keyValue->second.TextureIndex( ) + dummyTextures.Num()].handle;
-	//		}
-
-	//		p_keyValue = mat.additionalValues.find( "alphaMode" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			if ( p_keyValue->second.string_value == "BLEND" )             {
-	//				transparency_mode = TransparencyMode::BLENDED;
-	//			}             else if ( p_keyValue->second.string_value == "MASK" )             {
-	//				transparency_mode = TransparencyMode::MASKED;
-	//			}
-	//		}
-
-	//		p_keyValue = mat.additionalValues.find( "alphaCutoff" );
-	//		if ( p_keyValue != valuesEnd )         {
-	//			materialData.alphaCutoff = static_cast< float >( p_keyValue->second.Factor( ) );
-	//		}
-
-	//		bgfxMaterialRef.TransparencyMode = transparency_mode;
-	//	}
-	//}
-
-	return &out;
-}
-
 gltfAssetExplorer::gltfAssetExplorer( )  
 {
 	guiVisible = true;
@@ -816,8 +649,6 @@ void gltfAssetExplorer::Init()
 		cameraProjection.ToFloatPtr( ), 30.0, float( renderTarget.width ) / float( renderTarget.height ), 0.1f,
 		10000.0f, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
 	camPos = idVec3(eye.x,eye.y,eye.z);
-
-
 }
 bool gltfAssetExplorer::Show(bool visible )
 {
@@ -830,6 +661,9 @@ bool gltfAssetExplorer::Show(bool visible )
 }
 bool gltfAssetExplorer::Render( bgfxContext_t *context ) 
 {
+	return false;
+	//if (!guiVisible)
+	//	return false;
 	if (!bgfx::isValid( renderTarget.fbh ))
 		bgfxCreateMrtTarget( renderTarget, "AssetExplorerView" );
 
@@ -841,11 +675,11 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 		bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 
 		float modelTransform[16];
-		bx::mtxIdentity( modelTransform );
-		//bx::mtxMul( tmp, modelScale, xtmp );
-		//bx::mtxMul( modelTransform, tmp, modelTranslation );
-	    bgfx::setTransform( modelTransform );
-		bgfx::setUniform(context->pbrContext.u_normalTransform,&modelTransform);
+		//bx::mtxIdentity( modelTransform );
+		////bx::mtxMul( tmp, modelScale, xtmp );
+		////bx::mtxMul( modelTransform, tmp, modelTranslation );
+	 //   bgfx::setTransform( modelTransform );
+		//bgfx::setUniform(context->pbrContext.u_normalTransform,&modelTransform);
 		auto & matList = currentData->MaterialList();
 		auto & texList = currentData->TextureList();
 		auto & imgList = currentData->ImageList();
