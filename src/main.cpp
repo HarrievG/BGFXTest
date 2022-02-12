@@ -94,8 +94,12 @@ int main( int argc, char **argv )
 	if ( com_editing.GetBool() )
 		sceneEditor->Init( );
 
-    //eventLoop->RegisterCallback([]( const sysEvent_t &event )
-    //-> auto { 
+    eventLoop->RegisterCallback([]( const sysEvent_t &event )
+		-> auto {
+		if ( event.evType == SE_KEY && event.evValue2 == 1 ) {
+			idKeyInput::ExecKeyBinding( event.evValue );
+		}
+	});
     //    if (event.evType == SE_MOUSE )
     //    {
     //        int mouse_x, mouse_y;

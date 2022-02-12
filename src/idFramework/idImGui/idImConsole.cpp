@@ -202,7 +202,8 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
 			bool forceColor = false;
 			bool coloring = false;
 			uint idx = 0;
-			idStr itemStr;
+			static idStr itemStr;
+			itemStr.Clear();
 			while (*s) {
 				if (idStr::IsColor( ( const char * ) s ))
 				{

@@ -14,7 +14,7 @@ idCVar com_speeds( "com_speeds", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_NOCHEAT, "s
 idCVar com_showFPS( "com_showFPS", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT, "show frames rendered per second" );
 idCVar com_timescale( "timescale", "1", CVAR_SYSTEM | CVAR_FLOAT, "scales the time", 0.1f, 10.0f );
 idCVar com_preciseTic( "com_preciseTic", "1", CVAR_BOOL | CVAR_SYSTEM, "run one game tick every async thread update" );
-idCVar com_asyncInput( "com_asyncInput", "0", CVAR_BOOL | CVAR_SYSTEM, "sample input from the async thread" );
+idCVar com_asyncInput( "com_asyncInput", "1", CVAR_BOOL | CVAR_SYSTEM, "sample input from the async thread" );
 //Compilers
 // 2 different approaches:
 // 1:	Create dscene/GLTF scene compiler, in the same spirit as dmap/map compiler. 
