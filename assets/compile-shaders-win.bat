@@ -31,3 +31,14 @@ bin\shadercRelease.exe ^
 -f shaders\vs_tonemap.sc -o shaders\vs_tonemap.bin ^
 --platform windows --type vertex --verbose -i ./ -p vs_5_0
 
+bin\shadercRelease.exe ^
+-f shaders\fs_forward.sc -o shaders\fs_forward.bin ^
+--platform windows --type fragment --verbose -i ./ -p ps_5_0
+
+bin\shadercRelease.exe ^
+-f shaders\vs_forward.sc -o shaders\vs_forward.bin ^
+--platform windows --type vertex --verbose -i ./ -p vs_5_0
+
+bin\shadercRelease.exe ^
+-f shaders\cs_multiple_scattering_lut.sc -o shaders\cs_multiple_scattering_lut.bin ^
+--platform windows --type compute --verbose -i ./ -p cs_5_0

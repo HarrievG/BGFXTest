@@ -40,8 +40,9 @@ void PBRShader::initialize( ) {
 		BGFX_SAMPLER_UVW_CLAMP | BGFX_TEXTURE_COMPUTE_WRITE );
 
 	char csName[128];
-	bx::snprintf( csName, BX_COUNTOF( csName ), "%s%s", ""/*Renderer::shaderDir()*/, "cs_multiple_scattering_lut.bin" );
-	albedoLUTProgram;// = bgfx::createProgram(bigg::loadShader(csName), true);bae
+
+	bgfx::ShaderHandle csh = bgfxCreateShader( "shaders/cs_multiple_scattering_lut.bin", "cs_multiple_scattering_lut" );
+	albedoLUTProgram = bgfx::createProgram( csh, true );
 }
 
 void PBRShader::shutdown( ) {

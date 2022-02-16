@@ -41,6 +41,7 @@ bgfx::ShaderHandle bgfxCreateShader( const char * shaderFile, const char *name )
 	const bgfx::Memory *mem = bgfx::copy( buffer, sSize );
 	const bgfx::ShaderHandle handle = bgfx::createShader( mem );
 	bgfx::setName( handle, name );
+	fileSystem->FreeFile( (void*)buffer );
 	return handle;
 }
 
