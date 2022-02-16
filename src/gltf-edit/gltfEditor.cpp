@@ -26,14 +26,11 @@ gltfSceneEditor *sceneEditor = &localSceneEditor;
 static gltfAssetExplorer localAssetExplorer;
 gltfAssetExplorer *assetExplorer = &localAssetExplorer;
 
-static GLTF_Parser * gltfParser;
-
 idCVar r_gltfEditRenderWidth( "r_SceneEditRenderWidth", "1024", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "gltfEditor render view width. set r_mode to -1 to use backbuffer size" );
 idCVar r_gltfEditRenderHeight( "r_SceneEditRenderHeight", "768", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "gltfEditor render view height.set r_mode to -1 to use backbuffer size" );
 
 void gltfSceneEditor::Shutdown( )
 {
-	delete gltfParser;
 }
 gltfSceneEditor::gltfSceneEditor( )
 	: windowOpen(false)
@@ -41,8 +38,6 @@ gltfSceneEditor::gltfSceneEditor( )
 }
 void gltfSceneEditor::Init( ) 
 {
-	gltfParser = new GLTF_Parser();
-	gltfParser->Init();
 	assetExplorer->Init();
 	static auto *thisPtr = this;
 	selectedScene = nullptr;
@@ -661,9 +656,8 @@ bool gltfAssetExplorer::Show(bool visible )
 }
 bool gltfAssetExplorer::Render( bgfxContext_t *context ) 
 {
-	return false;
-	//if (!guiVisible)
-	//	return false;
+	if (!guiVisible)
+		return false;
 	if (!bgfx::isValid( renderTarget.fbh ))
 		bgfxCreateMrtTarget( renderTarget, "AssetExplorerView" );
 

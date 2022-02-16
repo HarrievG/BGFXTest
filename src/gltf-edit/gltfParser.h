@@ -157,7 +157,6 @@ class GLTF_Parser
 {
 public:
 	GLTF_Parser();
-	void Init();
 	bool Parse();
 	bool Load(idStr filename );
 	bool loadGLB(idStr filename );
@@ -198,3 +197,5 @@ private:
 	bool buffersDone;
 	bool bufferViewsDone;
 };
+
+extern GLTF_Parser * gltfParser;

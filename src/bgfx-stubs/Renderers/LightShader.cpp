@@ -18,9 +18,9 @@ void LightShader::shutdown()
     lightCountVecUniform = ambientLightIrradianceUniform = BGFX_INVALID_HANDLE;
 }
 
-void LightShader::bindLights(const Scene* scene) const
+void LightShader::bindLights(const gltfData* sceneData) const
 {
-    assert(scene != nullptr);
+    assert(sceneData != nullptr);
 
     // a 32-bit IEEE 754 float can represent all integers up to 2^24 (~16.7 million) correctly
     // should be enough for this use case (comparison in for loop)

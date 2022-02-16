@@ -1,12 +1,8 @@
 #include "ForwardRenderer.h"
-
-#include "Scene/Scene.h"
-#include <bigg.hpp>
 #include <bx/string.h>
-#include <glm/matrix.hpp>
-#include <glm/gtc/type_ptr.hpp>
+#include "..\gltf-edit\gltfParser.h"
 
-ForwardRenderer::ForwardRenderer(const Scene* scene) : Renderer(scene) { }
+ForwardRenderer::ForwardRenderer(gltfData* sceneData) : Renderer(sceneData) { }
 
 bool ForwardRenderer::supported()
 {
@@ -15,10 +11,56 @@ bool ForwardRenderer::supported()
 
 void ForwardRenderer::onInitialize()
 {
-    char vsName[128], fsName[128];
-    bx::snprintf(vsName, BX_COUNTOF(vsName), "%s%s", shaderDir(), "vs_forward.bin");
-    bx::snprintf(fsName, BX_COUNTOF(fsName), "%s%s", shaderDir(), "fs_forward.bin");
-    program = bigg::loadProgram(vsName, fsName);
+	bgfx::ShaderHandle vsh		= bgfxCreateShader("shaders/vs_forward.bin","vshader" );
+	bgfx::ShaderHandle fsh		= bgfxCreateShader( "shaders/fs_forward.bin", "fsshader" );
+	program = bgfx::createProgram( vsh, fsh, true );
+}
+
+
+void ForwardRenderer::RenderSceneNode( gltfNode *node, idMat4 trans, gltfData* data )
+{
+	bgfx::ViewId vDefault = 0;
+	auto & nodeList = data->NodeList( ); 
+	auto & meshList = data->MeshList( );
+	auto & matList	= data->MaterialList();
+	auto & texList	= data->TextureList();
+	auto & imgList	= data->ImageList();
+	auto & smpList	= data->SamplerList();
+
+	idMat4 mat;
+	gltfData::ResolveNodeMatrix( node, &mat);
+	idMat4 curTrans = trans * node->matrix ;
+
+	if ( node->mesh != -1 ) 		
+	{
+		for ( auto prim : meshList[node->mesh]->primitives )
+		{
+			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
+			//bgfx::setUniform(context->pbrContext.u_normalTransform,curTrans.Transpose().ToFloatPtr());
+			setNormalMatrix(curTrans);
+
+			if ( prim->material != -1 ) 
+			{
+				gltfMaterial *material = matList[prim->material];
+
+				uint64_t materialState = pbr.bindMaterial(*material,*data);
+				bgfx::setState((BGFX_STATE_DEFAULT & ~BGFX_STATE_CULL_MASK) | materialState);
+
+				bgfx::submit(vDefault, program, 0);//, ~BGFX_DISCARD_TEXTURE_SAMPLERS);
+			}
+
+			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
+			bgfx::setIndexBuffer( prim->indexBufferHandle );
+
+		//	if (r_forceRenderMode.GetInteger() != -1 )
+		//		bgfxSetRenderMode(viewId, context ,r_forceRenderMode.GetInteger());
+
+			bgfx::submit( vDefault, program );
+		}
+	}
+
+	for ( auto &child : node->children )
+		RenderSceneNode(nodeList[child], curTrans, data );
 }
 
 void ForwardRenderer::onRender(float dt)
@@ -34,7 +76,7 @@ void ForwardRenderer::onRender(float dt)
     // this makes sure the clear happens
     bgfx::touch(vDefault);
 
-    if(!scene->loaded)
+    if(!data)
         return;
 
     setViewProjection(vDefault);
@@ -42,20 +84,31 @@ void ForwardRenderer::onRender(float dt)
     uint64_t state = BGFX_STATE_DEFAULT & ~BGFX_STATE_CULL_MASK;
 
     pbr.bindAlbedoLUT();
-    lights.bindLights(scene);
+    lights.bindLights(data);
 
-    for(const Mesh& mesh : scene->meshes)
-    {
-        idMat4 model = glm::identity<idMat4>();
-        bgfx::setTransform(glm::value_ptr(model));
-        setNormalMatrix(model);
-        bgfx::setVertexBuffer(0, mesh.vertexBuffer);
-        bgfx::setIndexBuffer(mesh.indexBuffer);
-        const Material& mat = scene->materials[mesh.material];
-        uint64_t materialState = pbr.bindMaterial(mat);
-        bgfx::setState(state | materialState);
-        bgfx::submit(vDefault, program, 0, ~BGFX_DISCARD_TEXTURE_SAMPLERS);
-    }
+
+	auto &nodeList = data->NodeList( ); 
+	idMat4 mat;
+	auto &scenes = data->SceneList( );
+	for ( auto &scene : scenes )
+		for ( auto &node : scene->nodes)
+		{
+			idMat4 mat = mat4_identity;
+			RenderSceneNode(nodeList[node], mat, data);
+		}
+
+    //for(auto & mesh : scene.p)
+    //{
+    //    idMat4 model = glm::identity<idMat4>();
+    //    bgfx::setTransform(glm::value_ptr(model));
+    //    setNormalMatrix(model);
+    //    bgfx::setVertexBuffer(0, mesh.vertexBuffer);
+    //    bgfx::setIndexBuffer(mesh.indexBuffer);
+    //    const Material& mat = scene->materials[mesh.material];
+    //    uint64_t materialState = pbr.bindMaterial(mat);
+    //    bgfx::setState(state | materialState);
+    //    bgfx::submit(vDefault, program, 0, ~BGFX_DISCARD_TEXTURE_SAMPLERS);
+    //}
 
     bgfx::discard(BGFX_DISCARD_ALL);
 }

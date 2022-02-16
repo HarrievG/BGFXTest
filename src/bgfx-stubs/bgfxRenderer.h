@@ -7,8 +7,8 @@
 #include "idlib/math/Math.h"
 #include "idlib/math/Matrix.h"
 #include "idlib/containers/StrList.h"
+#include "..\gltf-edit\gltfProperties.h"
 
-class Scene;
 class idMat4;
 class idVec3;
 class idVec4;
@@ -17,7 +17,7 @@ class idStr;
 class Renderer
 {
 public:
-	Renderer(const Scene* scene);
+	Renderer(gltfData* sceneData);
 	virtual ~Renderer() { }
 
 	void initialize();
@@ -98,7 +98,7 @@ protected:
 
 	TonemappingMode tonemappingMode = TonemappingMode::NONE;
 
-	const Scene* scene = nullptr;
+	gltfData* data = nullptr;
 
 	uint16_t width = 0;
 	uint16_t height = 0;

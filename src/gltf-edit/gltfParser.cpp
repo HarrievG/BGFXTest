@@ -2,6 +2,8 @@
 #include <FileSystem.h>
 #include "bgfx-stubs/bgfxRender.h"
 #include "bgfx-stubs/bgfxImage.h"
+
+
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 
@@ -1536,18 +1538,6 @@ bool GLTF_Parser::Load(idStr filename )
 	return true;
 }
 
-void GLTF_Parser::Init( ) {
-	static auto * thisPtr = this;
-	cmdSystem->AddCommand( "gltf_XloadFile", []( const idCmdArgs &args )
-		-> auto {
-		if ( args.Argc( ) != 2 )
-			common->Printf( "use: gltf_XloadFile <file>" );
-		else
-			thisPtr->Load( args.Argv( 1 ) );
-	}, CMD_FL_SYSTEM, "Loads an gltf file", idCmdSystem::ArgCompletion_GltfName );
-
-}
-
 void GLTF_Parser::SetNodeParent( gltfNode *node, gltfNode *parent)
 {
 	node->parent = parent;
@@ -1703,6 +1693,9 @@ gltfData::~gltfData() {
 	if (data)
 		delete[] data;
 }
+
+GLTF_Parser localGltfParser;
+GLTF_Parser * gltfParser = &localGltfParser;
 
 #undef GLTFARRAYITEM
 #undef GLTFARRAYITEMREF

@@ -30,18 +30,18 @@ xthreadInfo RenderThread;
 bool		RenderThreadRunning;
 
 bgfx::ShaderHandle bgfxCreateShader( const char * shaderFile, const char *name ) {
-    int fSize = 0;
-    const char *buffer = NULL;
-    uInt sSize = 0;
-    sSize = fileSystem->ReadFile( shaderFile, ( void ** ) &buffer );
-    if ( sSize < 1 )
-        common->FatalError( " Cant read shaderfile %s",shaderFile );
-    sSize = ( uInt ) sSize;
+	int fSize = 0;
+	const char *buffer = NULL;
+	uInt sSize = 0;
+	sSize = fileSystem->ReadFile( shaderFile, ( void ** ) &buffer );
+	if ( sSize < 1 )
+		common->FatalError( " Cant read shaderfile %s",shaderFile );
+	sSize = ( uInt ) sSize;
 
-    const bgfx::Memory *mem = bgfx::copy( buffer, sSize );
-    const bgfx::ShaderHandle handle = bgfx::createShader( mem );
-    bgfx::setName( handle, name );
-    return handle;
+	const bgfx::Memory *mem = bgfx::copy( buffer, sSize );
+	const bgfx::ShaderHandle handle = bgfx::createShader( mem );
+	bgfx::setName( handle, name );
+	return handle;
 }
 
 void bgfxCreateSysCommands( bgfxContext_t *context )

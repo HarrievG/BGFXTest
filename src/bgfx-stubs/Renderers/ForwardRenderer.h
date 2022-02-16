@@ -1,18 +1,18 @@
 #pragma once
 
-#include "Renderer.h"
+#include "..\bgfxRenderer.h"
 
 class ForwardRenderer : public Renderer
 {
 public:
-    ForwardRenderer(const Scene* scene);
+    ForwardRenderer(gltfData* sceneData);
 
     static bool supported();
 
     virtual void onInitialize() override;
     virtual void onRender(float dt) override;
     virtual void onShutdown() override;
-
+	void ForwardRenderer::RenderSceneNode( gltfNode *node, idMat4 trans, gltfData* data );
 private:
     bgfx::ProgramHandle program = BGFX_INVALID_HANDLE;
 };

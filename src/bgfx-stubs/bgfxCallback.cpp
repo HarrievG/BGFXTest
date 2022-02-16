@@ -2,7 +2,8 @@
 #include "idFramework/Common.h"
 
 idCVar bgfx_verbose( "bgfx_verbose", "1",  CVAR_RENDERER | CVAR_INTEGER, "0 = no output, 1 = message and warnings only, 2 = warnings only, 3 = messages, warnings and location, ",0,3, idCmdSystem::ArgCompletion_Integer<0, 3> );
-
+idCVar bgfx_verbose_cache ( "bgfx_verbose_cache", "1",  CVAR_RENDERER | CVAR_INTEGER,"0 = no output, 1 = reads and writes, 2 = reads only, 3 = writes only ",0,3, idCmdSystem::ArgCompletion_Integer<0, 3> );
+//https://github.com/bkaradzic/bgfx/blob/master/examples/07-callback/callback.cpp
 namespace bgfx {
 struct CallbackStub : public CallbackI 	{
 	virtual ~CallbackStub( ) 		{ 		}
@@ -34,7 +35,7 @@ struct CallbackStub : public CallbackI 	{
 		const static idStr wrnStr( "WARN" );
 		if (idStr( _format ).Length() >= wrnStr.Length())
 			warning = idStr( _format,5,9 ).FindText( _format, wrnStr) != -1;
-		
+
 
 		switch ( bgfx_verbose.GetInteger( ) ) {
 		case 0:

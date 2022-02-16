@@ -17,6 +17,8 @@
 #include "idFramework/idImGui/idImConsole.h"
 #include "idFramework/KeyInput.h"
 #include "idFramework/idImGui/idImConsole.h"
+#include "bgfx-stubs/Renderers/ForwardRenderer.h"
+#include "gltf-edit/gltfParser.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
@@ -36,209 +38,218 @@ idSys *sys = &sysLocal;
 #define WINDOW_WIDTH 1600
 #define WINDOW_HEIGHT 900
 
+ForwardRenderer * fwRender;
+
 void main_loop( void *data ) {
-    auto context = static_cast< bgfxContext_t * >( data );
-    
-    ImGui_Implbgfx_NewFrame( );
-    ImGui_ImplSDL2_NewFrame( context->window );
-    common->Frame();
-    ImGui::NewFrame( );
-    ImGui::DockSpaceOverViewport( ImGui::GetMainViewport( ), ImGuiDockNodeFlags_PassthruCentralNode );
-    
-    ImGuizmo::BeginFrame( );
+	auto context = static_cast< bgfxContext_t * >( data );
 
-    //ImGuizmo::ViewManipulate( )
-    ImGui::ShowDemoWindow( ); // your drawing here
+	ImGui_Implbgfx_NewFrame( );
+	ImGui_ImplSDL2_NewFrame( context->window );
+	common->Frame();
+	ImGui::NewFrame( );
+	ImGui::DockSpaceOverViewport( ImGui::GetMainViewport( ), ImGuiDockNodeFlags_PassthruCentralNode );
+
+	ImGuizmo::BeginFrame( );
+
+	//ImGuizmo::ViewManipulate( )
+	ImGui::ShowDemoWindow( ); // your drawing here
 	imConsole->Draw( );
-    
-    bgfxRender( context );
+	if ( com_editing.GetBool() )
+		bgfxRender( context );
+	else
+		fwRender->onRender( com_frameTime );
+	ImGui::Render( );
+	ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
 
-    ImGui::Render( );
-    ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
+
+	ImGuiIO &io = ImGui::GetIO( );
+	// Update and Render additional Platform Windows
+	// Update and Render additional Platform Windows
+	if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
+		ImGui::UpdatePlatformWindows( );
+		ImGui::RenderPlatformWindowsDefault( );
+	}
+	bgfx::frame( );
 
 
-    ImGuiIO &io = ImGui::GetIO( );
-    // Update and Render additional Platform Windows
-        // Update and Render additional Platform Windows
-    if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
-        ImGui::UpdatePlatformWindows( );
-        ImGui::RenderPlatformWindowsDefault( );
-    }
-    bgfx::frame( );
-
-    
 #if BX_PLATFORM_EMSCRIPTEN
-    if ( context->quit ) {
-        emscripten_cancel_main_loop( );
-    }
+	if ( context->quit ) {
+		emscripten_cancel_main_loop( );
+	}
 #endif
 }
 
 
 int main( int argc, char **argv )
 {
-    static bgfxContext_t context;
+	static bgfxContext_t context;
 
-    idLib::common = common;
-    idLib::cvarSystem = cvarSystem;
-    idLib::fileSystem = fileSystem;
-    idLib::sys = sys;
+	idLib::common = common;
+	idLib::cvarSystem = cvarSystem;
+	idLib::fileSystem = fileSystem;
+	idLib::sys = sys;
 
-    idLib::Init( );
+	idLib::Init( );
 	idCVar::RegisterStaticVars( );
-    cvarSystem->Init( );
-    cmdSystem->Init( );
-    common->Init( argc, argv );
-    fileSystem->Init( );
-    eventLoop->Init();
+	cvarSystem->Init( );
+	cmdSystem->Init( );
+	common->Init( argc, argv );
+	fileSystem->Init( );
+	eventLoop->Init();
 	if ( com_editing.GetBool() )
 		sceneEditor->Init( );
 
-    eventLoop->RegisterCallback([]( const sysEvent_t &event )
+	eventLoop->RegisterCallback([]( const sysEvent_t &event )
 		-> auto {
 		if ( event.evType == SE_KEY && event.evValue2 == 1 ) {
 			idKeyInput::ExecKeyBinding( event.evValue );
 		}
 	});
-    //    if (event.evType == SE_MOUSE )
-    //    {
-    //        int mouse_x, mouse_y;
-    //        mouse_x = event.evValue;
-    //        mouse_y = event.evValue2;
+	//    if (event.evType == SE_MOUSE )
+	//    {
+	//        int mouse_x, mouse_y;
+	//        mouse_x = event.evValue;
+	//        mouse_y = event.evValue2;
 
-    //        int action,val;
-    //        Sys_ReturnMouseInputEvent(0,action,val );
+	//        int action,val;
+	//        Sys_ReturnMouseInputEvent(0,action,val );
 
-    //        if ( action == K_MOUSE1) {
-    //            int delta_x = mouse_x - context.prev_mouse_x;
-    //            int delta_y = mouse_y - context.prev_mouse_y;
-    //            context.cam_yaw    += float( -delta_x ) * context.rot_scale;
-    //            context.cam_pitch  += float( -delta_y ) * context.rot_scale;
-    //        }
+	//        if ( action == K_MOUSE1) {
+	//            int delta_x = mouse_x - context.prev_mouse_x;
+	//            int delta_y = mouse_y - context.prev_mouse_y;
+	//            context.cam_yaw    += float( -delta_x ) * context.rot_scale;
+	//            context.cam_pitch  += float( -delta_y ) * context.rot_scale;
+	//        }
 
-    //        context.prev_mouse_x = mouse_x;
-    //        context.prev_mouse_y = mouse_y; 
-    //    }
-    //});
+	//        context.prev_mouse_x = mouse_x;
+	//        context.prev_mouse_y = mouse_y; 
+	//    }
+	//});
 
-    cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
+	cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
 
-    const int width = WINDOW_WIDTH;
-    const int height = WINDOW_HEIGHT;
-    SDL_Window *window = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
-        height, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI );
+	const int width = WINDOW_WIDTH;
+	const int height = WINDOW_HEIGHT;
+	SDL_Window *window = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
+		height, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI );
 
-    if ( window == nullptr ) {
-        common->FatalError("Window could not be created. SDL_Error: %s\n", SDL_GetError( ) );
-        return 1;
-    }
- 
+	if ( window == nullptr ) {
+		common->FatalError("Window could not be created. SDL_Error: %s\n", SDL_GetError( ) );
+		return 1;
+	}
+
 #if !BX_PLATFORM_EMSCRIPTEN
-    SDL_SysWMinfo wmi;
-    SDL_VERSION( &wmi.version );
-    if ( !SDL_GetWindowWMInfo( window, &wmi ) ) {
-        common->FatalError(
-            "SDL_SysWMinfo could not be retrieved. SDL_Error: %s\n",
-            SDL_GetError( ) );
-        return 1;
-    }
+	SDL_SysWMinfo wmi;
+	SDL_VERSION( &wmi.version );
+	if ( !SDL_GetWindowWMInfo( window, &wmi ) ) {
+		common->FatalError(
+			"SDL_SysWMinfo could not be retrieved. SDL_Error: %s\n",
+			SDL_GetError( ) );
+		return 1;
+	}
 
 #endif // !BX_PLATFORM_EMSCRIPTEN
 
-    if ( !r_useRenderThread.GetBool( ) )
-        bgfx::renderFrame( );
-    else
-        bgfxStartRenderThread( );
+	if ( !r_useRenderThread.GetBool( ) )
+		bgfx::renderFrame( );
+	else
+		bgfxStartRenderThread( );
 
-    bgfx::PlatformData pd{};
+	bgfx::PlatformData pd{};
 #if BX_PLATFORM_WINDOWS
-    pd.nwh = wmi.info.win.window;
+	pd.nwh = wmi.info.win.window;
 #elif BX_PLATFORM_OSX
-    pd.nwh = wmi.info.cocoa.window;
+	pd.nwh = wmi.info.cocoa.window;
 #elif BX_PLATFORM_LINUX
-    pd.ndt = wmi.info.x11.display;
-    pd.nwh = ( void * ) ( uintptr_t ) wmi.info.x11.window;
+	pd.ndt = wmi.info.x11.display;
+	pd.nwh = ( void * ) ( uintptr_t ) wmi.info.x11.window;
 #elif BX_PLATFORM_EMSCRIPTEN
-    pd.nwh = ( void * ) "#canvas";
+	pd.nwh = ( void * ) "#canvas";
 #endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX ?
-        // BX_PLATFORM_EMSCRIPTEN
+	// BX_PLATFORM_EMSCRIPTEN
 
-    bgfx::Init bgfx_init;
-    bgfx_init.type = bgfx::RendererType::Count; // auto choose renderer
-    bgfx_init.resolution.width = width;
-    bgfx_init.resolution.height = height;
-    bgfx_init.resolution.reset = BGFX_RESET_VSYNC;
-    bgfx_init.platformData = pd;
-    bgfx_init.callback = (bgfx::CallbackI *)&bgfx::bgfxCallbacksLocal;
-    bgfx::init( bgfx_init );
+	bgfx::Init bgfx_init;
+	bgfx_init.type = bgfx::RendererType::Count; // auto choose renderer
+	bgfx_init.resolution.width = width;
+	bgfx_init.resolution.height = height;
+	bgfx_init.resolution.reset = BGFX_RESET_VSYNC;
+	bgfx_init.platformData = pd;
+	bgfx_init.callback = (bgfx::CallbackI *)&bgfx::bgfxCallbacksLocal;
+	bgfx::init( bgfx_init );
 	bgfxCreateSysCommands( &context );
-    bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
-    bgfx::setViewClear(1, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
-    
-    bgfx::setViewRect( 0, 0, 0, width, height );
+	bgfx::setViewClear(0, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
+	bgfx::setViewClear(1, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0 );
 
-    ImGui::CreateContext( );
-    ImGuiIO &io = ImGui::GetIO( );
-    io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports | ImGuiBackendFlags_RendererHasViewports;
+	bgfx::setViewRect( 0, 0, 0, width, height );
 
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
-    //io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows still not really functional.
-    //io.ConfigViewportsNoAutoMerge = false;
+	ImGui::CreateContext( );
+	ImGuiIO &io = ImGui::GetIO( );
+	io.BackendFlags |= ImGuiBackendFlags_PlatformHasViewports | ImGuiBackendFlags_RendererHasViewports;
 
-    ImGui::StyleColorsDark( );
-    ImGui_Implbgfx_Init( 255 );
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
+																//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
+																//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows still not really functional.
+																//io.ConfigViewportsNoAutoMerge = false;
+
+	ImGui::StyleColorsDark( );
+	ImGui_Implbgfx_Init( 255 );
 
 #if BX_PLATFORM_WINDOWS
-    ImGui_ImplSDL2_InitForD3D( window );
+	ImGui_ImplSDL2_InitForD3D( window );
 #elif BX_PLATFORM_OSX
-    ImGui_ImplSDL2_InitForMetal( window );
+	ImGui_ImplSDL2_InitForMetal( window );
 #elif BX_PLATFORM_LINUX || BX_PLATFORM_EMSCRIPTEN
-    ImGui_ImplSDL2_InitForOpenGL( window, nullptr );
+	ImGui_ImplSDL2_InitForOpenGL( window, nullptr );
 #endif // BX_PLATFORM_WINDOWS ? BX_PLATFORM_OSX ? BX_PLATFORM_LINUX ?
-    // BX_PLATFORM_EMSCRIPTEN
+	// BX_PLATFORM_EMSCRIPTEN
 
-    context.width = width;
-    context.height = height;
-    context.window = window;
+	context.width = width;
+	context.height = height;
+	context.window = window;
 
-    bgfxInitShaders( &context );
-
-    common->PrintWarnings();
-    common->ClearWarnings("main loop");
+	if ( com_editing.GetBool() )
+		bgfxInitShaders( &context );
+	else
+	{
+		gltfParser->Load( "Materials_Scifi_02.glb" );
+		fwRender = new ForwardRenderer( gltfParser->currentAsset );
+		fwRender->initialize( );
+	}
+	common->PrintWarnings( );
+	common->ClearWarnings( "main loop" );
 #if BX_PLATFORM_EMSCRIPTEN
-    emscripten_set_main_loop_arg( main_loop, &context, -1, 1 );
+	emscripten_set_main_loop_arg( main_loop, &context, -1, 1 );
 #else
-    while ( !context.quit ) {
-        main_loop( &context );
-    }
+	while ( !context.quit ) {
+		main_loop( &context );
+	}
 #endif // BX_PLATFORM_EMSCRIPTEN
 
 
-    common->PrintWarnings( );
-    common->ClearWarnings( "shutdown" );
+	common->PrintWarnings( );
+	common->ClearWarnings( "shutdown" );
 
-    ImGui_ImplSDL2_Shutdown( );
-    ImGui_Implbgfx_Shutdown( );
+	ImGui_ImplSDL2_Shutdown( );
+	ImGui_Implbgfx_Shutdown( );
 
-    ImGui::DestroyContext( );
-    bgfxShutdown( &context );
+	ImGui::DestroyContext( );
+	bgfxShutdown( &context );
 
-    common->PrintWarnings( );
-    imConsole->ClearLog( );
+	common->PrintWarnings( );
+	imConsole->ClearLog( );
 
-    sceneEditor->Shutdown( );
-    eventLoop->Shutdown( );
-    common->Shutdown( );
-    fileSystem->Shutdown( false );
-    cvarSystem->Shutdown( );
-    cmdSystem->Shutdown( );
-    idLib::ShutDown( );
+	sceneEditor->Shutdown( );
+	eventLoop->Shutdown( );
+	common->Shutdown( );
+	fileSystem->Shutdown( false );
+	cvarSystem->Shutdown( );
+	cmdSystem->Shutdown( );
+	idLib::ShutDown( );
 
-    SDL_DestroyWindow( window );
-    SDL_Quit( );
-    return 0;
+	SDL_DestroyWindow( window );
+	SDL_Quit( );
+	return 0;
 }
 
 /*
@@ -289,5 +300,5 @@ void Sys_Printf( const char *fmt, ... ) {
 }
 
 unsigned int idSysLocal::GetMilliseconds( void ) {
-    return Sys_Milliseconds( );
+	return Sys_Milliseconds( );
 }

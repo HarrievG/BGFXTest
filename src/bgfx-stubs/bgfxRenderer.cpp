@@ -9,7 +9,7 @@
 
 bgfx::VertexLayout Renderer::PosVertex::layout;
 
-Renderer::Renderer(const Scene* scene) : scene(scene) { }
+Renderer::Renderer(gltfData* sceneData) : data(sceneData) { }
 
 void Renderer::initialize()
 {
@@ -166,7 +166,7 @@ void Renderer::setNormalMatrix(const idMat4& modelMat)
 	// use adjugate instead of inverse
 	// see https://github.com/graphitemaster/normals_revisited#the-details-of-transforming-normals
 	// cofactor is the transpose of the adjugate
-	idMat4 normalMat = modelMat.Transpose();//glm::transpose(glm::adjugate(idMat3(modelMat)));
+	idMat4 normalMat = modelMat.Transpose().Inverse();//glm::transpose(glm::adjugate(idMat3(modelMat)));
 	common->DWarning(" Matrix adjugate!" );
 	bgfx::setUniform(normalMatrixUniform, normalMat.ToFloatPtr());
 }
