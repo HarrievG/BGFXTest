@@ -1,5 +1,4 @@
 $input v_worldpos, v_normal, v_tangent, v_texcoord
-
 // all unit-vectors need to be normalized in the fragment shader, the interpolation of vertex shader output doesn't preserve length
 
 // define samplers and uniforms for retrieving material parameters
@@ -63,6 +62,13 @@ void main()
     // output goes straight to HDR framebuffer, no clamping
     // tonemapping happens in final blit
 
-    gl_FragColor.rgb = radianceOut;
+    gl_FragColor.rgb = radianceOu%t;
     gl_FragColor.a = mat.albedo.a;
+
+	//normal debug
+	//gl_FragColor.rgb = (v_normal + 1.0) / 2.0;
+	//gl_FragColor.rgb = (N + 1.0) / 2.0; 
+	//gl_FragColor.rgb = v_tangent * 0.5 + vec3_splat(0.5);
+	 
 }
+	

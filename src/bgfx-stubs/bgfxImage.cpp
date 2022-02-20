@@ -20,13 +20,13 @@ void SetTextureLoadDummy ( )
 	{
 		idRandom rnd( i );
 		int r = rnd.RandomInt( 255 ), g = rnd.RandomInt( 255 ), b = rnd.RandomInt( 255 );
-		dummy[i+0] = r;
-		dummy[i+1] = g;
-		dummy[i+2] = b;
+		dummy[i+0] = 255;
+		dummy[i+1] = 255;
+		dummy[i+2] = 255;
 		dummy[i+3] = 255;
 	}
 
-	uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_U_BORDER | BGFX_SAMPLER_V_BORDER;//add point and repeat
+	uint32_t tex_flags = BGFX_SAMPLER_MIN_POINT | BGFX_SAMPLER_U_BORDER | BGFX_SAMPLER_V_BORDER;//add point and repeat
 	sDummyTextureHandle = bgfx::createTexture2D( 2,2, false, 1, bgfx::TextureFormat::RGBA8, tex_flags, bgfx::copy( dummy, 4*4 ) );
 	dummyTextureCreated = true;
 }
@@ -44,6 +44,7 @@ bgfxTextureHandle bgfxImageLoad( byte *data, size_t length ) {
 		ret.handle = bgfx::createTexture2D( width, height, false, 1, bgfx::TextureFormat::RGBA8, tex_flags, bgfx::copy( imageData, width * height * 4 ) );
 		ret.dim.x = width;
 		ret.dim.y = height;
+		ret.loaded = true;
 		stbi_image_free( imageData );
 	} else
 		common->Warning( " FAILED TO LOAD TEXTURE " );
@@ -117,7 +118,7 @@ void bgfxStartImageLoadThread() {
 		loadSem = SDL_CreateSemaphore(0);
 		SetTextureLoadDummy();
 		imageLoadThreadRunning = true;
-		Sys_CreateThread( bgfxImageLoadThread, &imageLoadThreadRunning, imageLoadThread, "BgfxRenderThread" );
+		Sys_CreateThread( bgfxImageLoadThread, &imageLoadThreadRunning, imageLoadThread, "BgfxImageLoadThread" );
 	} else {
 		common->Printf( "background thread already running\n" );
 	}

@@ -470,7 +470,7 @@ typedef gltfExt_KHR_lights_punctual_spot spot;
 //https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_lights_punctual/schema/light.schema.json
 class gltfExt_KHR_lights_punctual {
 public:
-	gltfExt_KHR_lights_punctual( ) : color(vec3_one),intensity(1.0f) { }
+	gltfExt_KHR_lights_punctual( ) : color(vec3_one),intensity(1.0f),range(idMath::INFINITY) { }
 	idVec3	color;
 	float	intensity;
 	spot	spot;
@@ -480,7 +480,6 @@ public:
 	idStr	extensions;
 	idStr	extras;
 };
-typedef gltfExt_KHR_lights_punctual light;
 
 /////////////////////////////////////////////////////////////////////////////
 //// For these to function you need to add an private idList<gltf{name}*> {target}
@@ -490,8 +489,8 @@ const inline idList<gltf##name*> & ##name##List() { return target; }
 
 
 // URI's are resolved during parsing so that
-// all data should be layed out like an GLB with multple bin chunks
-// EACH URI will habe an unique chunk
+// all data should be layed out like an GLB with multiple bin chunks
+// EACH URI will have an unique chunk
 // JSON chunk MUST be the first one to be allocated/added
 
 class gltfData {
@@ -577,6 +576,31 @@ public:
 		}
 
 		for ( int i = hierachy.Num()-1; i >=0; i--) 
+			result *= hierachy[i]->matrix;
+
+		return result;
+	}
+	//Please note : assumes all nodes are _not_ dirty!
+	idMat4 GetLightMatrix( int lightId ) const 
+	{
+		idMat4 result = mat4_identity;
+
+		idList<gltfNode *> hierachy;
+		gltfNode *parent = nullptr;
+		hierachy.SetGranularity( 2 );
+
+		for ( int i = 0; i < nodes.Num( ); i++ ) {
+			if ( nodes[i]->extensions.KHR_lights_punctual && nodes[i]->extensions.KHR_lights_punctual->light == lightId ) {
+				parent = nodes[i];
+				while ( parent ) {
+					hierachy.Append( parent );
+					parent = parent->parent;
+				}
+				break;
+			}
+		}
+
+		for ( int i = hierachy.Num( ) - 1; i >= 0; i-- )
 			result *= hierachy[i]->matrix;
 
 		return result;

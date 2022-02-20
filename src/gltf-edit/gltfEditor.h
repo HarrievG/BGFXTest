@@ -3,9 +3,9 @@
 #include "idFramework/idlib/containers/StrList.h"
 #include "bgfx-stubs/bgfxRender.h"
 #include "gltfProperties.h"
-
-typedef idList<bgfxModel> bgfxModelList;
-typedef idList<bgfxMaterial> bgfxMaterialList;
+//
+//typedef idList<bgfxModel> bgfxModelList;
+//typedef idList<bgfxMaterial> bgfxMaterialList;
 
 class gltfSceneEditor : public imDrawable, bgfxRenderable {
 	friend class gltfAssetExplorer;
@@ -41,10 +41,10 @@ private:
 	int					selectedCameraId;
 
 	//HVG_TODO -> Use hash index
-	bgfxModelList		renderModels; 
+	//bgfxModelList		renderModels; 
 	idStrList			modelNames;
 	//
-	bgfxMaterialList	materialList;
+	//bgfxMaterialList	materialList;
 	idHashIndex			materialIndices;
 
 	idMat4				cameraView;

@@ -9,4 +9,4 @@ struct imageLoad_t {
 
 void bgfxStartImageLoadThread();
 bgfxTextureHandle bgfxImageLoad( byte *data, size_t length );
-void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle *targetHandle );
+void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle * targetHandle );

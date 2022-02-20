@@ -25,6 +25,7 @@
 
 idCVar com_editing( "edit", "0", CVAR_BOOL | CVAR_SYSTEM, "editor mode" );
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
+idCVar com_showImguiDemo( "ImGui demo", "0", CVAR_BOOL | CVAR_SYSTEM, "draw imgui demo window" );
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
@@ -35,8 +36,8 @@ idSession *session = NULL;
 idSysLocal		sysLocal;
 idSys *sys = &sysLocal;
 
-#define WINDOW_WIDTH 1600
-#define WINDOW_HEIGHT 900
+#define WINDOW_WIDTH 1920
+#define WINDOW_HEIGHT 1080
 
 ForwardRenderer * fwRender;
 
@@ -52,12 +53,17 @@ void main_loop( void *data ) {
 	ImGuizmo::BeginFrame( );
 
 	//ImGuizmo::ViewManipulate( )
-	ImGui::ShowDemoWindow( ); // your drawing here
-	imConsole->Draw( );
+	if (com_showImguiDemo.GetBool() )
+		ImGui::ShowDemoWindow( ); // your drawing here
+
+	if (com_developer.GetBool() )
+		imConsole->Draw( );
+	
 	if ( com_editing.GetBool() )
 		bgfxRender( context );
 	else
-		fwRender->onRender( com_frameTime );
+		fwRender->render( com_frameTime );
+
 	ImGui::Render( );
 	ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
 
@@ -155,6 +161,8 @@ int main( int argc, char **argv )
 	else
 		bgfxStartRenderThread( );
 
+	
+
 	bgfx::PlatformData pd{};
 #if BX_PLATFORM_WINDOWS
 	pd.nwh = wmi.info.win.window;
@@ -207,6 +215,8 @@ int main( int argc, char **argv )
 	context.width = width;
 	context.height = height;
 	context.window = window;
+	
+	bgfxStartImageLoadThread();
 
 	if ( com_editing.GetBool() )
 		bgfxInitShaders( &context );
@@ -214,8 +224,11 @@ int main( int argc, char **argv )
 	{
 		gltfParser->Load( "Materials_Scifi_02.glb" );
 		fwRender = new ForwardRenderer( gltfParser->currentAsset );
-		fwRender->initialize( );
+		fwRender->reset( width,height);
+		fwRender->initialize();
 	}
+
+	
 	common->PrintWarnings( );
 	common->ClearWarnings( "main loop" );
 #if BX_PLATFORM_EMSCRIPTEN

@@ -17,7 +17,7 @@ void ForwardRenderer::onInitialize()
 }
 
 
-void ForwardRenderer::RenderSceneNode( gltfNode *node, idMat4 trans, gltfData* data )
+void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 trans, gltfData* data )
 {
 	bgfx::ViewId vDefault = 0;
 	auto & nodeList = data->NodeList( ); 
@@ -36,21 +36,19 @@ void ForwardRenderer::RenderSceneNode( gltfNode *node, idMat4 trans, gltfData* d
 		for ( auto prim : meshList[node->mesh]->primitives )
 		{
 			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
-			//bgfx::setUniform(context->pbrContext.u_normalTransform,curTrans.Transpose().ToFloatPtr());
-			setNormalMatrix(curTrans);
 
-			if ( prim->material != -1 ) 
-			{
-				gltfMaterial *material = matList[prim->material];
-
-				uint64_t materialState = pbr.bindMaterial(*material,*data);
-				bgfx::setState((BGFX_STATE_DEFAULT & ~BGFX_STATE_CULL_MASK) | materialState);
-
-				bgfx::submit(vDefault, program, 0);//, ~BGFX_DISCARD_TEXTURE_SAMPLERS);
-			}
+			setNormalMatrix(curTrans.Transpose());
 
 			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
 			bgfx::setIndexBuffer( prim->indexBufferHandle );
+			if ( prim->material != -1 ) 			{
+				gltfMaterial *material = matList[prim->material];
+
+				uint64_t materialState = pbr.bindMaterial( material, data );
+				bgfx::setState( state | materialState );
+
+				bgfx::submit( vDefault, program, 0, ~BGFX_DISCARD_BINDINGS );
+			}
 
 		//	if (r_forceRenderMode.GetInteger() != -1 )
 		//		bgfxSetRenderMode(viewId, context ,r_forceRenderMode.GetInteger());
@@ -60,7 +58,7 @@ void ForwardRenderer::RenderSceneNode( gltfNode *node, idMat4 trans, gltfData* d
 	}
 
 	for ( auto &child : node->children )
-		RenderSceneNode(nodeList[child], curTrans, data );
+		RenderSceneNode(state, nodeList[child], curTrans, data );
 }
 
 void ForwardRenderer::onRender(float dt)
@@ -68,7 +66,7 @@ void ForwardRenderer::onRender(float dt)
     bgfx::ViewId vDefault = 0;
 
     bgfx::setViewName(vDefault, "Forward render pass");
-    bgfx::setViewClear(vDefault, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, clearColor, 1.0f, 0);
+    bgfx::setViewClear(vDefault, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0);
     bgfx::setViewRect(vDefault, 0, 0, width, height);
     bgfx::setViewFrameBuffer(vDefault, frameBuffer);
 
@@ -84,8 +82,7 @@ void ForwardRenderer::onRender(float dt)
     uint64_t state = BGFX_STATE_DEFAULT & ~BGFX_STATE_CULL_MASK;
 
     pbr.bindAlbedoLUT();
-    lights.bindLights(data);
-
+    lights.BindLights();
 
 	auto &nodeList = data->NodeList( ); 
 	idMat4 mat;
@@ -94,8 +91,10 @@ void ForwardRenderer::onRender(float dt)
 		for ( auto &node : scene->nodes)
 		{
 			idMat4 mat = mat4_identity;
-			RenderSceneNode(nodeList[node], mat, data);
+			RenderSceneNode(state, nodeList[node], mat, data);
 		}
+
+	lights.Update();
 
     //for(auto & mesh : scene.p)
     //{

@@ -96,8 +96,6 @@ protected:
 
 	idStrList variables;
 
-	TonemappingMode tonemappingMode = TonemappingMode::NONE;
-
 	gltfData* data = nullptr;
 
 	uint16_t width = 0;
@@ -110,9 +108,10 @@ protected:
 	float time = 0.0f;
 
 	// set by setViewProjection()
-	idMat4 viewMat = mat4_identity;
-	idMat4 projMat = mat4_identity;
-
+	idMat4 viewMat	= mat4_identity;
+	idMat4 projMat	= mat4_identity;
+	idVec3 camPos	= vec3_zero;
+	int	camId		= 0;
 	bgfx::VertexBufferHandle blitTriangleBuffer = BGFX_INVALID_HANDLE;
 
 private:

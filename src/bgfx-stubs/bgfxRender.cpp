@@ -95,7 +95,6 @@ void bgfxCreatePbrContext(bgfxPbrContext_t & context )
 void bgfxInitShaders( bgfxContext_t *context ) {
 
 	bgfxCreatePbrContext(context->pbrContext);
-	bgfxStartImageLoadThread();
 	bgfx::VertexLayout pos_col_vert_layout;
 	pos_col_vert_layout.begin( )
 		.add( bgfx::Attrib::Position, 3, bgfx::AttribType::Float )

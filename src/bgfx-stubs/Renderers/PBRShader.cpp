@@ -73,33 +73,78 @@ void PBRShader::generateAlbedoLUT( ) {
 	bgfx::dispatch( 0, albedoLUTProgram, ALBEDO_LUT_SIZE / ALBEDO_LUT_THREADS, ALBEDO_LUT_SIZE / ALBEDO_LUT_THREADS, 1 );
 }
 
-uint64_t PBRShader::bindMaterial( const gltfMaterial &material, const gltfData &data ) {
 
-	const gltfMaterial_pbrMetallicRoughness &pbrMR = material.pbrMetallicRoughness;
+uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data ) {
+
+	const gltfMaterial_pbrMetallicRoughness &pbrMR = material->pbrMetallicRoughness;
 	float factorValues[4] = {
-		pbrMR.metallicFactor, pbrMR.roughnessFactor, material.normalTexture.scale, material.occlusionTexture.strength
+		pbrMR.metallicFactor, pbrMR.roughnessFactor, material->normalTexture.scale, material->occlusionTexture.strength
 	};
 	bgfx::setUniform( baseColorFactorUniform, &pbrMR.baseColorFactor );
 	bgfx::setUniform( metallicRoughnessNormalOcclusionFactorUniform, factorValues );
-	bgfx::setUniform( emissiveFactorUniform, &material.emissiveFactor );
+	bgfx::setUniform( emissiveFactorUniform, &material->emissiveFactor );
 
 	float hasTexturesValues[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
-	auto setTextureOrDefault = [&] ( uint8_t stage, bgfx::UniformHandle uniform, bgfx::TextureHandle texture ) -> bool {
-		bool valid = bgfx::isValid( texture );
-		if ( !valid )
-			texture = defaultTexture;
-		bgfx::setTexture( stage, uniform, texture );
-		return valid;
-	};
+	auto &matList = data->MaterialList( );
+	auto &texList = data->TextureList( );
+	auto &imgList = data->ImageList( );
+	auto &smpList = data->SamplerList( );
 
-	auto &bgfxmaterial = material.bgfxMaterial.material;
-	const uint32_t hasTexturesMask = 0
-		| ( ( setTextureOrDefault( Samplers::PBR_BASECOLOR, baseColorSampler, bgfxmaterial.baseColorTexture ) ? 1 : 0 ) << 0 )
-		| ( ( setTextureOrDefault( Samplers::PBR_METALROUGHNESS, metallicRoughnessSampler, bgfxmaterial.metallicRoughnessTexture ) ? 1 : 0 ) << 1 )
-		| ( ( setTextureOrDefault( Samplers::PBR_NORMAL, normalSampler, bgfxmaterial.normalTexture ) ? 1 : 0 ) << 2 )
-		| ( ( setTextureOrDefault( Samplers::PBR_OCCLUSION, occlusionSampler, bgfxmaterial.occlusionTexture ) ? 1 : 0 ) << 3 )
-		| ( ( setTextureOrDefault( Samplers::PBR_EMISSIVE, emissiveSampler, bgfxmaterial.emissiveTexture ) ? 1 : 0 ) << 4 );
+	uint32_t hasTexturesMask = 0;
+
+	if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) {
+		gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
+		gltfSampler *sampler = smpList[texture->sampler];
+		gltfImage *image = imgList[texture->source];
+
+		bgfx::setTexture( Samplers::PBR_BASECOLOR, baseColorSampler, image->bgfxTexture.handle );
+		hasTexturesMask |= 1 << 0 ;
+	}else
+		bgfx::setTexture( Samplers::PBR_BASECOLOR, baseColorSampler, defaultTexture );
+	if ( material->pbrMetallicRoughness.metallicRoughnessTexture.index != -1 ) {
+		gltfTexture *texture = texList[material->pbrMetallicRoughness.metallicRoughnessTexture.index];
+		gltfSampler *sampler = smpList[texture->sampler];
+		gltfImage *image = imgList[texture->source];
+
+		bgfx::setTexture( Samplers::PBR_METALROUGHNESS, metallicRoughnessSampler, image->bgfxTexture.handle );
+		hasTexturesMask |= 1 << 1;
+	}else
+		bgfx::setTexture( Samplers::PBR_METALROUGHNESS, metallicRoughnessSampler, defaultTexture );
+	if ( material->normalTexture.index != -1 ) {
+		gltfTexture *texture = texList[material->normalTexture.index];
+		gltfSampler *sampler = smpList[texture->sampler];
+		gltfImage *image = imgList[texture->source];
+
+		bgfx::setTexture( Samplers::PBR_NORMAL, normalSampler, image->bgfxTexture.handle );
+		hasTexturesMask |= 1 << 2;
+	}else
+		bgfx::setTexture( Samplers::PBR_NORMAL, normalSampler, defaultTexture );
+	if ( material->occlusionTexture.index != -1 ) {
+		gltfTexture *texture = texList[material->occlusionTexture.index];
+		gltfSampler *sampler = smpList[texture->sampler];
+		gltfImage *image = imgList[texture->source];
+
+		bgfx::setTexture( Samplers::PBR_OCCLUSION, occlusionSampler, image->bgfxTexture.handle );
+		hasTexturesMask |= 1 << 3;
+	}else
+		bgfx::setTexture( Samplers::PBR_OCCLUSION, occlusionSampler, defaultTexture );
+	if ( material->emissiveTexture.index != -1 ) {
+		gltfTexture *texture = texList[material->emissiveTexture.index];
+		gltfSampler *sampler = smpList[texture->sampler];
+		gltfImage *image = imgList[texture->source];
+
+		bgfx::setTexture( Samplers::PBR_EMISSIVE, emissiveSampler, image->bgfxTexture.handle );
+		hasTexturesMask |= 1 << 4;
+	}else
+		bgfx::setTexture( Samplers::PBR_EMISSIVE, emissiveSampler, defaultTexture );
+
+	//const uint32_t hasTexturesMask = 0
+	//	| ( ( setTextureOrDefault( Samplers::PBR_BASECOLOR, baseColorSampler, bgfxmaterial.baseColorTexture ) ? 1 : 0 ) << 0 )
+	//	| ( ( setTextureOrDefault( Samplers::PBR_METALROUGHNESS, metallicRoughnessSampler, bgfxmaterial.metallicRoughnessTexture ) ? 1 : 0 ) << 1 )
+	//	| ( ( setTextureOrDefault( Samplers::PBR_NORMAL, normalSampler, bgfxmaterial.normalTexture ) ? 1 : 0 ) << 2 )
+	//	| ( ( setTextureOrDefault( Samplers::PBR_OCCLUSION, occlusionSampler, bgfxmaterial.occlusionTexture ) ? 1 : 0 ) << 3 )
+	//	| ( ( setTextureOrDefault( Samplers::PBR_EMISSIVE, emissiveSampler, bgfxmaterial.emissiveTexture ) ? 1 : 0 ) << 4 );
 	hasTexturesValues[0] = static_cast< float >( hasTexturesMask );
 
 	bgfx::setUniform( hasTexturesUniform, hasTexturesValues );
@@ -110,9 +155,9 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial &material, const gltfData &
 	bgfx::setUniform( multipleScatteringUniform, multipleScatteringValues );
 
 	uint64_t state = 0;
-	if ( material.bgfxMaterial.TransparencyMode == TransparencyMode::BLENDED )
+	if ( material->bgfxMaterial.TransparencyMode == TransparencyMode::BLENDED )
 		state |= BGFX_STATE_BLEND_ALPHA;
-	if ( !material.doubleSided )
+	if ( !material->doubleSided )
 		state |= BGFX_STATE_CULL_CW;
 	return state;
 }

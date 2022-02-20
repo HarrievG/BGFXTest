@@ -1582,7 +1582,7 @@ void GLTF_Parser::CreateBgfxData( )
 				gltfData *attrData = attrBv->parent;
 				gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
 
-				idFile_Memory bin = idFile_Memory( "gltfChunkPosition", ( const char * )(( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + attrAcc->byteOffset )) , attrBv->byteLength );
+				idFile_Memory bin = idFile_Memory( "gltfChunkVertices", ( const char * )(( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + attrAcc->byteOffset )) , attrBv->byteLength );
 
 				if ( vtxData == nullptr ) {
 					vtxDataSize = sizeof( pbrVertex ) * attrAcc->count;
@@ -1602,9 +1602,9 @@ void GLTF_Parser::CreateBgfxData( )
 							idRandom rnd( i );
 							int r = rnd.RandomInt( 255 ), g = rnd.RandomInt( 255 ), b = rnd.RandomInt( 255 );
 
-							vtxData[i].abgr = 0xff000000 + ( b << 16 ) + ( g << 8 ) + r;
+							//vtxData[i].abgr = 0xff000000 + ( b << 16 ) + ( g << 8 ) + r;
 						}
-						vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
 						break;
 					}
 					case bgfx::Attrib::Enum::Normal : {
@@ -1615,7 +1615,7 @@ void GLTF_Parser::CreateBgfxData( )
 							if ( attrBv->byteStride )
 								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
 						}
-						vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
 						break;
 					}
 					case bgfx::Attrib::Enum::TexCoord0:{
@@ -1625,13 +1625,33 @@ void GLTF_Parser::CreateBgfxData( )
 							if ( attrBv->byteStride )
 								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
 						}
-						vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						break;
+					}
+					case bgfx::Attrib::Enum::Tangent:
+					{
+						for ( int i = 0; i < attrAcc->count; i++ ) {
+							bin.Read( ( void * ) ( &vtxData[i].tangent.x ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].tangent.y ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].tangent.z ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].tangent.w ), attrAcc->typeSize );
+							if ( attrBv->byteStride )
+								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
+						}
+						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
 						break;
 					}
 				}
 			}
 
-			vtxLayout.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true );
+			vtxLayout.begin( )
+				.add( bgfx::Attrib::Position, 3, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::Normal, 3, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::Tangent, 4, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float )
+				//.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true )
+				.end( );
+			//vtxLayout.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true );
 			vtxLayout.end();
 			if ( vtxData != NULL ) {
 				prim->vertexBufferHandle = bgfx::createVertexBuffer(
@@ -1659,29 +1679,6 @@ void GLTF_Parser::CreateBgfxData( )
 			//image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
 			bgfxImageLoadAsync( data->GetData( bv->buffer ) + bv->byteOffset, bv->byteLength, &image->bgfxTexture );
 		}
-	}
-
-	//materials
-	auto& texList = currentAsset->TextureList();
-	auto& imgList = currentAsset->ImageList();
-	for ( auto & material : currentAsset->MaterialList( ) )
-	{
-		material->bgfxMaterial.material.alphaCutoff = material->alphaCutoff;
-		
-		if ( material->normalTexture.index != -1)
-			material->bgfxMaterial.material.normalTexture = imgList[texList[material->normalTexture.index]->source]->bgfxTexture.handle;
-		
-		if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 )
-			material->bgfxMaterial.material.baseColorTexture = imgList[texList[material->pbrMetallicRoughness.baseColorTexture.index]->source]->bgfxTexture.handle;
-		
-		material->bgfxMaterial.material.baseColorFactor = material->pbrMetallicRoughness.baseColorFactor;
-		
-		if ( material->pbrMetallicRoughness.metallicRoughnessTexture.index != -1 )
-			material->bgfxMaterial.material.metallicRoughnessTexture = imgList[texList[material->pbrMetallicRoughness.metallicRoughnessTexture.index]->source]->bgfxTexture.handle;
-		
-		material->bgfxMaterial.material.metallicFactor =  material->pbrMetallicRoughness.metallicFactor;
-		material->bgfxMaterial.material.roughnessFactor = material->pbrMetallicRoughness.roughnessFactor;
-
 	}
 }
 

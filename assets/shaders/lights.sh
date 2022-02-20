@@ -25,6 +25,21 @@ struct PointLight
     float radius;
 };
 
+//struct Light
+//{
+//    vec3 direction;
+//    float range;
+//
+//    vec3 color;
+//    float intensity;
+//
+//    vec3 position;
+//    float innerConeCos;
+//
+//    float outerConeCos;
+//    int type;
+//};
+
 struct AmbientLight
 {
     vec3 irradiance;

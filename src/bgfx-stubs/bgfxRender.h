@@ -97,10 +97,10 @@ struct bgfxContext_t {
 struct pbrVertex {
     idVec3 pos;
     idVec3 normal;
-    idVec2 uv;
-    //idVec3 tangent;
+    idVec4 tangent;
+	idVec2 uv;
     //idVec3 bitangent;
-    uint32_t abgr;
+    //uint32_t abgr;
 };
 
 struct PosColorVertex {
@@ -156,50 +156,51 @@ enum struct TransparencyMode {
 
 // Struct containing material information according to the GLTF spec
 // Note: Doesn't fully support the spec :)
-struct PBRMaterial
-{
-    // Uniform Data
-    idVec4 baseColorFactor = idVec4( 1.0f, 1.0f, 1.0f, 1.0f );
-    idVec4 emissiveFactor = idVec4( 0.0f, 0.0f, 0.0f, 1.0f );
-    float alphaCutoff = .5f;
-    float metallicFactor = 1.0f;
-    float roughnessFactor = 1.0f;
-    bgfx::TextureHandle baseColorTexture = BGFX_INVALID_HANDLE;
-    bgfx::TextureHandle metallicRoughnessTexture = BGFX_INVALID_HANDLE;
-    bgfx::TextureHandle normalTexture = BGFX_INVALID_HANDLE;
-    bgfx::TextureHandle emissiveTexture = BGFX_INVALID_HANDLE;
-    bgfx::TextureHandle occlusionTexture = BGFX_INVALID_HANDLE;
-};
+//struct PBRMaterial
+//{
+//    // Uniform Data
+//    idVec4 baseColorFactor = idVec4( 1.0f, 1.0f, 1.0f, 1.0f );
+//    idVec4 emissiveFactor = idVec4( 0.0f, 0.0f, 0.0f, 1.0f );
+//    float alphaCutoff = .5f;
+//    float metallicFactor = 1.0f;
+//    float roughnessFactor = 1.0f;
+//    bgfx::TextureHandle baseColorTexture = BGFX_INVALID_HANDLE;
+//    bgfx::TextureHandle metallicRoughnessTexture = BGFX_INVALID_HANDLE;
+//    bgfx::TextureHandle normalTexture = BGFX_INVALID_HANDLE;
+//    bgfx::TextureHandle emissiveTexture = BGFX_INVALID_HANDLE;
+//    bgfx::TextureHandle occlusionTexture = BGFX_INVALID_HANDLE;
+//};
 
+class gltfMaterial;
 struct bgfxMaterial {
-    PBRMaterial material;
-    TransparencyMode TransparencyMode;
+    gltfMaterial * material;
+    TransparencyMode TransparencyMode = TransparencyMode::OPAQUE_;
 };
-
-struct MeshGroup
-{
-    idList<PBRMaterial> materials;
-    idList<bgfxMesh> meshes;
-    idList<idMat4> transforms;
-    idList<idBounds> boundingBoxes;
-};
+//
+//struct MeshGroup
+//{
+//    idList<PBRMaterial> materials;
+//    idList<bgfxMesh> meshes;
+//    idList<idMat4> transforms;
+//    idList<idBounds> boundingBoxes;
+//};
 
 struct bgfxTextureHandle {
     bgfx::TextureHandle handle;
     idVec2 dim;
-    bool loaded;
+    bool loaded = false;
 };
-
-struct bgfxModel
-{
-    idList<bgfxTextureHandle> textures;
-
-    MeshGroup opaqueMeshes;
-    MeshGroup maskedMeshes;
-    MeshGroup transparentMeshes;
-
-    idBounds boundingBox = {};
-};
+//
+//struct bgfxModel
+//{
+//    idList<bgfxTextureHandle> textures;
+//
+//    MeshGroup opaqueMeshes;
+//    MeshGroup maskedMeshes;
+//    MeshGroup transparentMeshes;
+//
+//    idBounds boundingBox = {};
+//};
 
 class bgfxRenderable
 {
@@ -226,6 +227,7 @@ void bgfxRegisterCallback( bgfxCallback callback );
 void bgfxCreateMrtTarget( bgfxMrtContext_t &context, const char *name );
 bgfx::ShaderHandle  bgfxCreateShader( const char *shaderFile, const char *name );
 void bgfxStartRenderThread( );
+void bgfxStartImageLoadThread();
 
 class gltfData;
 class gltfNode;

@@ -11,7 +11,7 @@ public:
 
 	void generateAlbedoLUT( );
 
-	uint64_t bindMaterial( const gltfMaterial &material, const gltfData &data );
+	uint64_t bindMaterial( const gltfMaterial *material, gltfData *data  );
 	void bindAlbedoLUT( bool compute = false );
 
 	static constexpr float WHITE_FURNACE_RADIANCE = 1.0f;

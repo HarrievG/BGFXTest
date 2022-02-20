@@ -9,6 +9,18 @@
 
 bgfx::VertexLayout Renderer::PosVertex::layout;
 
+const char * toneMappingModeStr = "\n\
+NONE\t\t= 0\n\
+EXPONENTIAL\t= 1\n\
+REINHARD\t= 2\n\
+REINHARD_LUM\t= 3\n\
+HABLE\t= 4\n\
+DUIKER\t= 5\n\
+ACES\t= 6\n\
+ACES_LUM\t= 7\n";
+
+idCVar r_tonemappingMode( "r_tonemappingMode", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, toneMappingModeStr );
+
 Renderer::Renderer(gltfData* sceneData) : data(sceneData) { }
 
 void Renderer::initialize()
@@ -17,7 +29,7 @@ void Renderer::initialize()
 
 	blitSampler = bgfx::createUniform("s_texColor", bgfx::UniformType::Sampler);
 	camPosUniform = bgfx::createUniform("u_camPos", bgfx::UniformType::Vec4);
-	normalMatrixUniform = bgfx::createUniform("u_normalMatrix", bgfx::UniformType::Mat3);
+	normalMatrixUniform = bgfx::createUniform("u_normalMatrix", bgfx::UniformType::Mat4);
 	exposureVecUniform = bgfx::createUniform("u_exposureVec", bgfx::UniformType::Vec4);
 	tonemappingModeVecUniform = bgfx::createUniform("u_tonemappingModeVec", bgfx::UniformType::Vec4);
 
@@ -26,17 +38,13 @@ void Renderer::initialize()
 	const PosVertex vertices[3] = { { LEFT, BOTTOM, 0.0f }, { RIGHT, BOTTOM, 0.0f }, { LEFT, TOP, 0.0f } };
 	blitTriangleBuffer = bgfx::createVertexBuffer(bgfx::copy(&vertices, sizeof(vertices)), PosVertex::layout);
 
-	//char vsName[128], fsName[128];
-	//bx::snprintf(vsName, BX_COUNTOF(vsName), "%s%s", shaderDir(), "vs_tonemap.bin");
-	//bx::snprintf(fsName, BX_COUNTOF(fsName), "%s%s", shaderDir(), "fs_tonemap.bin");
-	//blitProgram = bigg::loadProgram(vsName, fsName);
 	bgfx::ShaderHandle vsh		= bgfxCreateShader("shaders/vs_tonemap.bin","vshader" );
 	bgfx::ShaderHandle fsh		= bgfxCreateShader( "shaders/fs_tonemap.bin", "fsshader" );
 	blitProgram = bgfx::createProgram( vsh, fsh, true );
 
 	pbr.initialize();
 	pbr.generateAlbedoLUT();
-	lights.initialize();
+	lights.Initialize(data);
 
 	onInitialize();
 
@@ -63,8 +71,7 @@ void Renderer::render(float dt)
 
 	//if(scene->loaded)
 	//{
-	//	idVec4 camPos = idVec4(scene->camera.position(), 1.0f);
-	//	bgfx::setUniform(camPosUniform, &camPos)
+		bgfx::setUniform(camPosUniform, &camPos);
 
 	//	idVec3 linear = idVec3(PBRShader::WHITE_FURNACE_RADIANCE)
 	//		//pbr.whiteFurnaceEnabled
@@ -80,7 +87,7 @@ void Renderer::render(float dt)
 	blitToScreen(MAX_VIEW);
 
 	// bigg doesn't do this
-	bgfx::setViewName(MAX_VIEW + 1, "imgui");
+	//bgfx::setViewName(MAX_VIEW + 1, "imgui");
 }
 
 void Renderer::shutdown()
@@ -88,7 +95,7 @@ void Renderer::shutdown()
 	onShutdown();
 
 	pbr.shutdown();
-	lights.shutdown();
+	lights.Shutdown();
 
 	bgfx::destroy(blitProgram);
 	bgfx::destroy(blitSampler);
@@ -114,7 +121,7 @@ void Renderer::setVariable(const idStr& name, const idStr& val)
 
 void Renderer::setTonemappingMode(TonemappingMode mode)
 {
-	tonemappingMode = mode;
+	r_tonemappingMode.SetInteger((int)mode);
 }
 
 void Renderer::setMultipleScattering(bool enabled)
@@ -139,35 +146,41 @@ bool Renderer::supported()
 
 void Renderer::setViewProjection(bgfx::ViewId view)
 {
-	// view matrix
-	//viewMat = scene->camera.matrix();
-	//// projection matrix
-	//bx::mtxProj(&projMat),
-	//	scene->camera.fov,
-	//	float(width) / height,
-	//	scene->camera.zNear,
-	//	scene->camera.zFar,
-	//	bgfx::getCaps()->homogeneousDepth,
-	//	bx::Handness::Left);
-	//bgfx::setViewTransform(view, &viewMat, &projMat)
-	common->DWarning(" setViewProjection !!" );
+	idMat4 curTrans = data->GetViewMatrix( camId );
+	idVec3 idup = idVec3( curTrans[0][1], curTrans[1][1], curTrans[2][1] );
+	idVec3 forward = idVec3( -curTrans[0][2], -curTrans[1][2], -curTrans[2][2] );
+	idVec3 pos = idVec3( curTrans[0][3], curTrans[1][3], curTrans[2][3] );
+	camPos = pos;
+
+	bx::Vec3 at = bx::Vec3( pos.x + forward.x, pos.y + forward.y, pos.z + forward.z );
+	bx::Vec3 eye = bx::Vec3( pos.x, pos.y, pos.z );
+	bx::Vec3 up = bx::Vec3( idup.x, idup.y, idup.z );
+	bx::mtxLookAt( viewMat.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
+
+	gltfCamera_Perspective &sceneCam = data->CameraList( )[camId]->perspective;
+	bx::mtxProj( projMat.ToFloatPtr( ), RAD2DEG( sceneCam.yfov ), sceneCam.aspectRatio, sceneCam.znear, sceneCam.zfar, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
+	bgfx::setViewTransform( view, viewMat.ToFloatPtr( ), projMat.ToFloatPtr( ) );
+
 }
 
 void Renderer::setNormalMatrix(const idMat4& modelMat)
 {
 	// usually the normal matrix is based on the model view matrix
 	// but shading is done in world space (not eye space) so it's just the model matrix
-	//glm::mat4 modelViewMat = viewMat * modelMat;
+	idMat4 modelViewMat = viewMat * modelMat;
 
 	// if we don't do non-uniform scaling, the normal matrix is the same as the model-view matrix
 	// (only the magnitude of the normal is changed, but we normalize either way)
-	//idMat3 normalMat = idMat3(modelMat);
+	//glm::mat3 normalMat = glm::mat3(modelMat);
 
 	// use adjugate instead of inverse
 	// see https://github.com/graphitemaster/normals_revisited#the-details-of-transforming-normals
 	// cofactor is the transpose of the adjugate
-	idMat4 normalMat = modelMat.Transpose().Inverse();//glm::transpose(glm::adjugate(idMat3(modelMat)));
-	common->DWarning(" Matrix adjugate!" );
+	//idMat
+	//glm::mat3 normalMat = glm::transpose( glm::adjugate( glm::mat3( modelMat ) ) );
+	//common->DWarning(" Matrix adjugate!" );
+	
+	idMat4 normalMat = modelMat.Inverse();
 	bgfx::setUniform(normalMatrixUniform, normalMat.ToFloatPtr());
 }
 
@@ -182,7 +195,7 @@ void Renderer::blitToScreen(bgfx::ViewId view)
 	bgfx::setTexture(0, blitSampler, frameBufferTexture);
 	float exposureVec[4] = { 1.0f };
 	bgfx::setUniform(exposureVecUniform, exposureVec);
-	float tonemappingModeVec[4] = { (float)tonemappingMode };
+	float tonemappingModeVec[4] = { (float)r_tonemappingMode.GetInteger() };
 	bgfx::setUniform(tonemappingModeVecUniform, tonemappingModeVec);
 	bgfx::setVertexBuffer(0, blitTriangleBuffer);
 	bgfx::submit(view, blitProgram);
