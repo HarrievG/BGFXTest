@@ -37,6 +37,8 @@ If you have questions concerning this license or the applicable additional terms
 //#include "idrenderer/RenderSystem.h"
 //#include "idrenderer/tr_local.h"
 
+#include "..\bgfx-stubs\bgfxRender.h"
+
 #include "sys/sys_public.h"
 extern bool ImGui_ImplSDL2_ProcessEvent( const SDL_Event *event );
 
@@ -75,6 +77,9 @@ static idCVar in_ignoreConsoleKey("in_ignoreConsoleKey", "0", CVAR_SYSTEM | CVAR
 
 static idCVar in_grabKeyboard("in_grabKeyboard", "0", CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT | CVAR_BOOL,
 		"if enabled, grabs all keyboard input if mouse is grabbed (so keyboard shortcuts from the OS like Alt-Tab or Windows Key won't work)");
+
+idCVar in_grabMouse( "in_grabMouse", "0", CVAR_SYSTEM | CVAR_ARCHIVE | CVAR_NOCHEAT | CVAR_BOOL,
+	"if enabled, locks mouse to window" );
 
 struct kbd_poll_t {
 	int key;
@@ -766,7 +771,8 @@ sysEvent_t Sys_GetEvent() {
 
 		case SDL_KEYDOWN:
 			if (ev.key.keysym.sym == SDLK_RETURN && (ev.key.keysym.mod & KMOD_ALT) > 0) {
-				//cvarSystem->SetCVarBool("r_fullscreen", !renderSystem->IsFullScreen());
+				cvarSystem->SetCVarBool("r_fullscreen", FULL_SCREEN ? 0 : 1);
+
 				PushConsoleEvent("vid_restart");
 				return res_none;
 			}

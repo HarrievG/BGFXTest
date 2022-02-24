@@ -209,9 +209,13 @@ typedef unsigned short			word;		// 16 bits
 typedef unsigned int			dword;		// 32 bits
 typedef unsigned int			uint;
 typedef unsigned long			ulong;
-
+typedef unsigned char			uint8;		// 8 bits
+typedef unsigned short			uint16;		// 16 bits
+typedef unsigned int			uint32;		// 32 bits
+typedef			 int			int32;		// 32 bits
+typedef			 short			int16;		// 16 bits
 typedef int						qhandle_t;
-
+typedef	unsigned long long		uint64;		// 64 bits
 #ifndef NULL
 #define NULL					((void *)0)
 #endif

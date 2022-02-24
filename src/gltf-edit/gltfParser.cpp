@@ -721,6 +721,8 @@ void gltfItem_KHR_lights_punctual::parse( idToken &token ) {
 
 		light.Parse( &lexer );
 
+		gltfLight->intType = gltfExt_KHR_lights_punctual::resolveType(gltfLight->type);
+
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
 	}
@@ -756,6 +758,11 @@ void gltfItem_material_extensions::parse( idToken &token ) {
 		common->Printf( "%s", token.c_str( ) );
 }
 
+
+void GLTF_Parser::Shutdown( ) {
+	parser.FreeSource();
+	currentFile.FreeData();
+}
 GLTF_Parser::GLTF_Parser()
 	: parser( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES ) , buffersDone(false), bufferViewsDone( false ) { }
 

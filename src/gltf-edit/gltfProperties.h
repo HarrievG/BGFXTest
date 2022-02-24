@@ -458,8 +458,8 @@ public:
 //https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_lights_punctual/schema/light.spot.schema.json
 class gltfExt_KHR_lights_punctual_spot {
 public:
-	gltfExt_KHR_lights_punctual_spot( ) { }
-	idVec3	innerConeAngle;
+	gltfExt_KHR_lights_punctual_spot( ) : innerConeAngle(0.0f), outerConeAngle( idMath::ONEFOURTH_PI ){ }
+	float	innerConeAngle;
 	float	outerConeAngle;
 	idStr	extensions;
 	idStr	extras;
@@ -470,15 +470,27 @@ typedef gltfExt_KHR_lights_punctual_spot spot;
 //https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_lights_punctual/schema/light.schema.json
 class gltfExt_KHR_lights_punctual {
 public:
-	gltfExt_KHR_lights_punctual( ) : color(vec3_one),intensity(1.0f),range(idMath::INFINITY) { }
+	gltfExt_KHR_lights_punctual( ) : color(vec3_one),intensity(1.0f),range(-1.0f),intType(-1) { }
 	idVec3	color;
 	float	intensity;
 	spot	spot;
-	idStr	type; //directional,point,spot
+	idStr	type; //directional=0,point=1,spot=2
 	float	range;
 	idStr	name;
 	idStr	extensions;
 	idStr	extras;
+
+	int intType;
+
+	static int resolveType( idStr type ) {
+		if (type == "directional" )
+			return 0;
+		else if (type == "point" )
+			return 1;
+		else if (type == "spot" )
+			return 2;
+		return -1;
+	}
 };
 
 /////////////////////////////////////////////////////////////////////////////

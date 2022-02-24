@@ -21,6 +21,7 @@ extern idCVar		r_SceneEditRenderHeight;
 // and will be automatically scaled to the real resolution
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
+static bool FULL_SCREEN = false;
 
 struct bgfxMrtContext_t{
     bgfx::TextureHandle fbTextureHandles[2] = { BGFX_INVALID_HANDLE, BGFX_INVALID_HANDLE };

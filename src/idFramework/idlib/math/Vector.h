@@ -47,6 +47,31 @@ If you have questions concerning this license or the applicable additional terms
 class idAngles;
 class idPolar3;
 class idMat3;
+class idVec4;
+
+class idVec4b {
+public:
+	idVec4b( ) : x( 0 ), y( 0 ), z( 0 ), w( 0 ) { }
+	idVec4b( uint8_t x, uint8_t y, uint8_t z, uint8_t w ) : x( x ), y( y ), z( z ), w( w ) { }
+	explicit idVec4b( idVec4 v );
+
+	uint8_t &operator[]( size_t index ) 	{
+		assert( index >= 0 && index <= 3 );
+		return ( &x )[index];
+	}
+
+	const uint8_t &operator[]( size_t index ) const 	{
+		assert( index >= 0 && index <= 3 );
+		return ( &x )[index];
+	}
+
+	union { uint8_t x, r; };
+	union { uint8_t y, g; };
+	union { uint8_t z, b; };
+	union { uint8_t w, a; };
+
+	static idVec4b lerp( idVec4b from, idVec4b to, float fraction );
+};
 
 //===============================================================
 //
@@ -841,6 +866,7 @@ public:
 
 	friend idVec4	operator*( const float a, const idVec4 b );
 
+	idVec4			Multiply( const idVec4 &a ) const;
 	bool			Compare( const idVec4 &a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec4 &a, const float epsilon ) const;		// compare with epsilon
 	bool			operator==(	const idVec4 &a ) const;						// exact compare, no epsilon
@@ -971,6 +997,10 @@ ID_INLINE idVec4 &idVec4::operator*=( const float a ) {
 	w *= a;
 
 	return *this;
+}
+
+ID_INLINE idVec4 idVec4::Multiply( const idVec4 &a ) const {
+	return idVec4( x * a.x, y * a.y, z * a.z, w * a.w );
 }
 
 ID_INLINE bool idVec4::Compare( const idVec4 &a ) const {

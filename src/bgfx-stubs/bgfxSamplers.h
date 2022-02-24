@@ -16,6 +16,7 @@ public:
     static const uint8_t PBR_EMISSIVE = 5;
 
     static const uint8_t LIGHTS_POINTLIGHTS = 6;
+	static const uint8_t SAMPLER_LIGHTS = 12;
 
     static const uint8_t CLUSTERS_CLUSTERS = 7;
     static const uint8_t CLUSTERS_LIGHTINDICES = 8;

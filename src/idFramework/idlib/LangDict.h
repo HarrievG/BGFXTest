@@ -78,4 +78,41 @@ private:
 	int						baseID;
 };
 
+
+/*
+================================================
+idStrId represents a localized String as a String ID.
+================================================
+*/
+class idStrId {
+public:
+	idStrId( ) : index( -1 ) { }
+	idStrId( const idStrId &other ) : index( other.index ) { }
+
+	explicit idStrId( int i ) : index( i ) { }
+	explicit idStrId( const char *key ) { Set( key ); }
+	explicit idStrId( const idStr &key ) { Set( key ); }
+
+	void operator=( const char *key ) { Set( key ); }
+	void operator=( const idStr &key ) { Set( key ); }
+	void operator=( const idStrId &other ) { index = other.index; }
+
+	bool operator==( const idStrId &other ) const { return index == other.index; }
+	bool operator!=( const idStrId &other ) const { return index != other.index; }
+
+	void			Set( const char *key );
+
+	void			Empty( ) { index = -1; }
+	bool			IsEmpty( ) const { return index < 0; }
+
+	const char *GetKey( ) const;
+	const char *GetLocalizedString( ) const;
+
+	int				GetIndex( ) const { return index; }
+	void			SetIndex( int i ) { index = i; }
+
+private:
+	int index;	// Index into the language dictionary
+};
+
 #endif /* !__LANGDICT_H__ */

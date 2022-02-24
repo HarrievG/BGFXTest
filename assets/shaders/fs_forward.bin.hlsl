@@ -893,12 +893,205 @@ AmbientLight light;
 light.irradiance = u_ambientLightIrradiance.xyz;
 return light;
 }
+struct Light
+{
+float3 direction;
+float range;
+float3 color;
+float intensity;
+float3 position;
+float innerConeCos;
+float outerConeCos;
+uint type;
+};
+Buffer<float4> b_Lights : register(t[12]);
+const int LightType_Directional = 0;
+const int LightType_Point = 1;
+const int LightType_Spot = 2;
+const int LightType_old = 3;
+Light getLight(uint i)
+{
+int index = 4 * i;
+Light light;
+light.direction = b_Lights[index + 0].xyz;
+light.range = b_Lights[index + 0].w;
+light.color = b_Lights[index + 1].xyz;
+light.intensity = b_Lights[index + 1].w;
+light.position = b_Lights[index + 2].xyz;
+light.innerConeCos = b_Lights[index + 2].w;
+light.outerConeCos = b_Lights[index + 3].x;
+light.type = b_Lights[index + 3].y;
+return light;
+}
+float getRangeAttenuation(float range, float distance)
+{
+if (range <= 0.0)
+{
+return 1.0 / pow(distance, 2.0);
+}
+return max(min(1.0 - pow(distance / range, 4.0), 1.0), 0.0) / pow(distance, 2.0);
+}
+float getSpotAttenuation(float3 pointToLight, float3 spotDirection, float outerConeCos, float innerConeCos)
+{
+float actualCos = dot(normalize(spotDirection), normalize(-pointToLight));
+if (actualCos > outerConeCos)
+{
+if (actualCos < innerConeCos)
+{
+return smoothstep(outerConeCos, innerConeCos, actualCos);
+}
+return 1.0;
+}
+return 0.0;
+}
+float3 getLighIntensity(Light light, float3 pointToLight)
+{
+float rangeAttenuation = 1.0;
+float spotAttenuation = 1.0;
+if (light.type != LightType_Directional)
+{
+rangeAttenuation = getRangeAttenuation(light.range, length(pointToLight));
+}
+if (light.type == LightType_Spot)
+{
+spotAttenuation = getSpotAttenuation(pointToLight, light.direction, light.outerConeCos, light.innerConeCos);
+}
+return rangeAttenuation * spotAttenuation * light.intensity * light.color;
+}
+float applyIorToRoughness(float roughness, float ior)
+{
+return roughness * clamp(ior * 2.0 - 2.0, 0.0, 1.0);
+}
+float3 F_SchlickX(float3 f0, float3 f90, float VdotH)
+{
+return f0 + (f90 - f0) * pow(clamp(1.0 - VdotH, 0.0, 1.0), 5.0);
+}
+float V_GGX(float NdotL, float NdotV, float alphaRoughness)
+{
+float alphaRoughnessSq = alphaRoughness * alphaRoughness;
+float GGXV = NdotL * sqrt(NdotV * NdotV * (1.0 - alphaRoughnessSq) + alphaRoughnessSq);
+float GGXL = NdotV * sqrt(NdotL * NdotL * (1.0 - alphaRoughnessSq) + alphaRoughnessSq);
+float GGX = GGXV + GGXL;
+if (GGX > 0.0)
+{
+return 0.5 / GGX;
+}
+return 0.0;
+}
+float D_GGXX(float NdotH, float alphaRoughness)
+{
+float alphaRoughnessSq = alphaRoughness * alphaRoughness;
+float f = (NdotH * NdotH) * (alphaRoughnessSq - 1.0) + 1.0;
+return alphaRoughnessSq / (3.1415926535897932384626433832795 * f * f);
+}
+float3 getPunctualRadianceTransmission(float3 normal, float3 view, float3 pointToLight, float alphaRoughness,
+float3 f0, float3 f90, float3 baseColor, float ior)
+{
+float transmissionRougness = applyIorToRoughness(alphaRoughness, ior);
+float3 n = normalize(normal);
+float3 v = normalize(view);
+float3 l = normalize(pointToLight);
+float3 l_mirror = normalize(l + 2.0*n*dot(-l, n));
+float3 h = normalize(l_mirror + v);
+float D = D_GGXX(clamp(dot(n, h), 0.0, 1.0), transmissionRougness);
+float VoH = saturate(dot(v, h));
+float3 F = F_SchlickX(f0, f90, clamp(dot(v, h), 0.0, 1.0));
+float Vis = V_GGX(clamp(dot(n, l_mirror), 0.0, 1.0), clamp(dot(n, v), 0.0, 1.0), transmissionRougness);
+return (1.0 - F) * baseColor * D * Vis;
+}
+float clampedDot(float3 x, float3 y)
+{
+return clamp(dot(x, y), 0.0, 1.0);
+}
+float3 BRDF_specularGGX(float3 f0, float3 f90, float alphaRoughness, float specularWeight, float VdotH, float NdotL, float NdotV, float NdotH)
+{
+float3 F = F_SchlickX(f0, f90, VdotH);
+float Vis = V_GGX(NdotL, NdotV, alphaRoughness);
+float D = D_GGXX(NdotH, alphaRoughness);
+return specularWeight * F * Vis * D;
+}
+float3 getPunctualRadianceClearCoat(float3 clearcoatNormal, float3 v, float3 l, float3 h, float VdotH, float3 f0, float3 f90, float clearcoatRoughness)
+{
+float NdotL = clampedDot(clearcoatNormal, l);
+float NdotV = clampedDot(clearcoatNormal, v);
+float NdotH = clampedDot(clearcoatNormal, h);
+return NdotL * BRDF_specularGGX(f0, f90, clearcoatRoughness * clearcoatRoughness, 1.0, VdotH, NdotL, NdotV, NdotH);
+}
+float lambdaSheenNumericHelper(float x, float alphaG)
+{
+float oneMinusAlphaSq = (1.0 - alphaG) * (1.0 - alphaG);
+float a = mix(21.5473, 25.3245, oneMinusAlphaSq);
+float b = mix(3.82987, 3.32435, oneMinusAlphaSq);
+float c = mix(0.19823, 0.16801, oneMinusAlphaSq);
+float d = mix(-1.97760, -1.27393, oneMinusAlphaSq);
+float e = mix(-4.32054, -4.85967, oneMinusAlphaSq);
+return a / (1.0 + b * pow(x, c)) + d * x + e;
+}
+float lambdaSheen(float cosTheta, float alphaG)
+{
+if (abs(cosTheta) < 0.5)
+{
+return exp(lambdaSheenNumericHelper(cosTheta, alphaG));
+}
+else
+{
+return exp(2.0 * lambdaSheenNumericHelper(0.5, alphaG) - lambdaSheenNumericHelper(1.0 - cosTheta, alphaG));
+}
+}
+float V_Sheen(float NdotL, float NdotV, float sheenRoughness)
+{
+sheenRoughness = max(sheenRoughness, 0.000001);
+float alphaG = sheenRoughness * sheenRoughness;
+return clamp(1.0 / ((1.0 + lambdaSheen(NdotV, alphaG) + lambdaSheen(NdotL, alphaG)) *
+(4.0 * NdotV * NdotL)), 0.0, 1.0);
+}
+float D_Charlie(float sheenRoughness, float NdotH)
+{
+sheenRoughness = max(sheenRoughness, 0.000001);
+float alphaG = sheenRoughness * sheenRoughness;
+float invR = 1.0 / alphaG;
+float cos2h = NdotH * NdotH;
+float sin2h = 1.0 - cos2h;
+return (2.0 + invR) * pow(sin2h, invR * 0.5) / (2.0 * 3.1415926535897932384626433832795);
+}
+float3 BRDF_specularSheen(float3 sheenColor, float sheenRoughness, float NdotL, float NdotV, float NdotH)
+{
+float sheenDistribution = D_Charlie(sheenRoughness, NdotH);
+float sheenVisibility = V_Sheen(NdotL, NdotV, sheenRoughness);
+return sheenColor * sheenDistribution * sheenVisibility;
+}
+float3 getPunctualRadianceSheen(float3 sheenColor, float sheenRoughness, float NdotL, float NdotV, float NdotH)
+{
+return NdotL * BRDF_specularSheen(sheenColor, sheenRoughness, NdotL, NdotV, NdotH);
+}
+float3 applyVolumeAttenuation(float3 radiance, float transmissionDistance, float3 attenuationColor, float attenuationDistance)
+{
+if (attenuationDistance == 0.0)
+{
+return radiance;
+}
+else
+{
+float3 attenuationCoefficient = -log(attenuationColor) / attenuationDistance;
+float3 transmittance = exp(-attenuationCoefficient * transmissionDistance);
+return transmittance * radiance;
+}
+}
+float3 getVolumeTransmissionRay(float3 n, float3 v, float thickness, float ior, float4x4 modelMatrix)
+{
+float3 refractionVector = refract(-v, normalize(n), 1.0 / ior);
+float3 modelScale;
+modelScale.x = length(float3(modelMatrix[0].xyz));
+modelScale.y = length(float3(modelMatrix[1].xyz));
+modelScale.z = length(float3(modelMatrix[2].xyz));
+return normalize(refractionVector) * thickness * modelScale;
+}
 uniform float4 u_camPos;
 void main( float4 gl_FragCoord : SV_POSITION , float3 v_normal : NORMAL , float4 v_tangent : TANGENT , float2 v_texcoord : TEXCOORD0 , float3 v_worldpos : POSITION1 , out float4 bgfx_FragData0 : SV_TARGET0 )
 {
 float4 bgfx_VoidFrag = vec4_splat(0.0);
 PBRMaterial mat = pbrMaterial(v_texcoord);
-float3 N = convertTangentNormal(v_normal, v_tangent, mat.normal);
+float3 N = convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
 mat.a = specularAntiAliasing(N, mat.a);
 float3 camPos = u_camPos.xyz;
 float3 fragPos = v_worldpos;
@@ -917,6 +1110,25 @@ float3 radianceOut = vec3_splat(0.0);
 uint lights = pointLightCount();
 for(uint i = 0; i < lights; i++)
 {
+Light pLight = getLight(i);
+float3 pointToLight;
+if (pLight.type != LightType_Directional)
+{
+pointToLight = pLight.position - fragPos;
+}
+else
+{
+pointToLight = -pLight.direction;
+}
+if (pLight.type < 3.0)
+{
+float3 L = normalize(pointToLight);
+float3 intensity = getLighIntensity(pLight, pointToLight);
+float NoL = saturate(dot(N, L));
+if (NoL > 0.0 || NoV > 0.0)
+radianceOut += BRDF(V, L, N, NoV, NoL, mat) * intensity * NoL;
+}else
+{
 PointLight light = getPointLight(i);
 float dist = distance(light.position, fragPos);
 float attenuation = smoothAttenuation(dist, light.radius);
@@ -926,6 +1138,7 @@ float3 L = normalize(light.position - fragPos);
 float3 radianceIn = light.intensity * attenuation;
 float NoL = saturate(dot(N, L));
 radianceOut += BRDF(V, L, N, NoV, NoL, mat) * msFactor * radianceIn * NoL;
+}
 }
 }
 radianceOut += getAmbientLight().irradiance * mat.diffuseColor * mat.occlusion;

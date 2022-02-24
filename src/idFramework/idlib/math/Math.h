@@ -109,6 +109,10 @@ public:
 
 	static void					Init( void );
 
+	template<typename T>
+	static inline T Lerp( T from, T to, float fraction ) 	{
+		return T( from + ( to - from ) * fraction );
+	}
 	static float				RSqrt( float x );			// reciprocal square root, returns huge number when x == 0.0
 
 	static float				InvSqrt( float x );			// inverse square root with 32 bits precision, returns huge number when x == 0.0
@@ -216,7 +220,7 @@ public:
 	static const float			M_MS2SEC;					// milliseconds to seconds multiplier
 	static const float			INFINITY;					// huge number which should be larger than any valid number used
 	static const float			FLT_EPSILON;				// smallest positive number such that 1.0+FLT_EPSILON != 1.0
-
+	static const float			FLT_SMALLEST_NON_DENORMAL;	// smallest non-denormal 32-bit floating point value
 private:
 	enum {
 		LOOKUP_BITS				= 8,

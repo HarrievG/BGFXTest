@@ -24,6 +24,42 @@ function(add_globbed_headers SRCLIST PATHPREFIX)
 	set(${SRCLIST} ${tmp_hdrs} ${${SRCLIST}} PARENT_SCOPE)
 endfunction()
 
+set(src_idSWF
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Bitstream.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Bitstream.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Dictionary.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Enums.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Events.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Image.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Load.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Main.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Names.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ParmList.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ParmList.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_PlaceObject.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Render.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptFunction.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptFunction.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptObject.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptObject.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptVar.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptVar.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ShapeParser.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ShapeParser.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Shapes.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sounds.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_SpriteInstance.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_SpriteInstance.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sprites.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sprites.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Text.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_TextInstance.cpp
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_TextInstance.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Types.h
+	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Zlib.cpp
+)
+
 set(src_idFramework
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/platform.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/File.h
@@ -144,7 +180,7 @@ set(Sources
 include_directories(src)
 include_directories(src/idFramework)
 include_directories(${ZLIB_INCLUDE_DIRS})
-add_executable(${RELEASE_NAME} ${Sources} ${src_idFramework})
+add_executable(${RELEASE_NAME} ${Sources} ${src_idFramework} ${src_idSWF})
 source_group(src REGULAR_EXPRESSION src)
 
 target_include_directories(

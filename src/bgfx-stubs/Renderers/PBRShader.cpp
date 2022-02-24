@@ -7,6 +7,9 @@
 #include <bimg/encode.h>
 #include <bx/file.h>
 
+idCVar r_multipleScatteringEnabled( "r_multipleScatteringEnabled", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "1 to r_multipleScatteringEnabled" );
+idCVar r_whiteFurnaceEnabled( "r_whiteFurnaceEnabled", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "1 to r_whiteFurnaceEnabled" );
+
 void PBRShader::initialize( ) {
 	baseColorFactorUniform =
 		bgfx::createUniform( "u_baseColorFactor", bgfx::UniformType::Vec4 );
@@ -38,8 +41,6 @@ void PBRShader::initialize( ) {
 		1,
 		bgfx::TextureFormat::RGBA32F,
 		BGFX_SAMPLER_UVW_CLAMP | BGFX_TEXTURE_COMPUTE_WRITE );
-
-	char csName[128];
 
 	bgfx::ShaderHandle csh = bgfxCreateShader( "shaders/cs_multiple_scattering_lut.bin", "cs_multiple_scattering_lut" );
 	albedoLUTProgram = bgfx::createProgram( csh, true );
@@ -75,7 +76,6 @@ void PBRShader::generateAlbedoLUT( ) {
 
 
 uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data ) {
-
 	const gltfMaterial_pbrMetallicRoughness &pbrMR = material->pbrMetallicRoughness;
 	float factorValues[4] = {
 		pbrMR.metallicFactor, pbrMR.roughnessFactor, material->normalTexture.scale, material->occlusionTexture.strength

@@ -23,7 +23,7 @@ public:
 
 	idImConsole( );
 	~idImConsole( );
-
+	void Shutdown();
 	// Portable helpers
 	static int					Stricmp( const char *str1, const char *str2 );
 	static int					Strnicmp( const char *str1, const char *str2, int n );

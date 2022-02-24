@@ -20,6 +20,11 @@ ACES\t= 6\n\
 ACES_LUM\t= 7\n";
 
 idCVar r_tonemappingMode( "r_tonemappingMode", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, toneMappingModeStr );
+idCVar viewtest( "viewtest", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "1 to mutliply with view" );
+
+
+extern idCVar r_multipleScatteringEnabled;
+extern idCVar r_whiteFurnaceEnabled;
 
 Renderer::Renderer(gltfData* sceneData) : data(sceneData) { }
 
@@ -68,6 +73,18 @@ void Renderer::reset(uint16_t width, uint16_t height)
 void Renderer::render(float dt)
 {
 	time += dt;
+
+	if ( r_multipleScatteringEnabled.IsModified())
+	{
+		r_multipleScatteringEnabled.ClearModified();
+		setMultipleScattering(r_multipleScatteringEnabled.GetBool());
+	}
+
+	if ( r_whiteFurnaceEnabled.IsModified( ) ) 	{
+		r_whiteFurnaceEnabled.ClearModified( );
+		setMultipleScattering( r_whiteFurnaceEnabled.GetBool( ) );
+	}
+
 
 	//if(scene->loaded)
 	//{
@@ -180,7 +197,10 @@ void Renderer::setNormalMatrix(const idMat4& modelMat)
 	//glm::mat3 normalMat = glm::transpose( glm::adjugate( glm::mat3( modelMat ) ) );
 	//common->DWarning(" Matrix adjugate!" );
 	
-	idMat4 normalMat = modelMat.Inverse();
+	idMat4 normalMat = modelMat.Inverse();//.Transpose();
+	if (viewtest.GetInteger() == 1 )
+		normalMat = modelViewMat;
+
 	bgfx::setUniform(normalMatrixUniform, normalMat.ToFloatPtr());
 }
 
@@ -190,7 +210,7 @@ void Renderer::blitToScreen(bgfx::ViewId view)
 	bgfx::setViewClear(view, BGFX_CLEAR_NONE);
 	bgfx::setViewRect(view, 0, 0, width, height);
 	bgfx::setViewFrameBuffer(view, BGFX_INVALID_HANDLE);
-	bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW);
+	bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW | BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA );
 	bgfx::TextureHandle frameBufferTexture = bgfx::getTexture(frameBuffer, 0);
 	bgfx::setTexture(0, blitSampler, frameBufferTexture);
 	float exposureVec[4] = { 1.0f };

@@ -404,3 +404,14 @@ idVecX::ToString
 const char *idVecX::ToString( int precision ) const {
 	return idStr::FloatArrayToString( ToFloatPtr(), GetDimension(), precision );
 }
+
+idVec4b::idVec4b( idVec4 v ) {
+	x = uint8_t( v.x * 255.0f );
+	y = uint8_t( v.y * 255.0f );
+	z = uint8_t( v.z * 255.0f );
+	w = uint8_t( v.w * 255.0f );
+}
+
+idVec4b idVec4b::lerp( idVec4b from, idVec4b to, float fraction ) {
+	return idVec4b( idMath::Lerp( from.x, to.x, fraction ), idMath::Lerp( from.y, to.y, fraction ), idMath::Lerp( from.z, to.z, fraction ), idMath::Lerp( from.w, to.w, fraction ) );
+}

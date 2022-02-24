@@ -10,6 +10,7 @@ $input v_worldpos, v_normal, v_tangent, v_texcoord
 #include "util.sh"
 #include "pbr.sh"
 #include "lights.sh"
+#include "lights_punctual.sh"
 
 uniform vec4 u_camPos;
 
@@ -17,7 +18,7 @@ void main()
 {
     PBRMaterial mat = pbrMaterial(v_texcoord);
     // convert normal map from tangent space -> world space (= space of v_tangent, etc.)
-    vec3 N = convertTangentNormal(v_normal, v_tangent, mat.normal);
+    vec3 N = convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
     mat.a = specularAntiAliasing(N, mat.a);
 
     // shading
@@ -44,16 +45,42 @@ void main()
     uint lights = pointLightCount();
     for(uint i = 0; i < lights; i++)
     {
-        PointLight light = getPointLight(i);
-        float dist = distance(light.position, fragPos);
-        float attenuation = smoothAttenuation(dist, light.radius);
-        if(attenuation > 0.0)
+		Light pLight = getLight(i);
+
+		
+        vec3 pointToLight;
+        if (pLight.type != LightType_Directional)
         {
-            vec3 L = normalize(light.position - fragPos);
-            vec3 radianceIn = light.intensity * attenuation;
-            float NoL = saturate(dot(N, L));
-            radianceOut += BRDF(V, L, N, NoV, NoL, mat) * msFactor * radianceIn * NoL;
+            pointToLight = pLight.position - fragPos;
         }
+        else
+        {
+            pointToLight = -pLight.direction;
+        }
+
+
+		if (pLight.type < 3.0)
+		{
+			vec3 L = normalize(pointToLight);
+			vec3 intensity = getLighIntensity(pLight, pointToLight);
+			float NoL = saturate(dot(N, L));
+			if (NoL > 0.0 || NoV > 0.0)		
+				radianceOut += BRDF(V, L, N, NoV, NoL, mat) * intensity * NoL;
+		}else
+		{
+			PointLight light = getPointLight(i);
+			float dist = distance(light.position, fragPos);
+			float attenuation = smoothAttenuation(dist, light.radius);
+			if(attenuation > 0.0)
+			{
+				vec3 L = normalize(light.position - fragPos);
+
+				vec3 radianceIn = light.intensity * attenuation;
+				float NoL = saturate(dot(N, L));
+				radianceOut += BRDF(V, L, N, NoV, NoL, mat) * msFactor * radianceIn * NoL;
+			}
+		}
+
     }
 
     radianceOut += getAmbientLight().irradiance * mat.diffuseColor * mat.occlusion;
@@ -62,7 +89,7 @@ void main()
     // output goes straight to HDR framebuffer, no clamping
     // tonemapping happens in final blit
 
-    gl_FragColor.rgb = radianceOu%t;
+    gl_FragColor.rgb = radianceOut;
     gl_FragColor.a = mat.albedo.a;
 
 	//normal debug

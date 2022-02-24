@@ -2,7 +2,13 @@
 #include <bx/string.h>
 #include "..\gltf-edit\gltfParser.h"
 
-ForwardRenderer::ForwardRenderer(gltfData* sceneData) : Renderer(sceneData) { }
+
+idCVar transposetest( "transposetest", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "1 to transpose");
+
+ForwardRenderer::ForwardRenderer(gltfData* sceneData) : Renderer(sceneData) 
+{
+
+}
 
 bool ForwardRenderer::supported()
 {
@@ -37,7 +43,10 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 		{
 			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
 
-			setNormalMatrix(curTrans.Transpose());
+			if(transposetest.GetInteger() == 1)
+				setNormalMatrix(curTrans.Transpose());
+			else
+				setNormalMatrix(curTrans);
 
 			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
 			bgfx::setIndexBuffer( prim->indexBufferHandle );
@@ -79,7 +88,7 @@ void ForwardRenderer::onRender(float dt)
 
     setViewProjection(vDefault);
 
-    uint64_t state = BGFX_STATE_DEFAULT & ~BGFX_STATE_CULL_MASK;
+    uint64_t state = BGFX_STATE_DEFAULT & ~BGFX_STATE_CULL_MASK | BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA ;
 
     pbr.bindAlbedoLUT();
     lights.BindLights();

@@ -40,10 +40,15 @@ idImConsole::idImConsole( )  {
 	//cout is now pointing to a file
 }
 
-idImConsole::~idImConsole( )     {
-    ClearLog( );
-    for ( int i = 0; i < History.Size; i++ )
-        free( History[i] );
+
+void idImConsole::Shutdown( ) {
+	ClearLog( );
+	for ( int i = 0; i < History.Size; i++ )
+		free( History[i] );
+}
+
+idImConsole::~idImConsole( ) {
+	Shutdown();
 }
 
 // Portable helpers

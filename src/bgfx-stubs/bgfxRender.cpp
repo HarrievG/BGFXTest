@@ -22,7 +22,7 @@ static const uint16_t cube_tri_list[] = {
 idCVar r_customWidth( "r_customWidth", "1920", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen width. set r_mode to -1 to activate" );
 idCVar r_customHeight( "r_customHeight", "1080", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "custom screen height. set r_mode to -1 to activate" );
 idCVar r_aspectRatio( "r_aspectRatio", "-1", CVAR_RENDERER | CVAR_INTEGER | CVAR_ARCHIVE, "aspect ratio of view:\n0 = 4:3\n1 = 16:9\n2 = 16:10\n-1 = auto (guess from resolution)", -1, 2 );
-idCVar r_mode( "r_mode", "-1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "video mode number" );
+idCVar r_mode( "r_mode", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "video mode number" );
 idCVar r_forceRenderMode( "r_forceRenderMode", "1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "scene viewer shading mode: \n1=debugColorVertex\n2=debugNormalVertex\n3=PBR" );
 idList<bgfxCallback> bgfxCallbackList;
 
@@ -60,9 +60,14 @@ cmdSystem->AddCommand( "r_PrintMemoryStats", []( const idCmdArgs &args )
 }
 
 void bgfxShutdown( bgfxContext_t *context ) { 
-	bgfx::destroy( context->vbh );
-	bgfx::destroy( context->ibh );
-	bgfx::destroy( context->program );
+	if (isValid(context->vbh))
+		bgfx::destroy( context->vbh );
+	if (isValid(context->ibh))
+		bgfx::destroy( context->ibh );
+	if (isValid(context->program))
+		bgfx::destroy( context->program );
+
+
 	
 	bgfxCallbackList.Clear( );
 	

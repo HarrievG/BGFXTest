@@ -30,15 +30,20 @@ idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_B
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
 idCVar r_useRenderThread( "r_useRenderThread", "1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "Multithreaded renderering" );
+idCVar r_fullscreen( "r_fullscreen", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_BOOL, "Fullscreen" );
+
+extern idCVar in_grabMouse;
 
 idSession *session = NULL;
 
 idSysLocal		sysLocal;
 idSys *sys = &sysLocal;
 
-#define WINDOW_WIDTH 1920
-#define WINDOW_HEIGHT 1080
+#define WINDOW_WIDTH 1024
+#define WINDOW_HEIGHT 768
 
+//#define WINDOW_WIDTH 3840
+//#define WINDOW_HEIGHT 2160
 ForwardRenderer * fwRender;
 
 void main_loop( void *data ) {
@@ -99,6 +104,7 @@ int main( int argc, char **argv )
 	idCVar::RegisterStaticVars( );
 	cvarSystem->Init( );
 	cmdSystem->Init( );
+	cmdSystem->BufferCommandText(CMD_EXEC_APPEND,"exec default.cfg");
 	common->Init( argc, argv );
 	fileSystem->Init( );
 	eventLoop->Init();
@@ -108,7 +114,8 @@ int main( int argc, char **argv )
 	eventLoop->RegisterCallback([]( const sysEvent_t &event )
 		-> auto {
 		if ( event.evType == SE_KEY && event.evValue2 == 1 ) {
-			idKeyInput::ExecKeyBinding( event.evValue );
+			if (!ImGui::IsWindowFocused(ImGuiFocusedFlags_AnyWindow))
+				idKeyInput::ExecKeyBinding( event.evValue );
 		}
 	});
 	//    if (event.evType == SE_MOUSE )
@@ -133,11 +140,29 @@ int main( int argc, char **argv )
 	//});
 
 	cmdSystem->AddCommand( "quit", []( const idCmdArgs &args ) -> auto {context.quit=true;}, CMD_FL_SYSTEM, "Exit game");
-
+	cmdSystem->AddCommand( "vid_restart", []( const idCmdArgs &args )
+		-> auto {
+		if ( !r_fullscreen.GetBool( ) && FULL_SCREEN ) {
+			SDL_SetWindowFullscreen( context.window,0);
+			SDL_SetWindowSize(context.window,WINDOW_WIDTH, WINDOW_HEIGHT);
+			FULL_SCREEN = false;
+			
+		} else if ( r_fullscreen.GetBool( ) && !FULL_SCREEN )
+		{
+			SDL_SetWindowFullscreen( context.window, SDL_WINDOW_FULLSCREEN );
+			FULL_SCREEN = true;
+		}
+	}, CMD_FL_SYSTEM, "restarts vid_subsystem", idCmdSystem::ArgCompletion_GltfName );
 	const int width = WINDOW_WIDTH;
 	const int height = WINDOW_HEIGHT;
+
+	Uint32 flags = SDL_WINDOW_SHOWN;
+	
+	if (in_grabMouse.GetBool())
+		flags |= SDL_WINDOW_MOUSE_GRABBED;
+
 	SDL_Window *window = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
-		height, SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI );
+		height,flags );
 
 	if ( window == nullptr ) {
 		common->FatalError("Window could not be created. SDL_Error: %s\n", SDL_GetError( ) );
@@ -160,8 +185,6 @@ int main( int argc, char **argv )
 		bgfx::renderFrame( );
 	else
 		bgfxStartRenderThread( );
-
-	
 
 	bgfx::PlatformData pd{};
 #if BX_PLATFORM_WINDOWS
@@ -226,6 +249,12 @@ int main( int argc, char **argv )
 		fwRender = new ForwardRenderer( gltfParser->currentAsset );
 		fwRender->reset( width,height);
 		fwRender->initialize();
+		
+		cmdSystem->AddCommand( "r_restart", []( const idCmdArgs &args )
+			-> auto {
+			fwRender->reset(context.width, context.height );
+			fwRender->initialize( );
+		}, CMD_FL_SYSTEM, "restart renderer" );
 	}
 
 	
@@ -247,6 +276,8 @@ int main( int argc, char **argv )
 	ImGui_Implbgfx_Shutdown( );
 
 	ImGui::DestroyContext( );
+
+	fwRender->shutdown();
 	bgfxShutdown( &context );
 
 	common->PrintWarnings( );
@@ -258,6 +289,8 @@ int main( int argc, char **argv )
 	fileSystem->Shutdown( false );
 	cvarSystem->Shutdown( );
 	cmdSystem->Shutdown( );
+	gltfParser->Shutdown();
+	
 	idLib::ShutDown( );
 
 	SDL_DestroyWindow( window );
