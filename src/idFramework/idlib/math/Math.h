@@ -64,6 +64,8 @@ If you have questions concerning this license or the applicable additional terms
 #define	ANGLE2BYTE(x)			( idMath::FtoiFast( (x) * 256.0f / 360.0f ) & 255 )
 #define	BYTE2ANGLE(x)			( (x) * ( 360.0f / 256.0f ) )
 
+#define C_FLOAT_TO_INT( x )		(int)(x)
+
 #define FLOATSIGNBITSET(f)		((*(const unsigned int *)&(f)) >> 31)
 #define FLOATSIGNBITNOTSET(f)	((~(*(const unsigned int *)&(f))) >> 31)
 #define FLOATNOTZERO(f)			((*(const unsigned int *)&(f)) & ~(1<<31) )
@@ -190,6 +192,8 @@ public:
 	static int					FtoiFast( float f );		// fast float to int conversion but uses current FPU round mode (default round nearest)
 	static unsigned int			Ftol( float f );			// float to int conversion
 	static unsigned int			FtolFast( float );			// fast float to int conversion but uses current FPU round mode (default round nearest)
+
+	static byte					Ftob( float f );			// float to byte conversion, the result is clamped to the range [0-255]
 
 	static signed char			ClampChar( int i );
 	static signed short			ClampShort( int i );
@@ -862,7 +866,30 @@ ID_INLINE unsigned int idMath::FtolFast( float f ) {
 	return (unsigned int) f;
 #endif
 }
-
+/*
+========================
+idMath::Ftob
+========================
+*/
+ID_INLINE byte idMath::Ftob( float f ) {
+#ifdef ID_WIN_X86_SSE_INTRIN
+	// If a converted result is negative the value (0) is returned and if the
+	// converted result is larger than the maximum byte the value (255) is returned.
+	__m128 x = _mm_load_ss( &f );
+	x = _mm_max_ss( x, SIMD_SP_zero );
+	x = _mm_min_ss( x, SIMD_SP_255 );
+	return static_cast<byte>( _mm_cvttss_si32( x ) );
+#else
+	// The converted result is clamped to the range [0,255].
+	int i = C_FLOAT_TO_INT( f );
+	if ( i < 0 ) {
+		return 0;
+	} else if ( i > 255 ) {
+		return 255;
+	}
+	return static_cast<byte>( i );
+#endif
+}
 ID_INLINE signed char idMath::ClampChar( int i ) {
 	if ( i < -128 ) {
 		return -128;

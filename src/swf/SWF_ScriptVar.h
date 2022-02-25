@@ -29,9 +29,11 @@ If you have questions concerning this license or the applicable additional terms
 #define __SWF_SCRIPTVAR_H__
 
 #include "idlib/LangDict.h"
-
-class idSWFScriptObject;
+#include "../idFramework/idlib/Str.h"
 class idSWFScriptFunction;
+class idSWFSpriteInstance;
+class idSWFTextInstance;
+class idSWFScriptObject;
 
 /*
 ========================

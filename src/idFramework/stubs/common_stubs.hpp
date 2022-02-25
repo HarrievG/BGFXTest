@@ -43,6 +43,7 @@ public:
 	virtual void			Printf( const char *fmt, ... );
 	virtual void			VPrintf( const char *fmt, va_list arg );
 	virtual void			DPrintf( const char *fmt, ... );
+	virtual void			DPrintfIf(bool expr, const char *fmt, ... );
 	virtual void			Warning( const char *fmt, ... );
 	virtual void			VWarning( const char *fmt, va_list arg );
 	virtual void			DWarning( const char *fmt, ... );

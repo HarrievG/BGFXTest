@@ -26,8 +26,11 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "swf.h"
-#include "../renderer/Font.h"
+
+//#include "../renderer/Font.h"
+#include "../idFramework/FileSystem.h"
+#include "SWF_Types.h"
+#include "SWF.h"
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
@@ -78,12 +81,12 @@ bool idSWF::LoadSWF( const char * fullpath ) {
 	uint32 fileLength2 = header.fileLength - (uint32)sizeof( swfHeader_t );
 
 	// slurp the raw file into a giant array, which is somewhat atrocious when loading from the preload since it's already an idFile_Memory
-	byte * fileData = (byte *)Mem_Alloc( fileLength2, TAG_SWF );
+	byte * fileData = (byte *)Mem_Alloc( fileLength2 );
 	size_t fileSize = rawfile->Read( fileData, fileLength2 );
 	delete rawfile;
 
 	if ( compressed ) {
-		byte * uncompressed = (byte *)Mem_Alloc( fileLength2, TAG_SWF );
+		byte * uncompressed = (byte *)Mem_Alloc( fileLength2 );
 		if ( !Inflate( fileData, (int)fileSize, uncompressed, fileLength2 ) ) {
 			idLib::Warning( "Inflate error" );
 			Mem_Free( uncompressed );
@@ -128,7 +131,8 @@ idSWF::LoadBinary
 ===================
 */
 bool idSWF::LoadBinary( const char * bfilename, ID_TIME_T sourceTime ) {
-	idFile * f = fileSystem->OpenFileReadMemory( bfilename );
+	idFile * f = fileSystem->OpenFileRead( bfilename );
+
 	if ( f == NULL || f->Length() <= 0 ) {
 		return false;
 	}
@@ -138,7 +142,7 @@ bool idSWF::LoadBinary( const char * bfilename, ID_TIME_T sourceTime ) {
 	f->ReadBig( magic );
 	f->ReadBig( btimestamp );
 
-	if (  magic != BSWF_MAGIC || ( !fileSystem->InProductionMode() && sourceTime != btimestamp ) )  {
+	if (  magic != BSWF_MAGIC) { // || ( !fileSystem->InProductionMode() && sourceTime != btimestamp ) )  {
 		delete f;
 		return false;
 	}
@@ -170,7 +174,8 @@ bool idSWF::LoadBinary( const char * bfilename, ID_TIME_T sourceTime ) {
 					// internal image in the atlas
 					dictionary[i].material = NULL;
 				} else {
-					dictionary[i].material = declManager->FindMaterial( imageName );
+					//dictionary[i].material = declManager->FindMaterial( imageName );
+					common->Warning("SWF_LOAD %s",imageName );
 				}
 				for ( int j = 0 ; j < 2 ; j++ ) {
 					f->ReadBig( dictionary[i].imageSize[j] );
@@ -240,7 +245,8 @@ bool idSWF::LoadBinary( const char * bfilename, ID_TIME_T sourceTime ) {
 				idSWFFont * font = dictionary[i].font;
 				idStr fontName;
 				f->ReadString( fontName );
-				font->fontID = renderSystem->RegisterFont( fontName );
+				common->Warning("MISSING FONT ID");
+				//font->fontID = renderSystem->RegisterFont( fontName );
 				f->ReadBig( font->ascent );
 				f->ReadBig( font->descent );
 				f->ReadBig( font->leading );
@@ -311,7 +317,7 @@ idSWF::WriteBinary
 ===================
 */
 void idSWF::WriteBinary( const char * bfilename ) {
-	idFileLocal file( fileSystem->OpenFileWrite( bfilename, "fs_basepath" ) );
+	idFile * file = fileSystem->OpenFileWrite( bfilename, "fs_basepath" ) ;
 	if ( file == NULL ) {
 		return;
 	}
@@ -397,7 +403,7 @@ void idSWF::WriteBinary( const char * bfilename ) {
 			}
 			case SWF_DICT_FONT: {
 				idSWFFont * font = dictionary[i].font;
-				file->WriteString( font->fontID->GetName() );
+				//file->WriteString( font->fontID->GetName() );
 				file->WriteBig( font->ascent );
 				file->WriteBig( font->descent );
 				file->WriteBig( font->leading );

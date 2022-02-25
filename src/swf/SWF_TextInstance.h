@@ -28,6 +28,12 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_TEXTINSTANCE_H__
 #define __SWF_TEXTINSTANCE_H__
 
+#include "SWF_ScriptVar.h"
+#include "SWF_ScriptObject.h"
+#include "SWF_Types.h"
+#include "SWF.h"
+class idSWF;
+
 struct subTimingWordData_t {
 	subTimingWordData_t() {
 		startTime = 0;
@@ -198,7 +204,7 @@ public:
 	//----------------------------------
 	// Native Script Functions
 	//----------------------------------
-#define SWF_TEXT_FUNCTION_DECLARE( x ) \
+#define SWF_TEXT_FUNCTION_DECLARE(x) \
 	class idSWFScriptFunction_##x : public idSWFScriptFunction_RefCounted { \
 	public: \
 		void			AddRef() {} \

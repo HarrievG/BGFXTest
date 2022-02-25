@@ -270,8 +270,30 @@ void idCommonLocal::DPrintf( const char *fmt, ... ) {
 
 	com_refreshOnPrint = temp;
 }
+void idCommonLocal::DPrintfIf(bool expr, const char *fmt, ... ) {
+	if (expr)
+	{
+		va_list		argptr;
+		char		msg[MAX_PRINT_MSG_SIZE];
 
+		if ( !cvarSystem->IsInitialized( ) || !com_developer.GetBool( ) ) {
+			return;			// don't confuse non-developers with techie stuff...
+		}
 
+		va_start( argptr, fmt );
+		idStr::vsnPrintf( msg, sizeof( msg ), fmt, argptr );
+		va_end( argptr );
+		msg[sizeof( msg ) - 1] = '\0';
+
+		// never refresh the screen, which could cause reentrency problems
+		bool temp = com_refreshOnPrint;
+		com_refreshOnPrint = false;
+
+		Printf( S_COLOR_MAGENTA"%s", msg );
+
+		com_refreshOnPrint = temp;
+	}
+}
 void idCommonLocal::VWarning( const char *fmt, va_list arg )
 {
 	char		msg[MAX_PRINT_MSG_SIZE];

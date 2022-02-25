@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 #include "swf.h"
+#include "../idFramework/idlib/Lib.h"
 
 idCVar swf_debug( "swf_debug", "0", CVAR_INTEGER|CVAR_ARCHIVE, "debug swf scripts.  1 shows traces/errors.  2 also shows warnings.  3 also shows disassembly.  4 shows parameters in the disassembly." );
 idCVar swf_debugInvoke( "swf_debugInvoke", "0", CVAR_INTEGER, "debug swf functions being called from game." );
@@ -671,7 +672,7 @@ idSWFScriptVar idSWFScriptFunction_Script::Run( idSWFScriptObject * thisObject, 
 				break;
 			}
 			case Action_Trace:
-				idLib::PrintfIf( swf_debug.GetInteger() > 0, "SWF Trace: %s\n", stack.A().ToString().c_str() );
+				common->DPrintfIf(swf_debug.GetInteger() > 0, "SWF Trace: %s\n", stack.A().ToString().c_str() );
 				stack.Pop( 1 );
 				break;
 			case Action_GetTime:
@@ -705,7 +706,7 @@ idSWFScriptVar idSWFScriptFunction_Script::Run( idSWFScriptObject * thisObject, 
 				if ( function.IsFunction() && verify( object ) ) {
 					stack.Alloc() = function.GetFunction()->Call( object, parms );
 				} else {
-					idLib::PrintfIf( swf_debug.GetInteger() > 0, "SWF: unknown function %s\n", functionName.c_str() );
+					common->DPrintfIf( swf_debug.GetInteger() > 0, "SWF: unknown function %s\n", functionName.c_str() );
 					stack.Alloc().SetUndefined();
 				}
 
@@ -723,10 +724,10 @@ idSWFScriptVar idSWFScriptFunction_Script::Run( idSWFScriptObject * thisObject, 
 					object = stack.B().GetObject();
 					function = object->Get( functionName );
 					if ( !function.IsFunction() ) {
-						idLib::PrintfIf( swf_debug.GetInteger() > 1, "SWF: unknown method %s on %s\n", functionName.c_str(), object->DefaultValue( true ).ToString().c_str() );
+						common->DPrintfIf( swf_debug.GetInteger() > 1, "SWF: unknown method %s on %s\n", functionName.c_str(), object->DefaultValue( true ).ToString().c_str() );
 					}
 				} else {
-					idLib::PrintfIf( swf_debug.GetInteger() > 1, "SWF: NULL object for method %s\n", functionName.c_str() );
+					common->DPrintfIf( swf_debug.GetInteger() > 1, "SWF: NULL object for method %s\n", functionName.c_str() );
 				}
 
 				stack.Pop( 2 );

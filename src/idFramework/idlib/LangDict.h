@@ -47,17 +47,24 @@ public:
 	idStr					value;
 };
 
+class idStrId;
 class idLangDict {
 public:
+	static const char *		KEY_PREFIX;
+	static const int		KEY_PREFIX_LEN;
+	static const int		MAX_REDIRECTION_DEPTH = 2;
+
 							idLangDict( void );
 							~idLangDict( void );
 
 	void					Clear( void );
 	bool					Load( const char *fileName, bool clear = true );
+	bool					Load( const byte * buffer, const int bufferLen, const char * name );
 	void					Save( const char *fileName );
 
 	const char *			AddString( const char *str );
 	const char *			GetString( const char *str ) const;
+	const char *			FindString( const char * str ) const;		// returns NULL if string not found
 
 							// adds the value and key as passed (doesn't generate a "#str_xxxxx" key or ensure the key/value pair is unique)
 	void					AddKeyVal( const char *key, const char *val );
@@ -67,15 +74,44 @@ public:
 
 	void					SetBaseID(int id) { baseID = id; };
 
+	// returns true if the string starts with the KEY_PREFIX string
+	static bool				IsStringId( const char *str );
+	const char *			GetLocalizedString( const idStrId * strId ) const;
 private:
-	idList<idLangKeyValue>	args;
-	idHashIndex				hash;
 
 	bool					ExcludeString( const char *str ) const;
 	int						GetNextId( void ) const;
 	int						GetHashKey( const char *str ) const;
+	int						FindStringIndex( const char * str ) const;
+	const char *			FindString_r( const char * str, int & depth ) const;
 
-	int						baseID;
+	
+	int							baseID;
+	idList<idLangKeyValue>		args;
+	idHashIndex					hash;
+};
+
+/*
+================================================
+idLocalization
+================================================
+*/
+class idLocalization {
+public:
+	static const char *GetString( const char *inString );		// returns inString if string not found
+	static const char *FindString( const char *inString );	// Returns NULL if string not found
+
+	static void				ClearDictionary( );
+	static bool				LoadDictionary( const byte *buffer, const int bufferLen, const char *name );
+
+	// This is only here for tools, normal code should only ever call GetString
+	static idLangDict &GetDictionary( ) { return languageDict; }
+
+	static utf8Encoding_t	VerifyUTF8( const uint8 *buffer, const int bufferLen, const char *name );
+
+private:
+	static idLangDict					languageDict;
+	friend class idStrId;
 };
 
 
@@ -105,8 +141,8 @@ public:
 	void			Empty( ) { index = -1; }
 	bool			IsEmpty( ) const { return index < 0; }
 
-	const char *GetKey( ) const;
-	const char *GetLocalizedString( ) const;
+	const char *	GetKey( ) const;
+	const char *	GetLocalizedString( ) const;
 
 	int				GetIndex( ) const { return index; }
 	void			SetIndex( int i ) { index = i; }

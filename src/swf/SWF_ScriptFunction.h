@@ -27,7 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 */
 #ifndef __SWF_SCRIPTFUNCTION_H__
 #define __SWF_SCRIPTFUNCTION_H__
-
+#include "SWF_ScriptVar.h"
+#include "SWF_ParmList.h"
+#include "SWF_ScriptObject.h"
+#include "SWF_Bitstream.h"
 /*
 ========================
 Interface for calling functions from script

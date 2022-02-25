@@ -31,6 +31,14 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "idlib/CmdArgs.h"
 
+enum utf8Encoding_t {
+	UTF8_PURE_ASCII,		// no characters with values > 127
+	UTF8_ENCODED_BOM,		// characters > 128 encoded with UTF8, but no byte-order-marker at the beginning
+	UTF8_ENCODED_NO_BOM,	// characters > 128 encoded with UTF8, with a byte-order-marker at the beginning
+	UTF8_INVALID,			// has values > 127 but isn't valid UTF8 
+	UTF8_INVALID_BOM		// has a byte-order-marker at the beginning, but isn't valuid UTF8 -- it's messed up
+};
+
 /*
 ===============================================================================
 
@@ -220,6 +228,18 @@ public:
 	void				CapLength( int );
 	void				Fill( const char ch, int newlen );
 
+	ID_INLINE int			UTF8Length();
+	ID_INLINE uint32		UTF8Char( int & idx );
+	static int				UTF8Length( const byte * s );
+	static ID_INLINE uint32 UTF8Char( const char * s, int & idx );
+	static uint32			UTF8Char( const byte * s, int & idx );
+	void					AppendUTF8Char( uint32 c );
+	ID_INLINE void			ConvertToUTF8();
+	static bool				IsValidUTF8( const uint8 * s, const int maxLen, utf8Encoding_t & encoding );
+	static ID_INLINE bool	IsValidUTF8( const char * s, const int maxLen, utf8Encoding_t & encoding ) { return IsValidUTF8( ( const uint8* )s, maxLen, encoding ); }
+	static ID_INLINE bool	IsValidUTF8( const uint8 * s, const int maxLen );
+	static ID_INLINE bool	IsValidUTF8( const char * s, const int maxLen ) { return IsValidUTF8( ( const uint8* )s, maxLen ); }
+
 	int					Find( const char c, int start = 0, int end = -1 ) const;
 	int					Find( const char *text, bool casesensitive = true, int start = 0, int end = -1 ) const;
 	bool				Filter( const char *filter, bool casesensitive ) const;
@@ -241,6 +261,8 @@ public:
 	void				StripTrailingWhitespace( void );				// strip trailing white space characters
 	idStr &				StripQuotes( void );							// strip quotes around string
 	void				Replace( const char *old, const char *nw );
+	bool				ReplaceChar( const char old, const char nw );
+	ID_INLINE void		CopyRange( const char * text, int start, int end );
 
 	// file name methods
 	int					FileNameHash( void ) const;						// hash key for the filename (skips extension)
@@ -893,6 +915,55 @@ ID_INLINE void idStr::Fill( const char ch, int newlen ) {
 	data[ len ] = 0;
 }
 
+/*
+========================
+idStr::UTF8Length
+========================
+*/
+ID_INLINE int idStr::UTF8Length() {
+	return UTF8Length( (byte *)data );
+}
+
+/*
+========================
+idStr::UTF8Char
+========================
+*/
+ID_INLINE uint32 idStr::UTF8Char( int & idx ) {
+	return UTF8Char( (byte *)data, idx );
+}
+
+/*
+========================
+idStr::ConvertToUTF8
+========================
+*/
+ID_INLINE void idStr::ConvertToUTF8() {
+	idStr temp( *this );
+	Clear();
+	for( int index = 0; index < temp.Length(); ++index ) {
+		AppendUTF8Char( temp[index] );
+	}
+}
+
+/*
+========================
+idStr::UTF8Char
+========================
+*/
+ID_INLINE uint32 idStr::UTF8Char( const char * s, int & idx ) {
+	return UTF8Char( (byte *)s, idx );
+}
+
+/*
+========================
+idStr::IsValidUTF8
+========================
+*/
+ID_INLINE bool idStr::IsValidUTF8( const uint8 * s, const int maxLen ) {
+	utf8Encoding_t encoding;
+	return IsValidUTF8( s, maxLen, encoding );
+}
 ID_INLINE int idStr::Find( const char c, int start, int end ) const {
 	if ( end == -1 ) {
 		end = len;
@@ -1067,5 +1138,27 @@ ID_INLINE int idStr::ColorIndex( int c ) {
 ID_INLINE int idStr::DynamicMemoryUsed() const {
 	return ( data == baseBuffer ) ? 0 : alloced;
 }
+
+/*
+========================
+idStr::CopyRange
+========================
+*/
+ID_INLINE void idStr::CopyRange( const char *text, int start, int end ) {
+	int l = end - start;
+	if ( l < 0 ) {
+		l = 0;
+	}
+
+	EnsureAlloced( l + 1 );
+
+	for ( int i = 0; i < l; i++ ) {
+		data[i] = text[start + i];
+	}
+
+	data[l] = '\0';
+	len = l;
+}
+
 
 #endif /* !__STR_H__ */

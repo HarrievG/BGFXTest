@@ -25,8 +25,8 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
-#include "swf.h"
+
+#include "SWF.h"
 //#include "../renderer/Image.h"
 ////#include "../../renderer/ImageTools/ImageProcess.h"
 //#include "../renderer/jpeg-6/jpeglib.h"
@@ -153,7 +153,7 @@ byte * idSWF::idDecompressJPEG::Load( const byte * input, int inputSize, int & w
 
 	//} catch ( idException & ) {
 	//	swf_jpeg_output_message( (jpeg_common_struct *)cinfo );
-	//	return NULL;
+		return NULL;
 	//}
 }
 
@@ -296,8 +296,9 @@ void idSWF::WriteSwfImageAtlas( const char *filename ) {
 		pack.imageData = NULL;
 	}
 
+	common->Warning("R_WriteTGA not implemented");
 	// the TGA is only for examination during development
-	R_WriteTGA( filename, swfAtlas.Ptr(), atlasWidth, atlasHeight, false, "fs_basepath" );
+	//R_WriteTGA( filename, swfAtlas.Ptr(), atlasWidth, atlasHeight, false, "fs_basepath" );
 }
 
 /*
@@ -316,7 +317,7 @@ void idSWF::LoadImage( int characterID, const byte * imageData, int width, int h
 	// all the images that are used by the entire swf
 	imageToPack_t	pack;
 	pack.characterID = characterID;
-	pack.imageData = (byte *)Mem_Alloc( width*height*4, TAG_SWF );
+	pack.imageData = (byte *)Mem_Alloc( width*height*4);
 	memcpy( pack.imageData, imageData, width*height*4 );
 	pack.trueSize.x = width;
 	pack.trueSize.y = height;

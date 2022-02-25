@@ -27,8 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 */
 #ifndef __SWF_SCRIPTOBJECT_H__
 #define __SWF_SCRIPTOBJECT_H__
+#include "SWF_ScriptVar.h"
 
-class idSWFSpriteInstance;
+class idSWFScriptObject;
+
 
 /*
 ========================

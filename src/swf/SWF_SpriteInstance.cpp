@@ -27,9 +27,10 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 #include "swf.h"
+#include "../idFramework/idlib/containers/StrList.h"
 
 idSWFScriptObject_SpriteInstancePrototype spriteInstanceScriptObjectPrototype;
-
+ID_INLINE void Prefetch( const void * ptr, int offset ) {}
 /*
 ========================
 idSWFSpriteInstance::idSWFSpriteInstance
@@ -343,6 +344,9 @@ void idSWFSpriteInstance::Stop() {
 	isPlaying = false;
 }
 
+//yea, keeping using those pcH's ..
+void idSWF::Pause( ) { mainspriteInstance->Stop( ); paused = true; }
+void idSWF::Resume( ) { mainspriteInstance->Play( ); paused = false; }
 /*
 ===================
 idSWFSpriteInstance::RunTo

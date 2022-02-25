@@ -45,10 +45,30 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_ShapeParser.h"
 #include "SWF_TextInstance.h"
 
-class idImage;
-class idRenderSystem;
-class idSoundWorld;
-class idMaterial;
+class idSWFSpriteInstance;
+
+
+class idImage {
+
+};
+class idMaterial {
+public:
+	const char *GetName( ) const {
+		return "";
+	}
+
+};
+
+class idSoundWorld {
+
+public:
+
+	int PlayShaderDirectly( const char *sound, int channel ) {
+		return 0;
+	}
+
+
+};
 
 class idSWFDictionaryEntry {
 public:
@@ -93,13 +113,13 @@ public:
 	
 	const char * GetName() { return filename; }
 
-	void Pause() { mainspriteInstance->Stop(); paused = true; }
-	void Resume() { mainspriteInstance->Play(); paused = false; }
+	void Pause();
+	void Resume();
 	bool IsPaused() { return paused; }
 	void SetPausedRender( bool valid ) { pausedRender = valid; }
 	bool GetPausedRender() { return pausedRender; } 
 
-	void Render( idRenderSystem * gui, int time = 0, bool isSplitscreen = false );
+	//void Render( idRenderSystem * gui, int time = 0, bool isSplitscreen = false );
 	bool HandleEvent( const sysEvent_t * event );
 	bool InhibitControl();
 	void ForceInhibitControl( bool val ) { inhibitControl = val; }
@@ -107,7 +127,7 @@ public:
 	void SetGlobal( const char * name, const idSWFScriptVar & value ) { globals->Set( name, value ); }
 	void SetGlobalNative( const char * name, idSWFScriptNativeVariable * native ) { globals->SetNative( name, native ); }
 	idSWFScriptVar GetGlobal( const char * name ) { return globals->Get( name ); }
-	idSWFScriptObject & GetRootObject() { assert( mainspriteInstance->GetScriptObject() != NULL ); return *( mainspriteInstance->GetScriptObject() ); }
+	//idSWFScriptObject & GetRootObject() { assert( mainspriteInstance->GetScriptObject() != NULL ); return *( mainspriteInstance->GetScriptObject() ); }
 
 	void Invoke( const char *  functionName, const idSWFParmList & parms );
 	void Invoke( const char *  functionName, const idSWFParmList & parms, idSWFScriptVar & scriptVar );
@@ -232,9 +252,9 @@ private:
 
 	SWF_NATIVE_FUNCTION_SWF_DECLARE( toUpper );
 
-	SWF_NATIVE_VAR_DECLARE_NESTED_READONLY( platform, idSWFScriptFunction_getPlatform, Call( object, idSWFParmList() ) );
-	SWF_NATIVE_VAR_DECLARE_NESTED( blackbars, idSWF );
-	SWF_NATIVE_VAR_DECLARE_NESTED( crop, idSWF );
+	//SWF_NATIVE_VAR_DECLARE_NESTED_READONLY( platform, idSWFScriptFunction_getPlatform, Call( object, idSWFParmList() ) );
+	//SWF_NATIVE_VAR_DECLARE_NESTED( blackbars, idSWF );
+	//SWF_NATIVE_VAR_DECLARE_NESTED( crop, idSWF );
 
 	class idSWFScriptFunction_Object : public idSWFScriptFunction {
 	public:
@@ -331,17 +351,17 @@ private:
 	//----------------------------------
 	// SWF_Render.cpp
 	//----------------------------------
-	void			DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const idMaterial *material );
-	void			DrawStretchPic( const idVec4 & topLeft, const idVec4 & topRight, const idVec4 & bottomRight, const idVec4 & bottomLeft, const idMaterial * material );
-	void			RenderSprite( idRenderSystem * gui, idSWFSpriteInstance * sprite, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
-	void			RenderMask( idRenderSystem * gui, const swfDisplayEntry_t * mask, const swfRenderState_t & renderState, const int stencilMode );
-	void			RenderShape( idRenderSystem * gui, const idSWFShape * shape, const swfRenderState_t & renderState );
-	void			RenderMorphShape( idRenderSystem * gui, const idSWFShape* shape, const swfRenderState_t & renderState );
-	void			DrawEditCursor( idRenderSystem * gui, float x, float y, float w, float h, const swfMatrix_t & matrix );
-	void			DrawLine( idRenderSystem * gui, const idVec2 & p1, const idVec2 & p2, float width, const swfMatrix_t & matrix );
-	void			RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
-	uint64			GLStateForRenderState( const swfRenderState_t & renderState );
-	void			FindTooltipIcons( idStr * text );
+	//void			DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const idMaterial *material );
+	//void			DrawStretchPic( const idVec4 & topLeft, const idVec4 & topRight, const idVec4 & bottomRight, const idVec4 & bottomLeft, const idMaterial * material );
+	//void			RenderSprite( idRenderSystem * gui, idSWFSpriteInstance * sprite, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
+	//void			RenderMask( idRenderSystem * gui, const swfDisplayEntry_t * mask, const swfRenderState_t & renderState, const int stencilMode );
+	//void			RenderShape( idRenderSystem * gui, const idSWFShape * shape, const swfRenderState_t & renderState );
+	//void			RenderMorphShape( idRenderSystem * gui, const idSWFShape* shape, const swfRenderState_t & renderState );
+	//void			DrawEditCursor( idRenderSystem * gui, float x, float y, float w, float h, const swfMatrix_t & matrix );
+	//void			DrawLine( idRenderSystem * gui, const idVec2 & p1, const idVec2 & p2, float width, const swfMatrix_t & matrix );
+	//void			RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
+	//uint64			GLStateForRenderState( const swfRenderState_t & renderState );
+	//void			FindTooltipIcons( idStr * text );
 
 	//----------------------------------
 	// SWF_Image.cpp

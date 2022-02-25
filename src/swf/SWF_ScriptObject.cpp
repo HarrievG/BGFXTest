@@ -25,8 +25,11 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
-#include "SWF.h"
+#include "SWF_ScriptObject.h"
+#include "SWF_ParmList.h"
+#include "SWF_ScriptVar.h"
+#include "SWF_SpriteInstance.h"
+#include "../idFramework/CVarSystem.h"
 
 idCVar swf_debugShowAddress( "swf_debugShowAddress", "0", CVAR_BOOL, "shows addresses along with object types when they are serialized" );
 

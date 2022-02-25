@@ -31,6 +31,70 @@ If you have questions concerning this license or the applicable additional terms
 #include "idFramework/FileSystem.h"
 
 #include "idlib/LangDict.h"
+idLangDict	idLocalization::languageDict;
+
+idCVar lang_maskLocalizedStrings( "lang_maskLocalizedStrings", "0", CVAR_BOOL, "Masks all localized strings to help debugging.  When set will replace strings with an equal length of W's and ending in an X.  Note: The masking occurs at string table load time." );
+
+/*
+========================
+idLocalization::ClearDictionary
+========================
+*/
+void idLocalization::ClearDictionary() {
+	languageDict.Clear();
+}
+
+/*
+========================
+idLocalization::LoadDictionary
+========================
+*/
+bool idLocalization::LoadDictionary( const byte * data, int dataLen, const char * fileName ) {
+	return languageDict.Load( data, dataLen, fileName );
+}
+
+/*
+========================
+idLocalization::GetString 
+========================
+*/
+const char * idLocalization::GetString( const char * inString ) {
+	return languageDict.GetString( inString );
+}
+
+/*
+========================
+idLocalization::FindString 
+========================
+*/
+const char * idLocalization::FindString( const char * inString ) {
+	return languageDict.FindString( inString );
+}
+
+/*
+========================
+idLocalization::VerifyUTF8
+========================
+*/
+utf8Encoding_t idLocalization::VerifyUTF8( const uint8 * buffer, const int bufferLen, const char * name ) {
+	utf8Encoding_t encoding;
+	idStr::IsValidUTF8( buffer, bufferLen, encoding );
+	if ( encoding == UTF8_INVALID ) {
+		common->FatalError( "Language file %s is not valid UTF-8 or plain ASCII.", name );
+	} else if ( encoding == UTF8_INVALID_BOM ) {
+		common->FatalError( "Language file %s is marked as UTF-8 but has invalid encoding.", name );
+	} else if ( encoding == UTF8_ENCODED_NO_BOM ) {
+		common->FatalError( "Language file %s has no byte order marker. Fix this or roll back to a version that has the marker.", name );
+	} else if ( encoding != UTF8_ENCODED_BOM && encoding != UTF8_PURE_ASCII ) {
+		common->FatalError( "Language file %s has unknown utf8Encoding_t.", name );
+	}
+	return encoding;
+}
+
+// string entries can refer to other string entries, 
+// recursing up to this many times before we decided someone did something stupid
+const char * idLangDict::KEY_PREFIX = "#str_";	// all keys should be prefixed with this for redirection to work
+const int idLangDict::KEY_PREFIX_LEN = idStr::Length( KEY_PREFIX );
 
 /*
 ============
@@ -114,6 +178,156 @@ bool idLangDict::Load( const char *fileName, bool clear /* _D3XP */ ) {
 }
 
 /*
+========================
+idLangDict::Load
+========================
+*/
+bool idLangDict::Load( const byte * buffer, const int bufferLen, const char *name ) {
+
+	if ( buffer == NULL || bufferLen <= 0 ) {
+		// let whoever called us deal with the failure (so sys_lang can be reset)
+		return false;
+	}
+
+	common->Printf( "Reading %s", name );
+
+	bool utf8 = false;
+
+	// in all but retail builds, ensure that the byte-order mark is NOT MISSING so that
+	// we can avoid debugging UTF-8 code
+#ifndef ID_RETAIL
+	utf8Encoding_t encoding = idLocalization::VerifyUTF8( buffer, bufferLen, name );
+	if ( encoding == UTF8_ENCODED_BOM ) {
+		utf8 = true;
+	} else if ( encoding == UTF8_PURE_ASCII ) {
+		utf8 = false;
+	} else {
+		assert( false );	// this should have been handled in VerifyUTF8 with a FatalError
+		return false;
+	}
+#else
+	// in release we just check the BOM so we're not scanning the lang file twice on startup
+	if ( bufferLen > 3 && buffer[0] == 0xEF && buffer[1] == 0xBB && buffer[2] == 0xBF ) {
+		utf8 = true;
+	}
+#endif
+
+	if ( utf8 ) {
+		common->Printf( " as UTF-8\n" );
+	} else {
+		common->Printf( " as ASCII\n" );
+	}
+
+	idStr tempKey;
+	idStr tempVal;
+
+	int line = 0;
+	int numStrings = 0;
+
+	int i = 0;
+	while ( i < bufferLen ) {
+		uint32 c = buffer[i++];
+		if ( c == '/' ) { // comment, read until new line
+			while ( i < bufferLen ) {
+				c = buffer[i++];
+				if ( c == '\n' ) {
+					line++;
+					break;
+				}
+			}
+		} else if ( c == '}' ) {
+			break;
+		} else if ( c == '\n' ) {
+			line++;
+		} else if ( c == '\"' ) {
+			int keyStart = i;
+			int keyEnd = -1;
+			while ( i < bufferLen ) {
+				c = buffer[i++];
+				if ( c == '\"' ) {
+					keyEnd = i - 1;
+					break;
+				}
+			}
+			if ( keyEnd < keyStart ) {
+				common->FatalError( "%s File ended while reading key at line %d", name, line );
+			}
+			tempKey.CopyRange( (char *)buffer, keyStart, keyEnd );
+
+			int valStart = -1;
+			while ( i < bufferLen ) {
+				c = buffer[i++];
+				if ( c == '\"' ) {
+					valStart = i;
+					break;
+				}
+			}
+			if ( valStart < 0 ) {
+				common->FatalError( "%s File ended while reading value at line %d", name, line );
+			}
+			int valEnd = -1;
+			tempVal.CapLength( 0 );
+			while ( i < bufferLen ) {
+				c = utf8 ? idStr::UTF8Char( buffer, i ) : buffer[i++];
+				if ( !utf8 && c >= 0x80 ) {
+					// this is a serious error and we must check this to avoid accidentally shipping a file where someone squased UTF-8 encodings
+					common->FatalError( "Language file %s is supposed to be plain ASCII, but has byte values > 127!", name );
+				}
+				if ( c == '\"' ) {
+					valEnd = i - 1;
+					continue;
+				}
+				if ( c == '\n' ) {
+					line++;
+					break;
+				}
+				if ( c == '\r' ) {
+					continue;
+				}
+				if ( c == '\\' ) {
+					c = utf8 ? idStr::UTF8Char( buffer, i ) : buffer[i++];
+					if ( c == 'n' ) {
+						c = '\n';
+					} else if ( c == 't' ) {
+						c = '\t';
+					} else if ( c == '\"' ) {
+						c = '\"';
+					} else if ( c == '\\' ) {
+						c = '\\';
+					} else {
+						idLib::Warning( "Unknown escape sequence %x at line %d", c, line );
+					}
+				}
+				tempVal.AppendUTF8Char( c );
+			}
+			if ( valEnd < valStart ) {
+				common->FatalError( "%s File ended while reading value at line %d", name, line );
+			}
+			if ( lang_maskLocalizedStrings.GetBool() && tempVal.Length() > 0 && tempKey.Find( "#font_" ) == -1 ) {
+				int len = tempVal.Length();
+				if ( len > 0 ) {
+					tempVal.Fill( 'W', len - 1 );
+				} else {
+					tempVal.Empty();
+				}
+				tempVal.Append( 'X' );
+			}
+			AddKeyVal( tempKey, tempVal );
+			numStrings++;
+		}
+	}
+
+	common->Printf( "%i strings read\n", numStrings );
+
+	// get rid of any waste due to geometric list growth
+	//mem.PushHeap();
+	args.Condense();
+	//mem.PopHeap();
+
+	return true;
+}
+
+/*
 ============
 idLangDict::Save
 ============
@@ -145,6 +359,75 @@ void idLangDict::Save( const char *fileName ) {
 	idLib::fileSystem->CloseFile( outFile );
 }
 
+
+/*
+========================
+idLangDict::FindStringIndex
+========================
+*/
+int idLangDict::FindStringIndex( const char *str ) const {
+	if ( str == NULL ) {
+		return -1;
+	}
+	int xhash = idStr::IHash( str );
+	for ( int i = hash.GetFirst( xhash ); i >= 0; i = hash.GetNext( i ) ) {
+		if ( idStr::Icmp( str, args[i].key ) == 0 ) {
+			return i;
+		}
+	}
+	return -1;
+}
+/*
+========================
+idLangDict::IsStringId
+========================
+*/
+bool idLangDict::IsStringId( const char *str ) {
+	return idStr::Icmpn( str, KEY_PREFIX, KEY_PREFIX_LEN ) == 0;
+}
+
+/*
+========================
+idLangDict::FindString_r
+========================
+*/
+const char *idLangDict::FindString_r( const char *str, int &depth ) const {
+	depth++;
+	if ( depth > MAX_REDIRECTION_DEPTH ) {
+		// This isn't an error because we assume the error will be obvious somewhere in a GUI or something,
+		// and the whole point of tracking the depth is to avoid a crash.
+		idLib::Warning( "String '%s', indirection depth > %d", str, MAX_REDIRECTION_DEPTH );
+		return NULL;
+	}
+
+	if ( str == NULL || str[0] == '\0' ) {
+		return NULL;
+	}
+
+	int index = FindStringIndex( str );
+	if ( index < 0 ) {
+		return NULL;
+	}
+	const char *value = args[index].value;
+	if ( value == NULL ) {
+		return NULL;
+	}
+	if ( IsStringId( value ) ) {
+		// this string is re-directed to another entry
+		return FindString_r( value, depth );
+	}
+	return value;
+}
+
+/*
+========================
+idLangDict::FindString
+========================
+*/
+const char * idLangDict::FindString( const char * str ) const {
+	int depth = 0;
+	return FindString_r( str, depth );
+}
 /*
 ============
 idLangDict::GetString
@@ -209,6 +492,24 @@ idLangDict::GetNumKeyVals
 int idLangDict::GetNumKeyVals( void ) const {
 	return args.Num();
 }
+
+/*
+========================
+idLangDict::GetLocalizedString
+========================
+*/
+
+const char *idLangDict::GetLocalizedString( const idStrId *strId ) const {
+	if ( strId->GetIndex( ) >= 0 && strId->GetIndex( ) < args.Num( ) ) {
+		if ( args[strId->GetIndex( )].value == NULL ) {
+			return args[strId->GetIndex( )].key;
+		} else {
+			return args[strId->GetIndex( )].value;
+		}
+	}
+	return "";
+}
+
 
 /*
 ============
@@ -323,4 +624,13 @@ int idLangDict::GetHashKey( const char *str ) const {
 		hashKey = hashKey * 10 + str[0] - '0';
 	}
 	return hashKey;
+}
+
+/*
+========================
+idStrId::GetLocalizedString
+========================
+*/
+const char *idStrId::GetLocalizedString( ) const {
+	return idLocalization::languageDict.GetLocalizedString( this );
 }

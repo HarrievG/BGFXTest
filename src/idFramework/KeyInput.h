@@ -289,7 +289,7 @@ public:
 	static void			SetOverstrikeMode( bool state );
 	static void			ClearStates( void );
 	static int			StringToKeyNum( const char *str );
-	static const char *	KeyNumToString( int keyNum, bool localized );
+	static const char *	KeyNumToString( int keyNum, bool localized=false );
 
 	static void			SetBinding( int keyNum, const char *binding );
 	static const char *	GetBinding( int keyNum );

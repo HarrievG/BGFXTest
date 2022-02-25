@@ -27,6 +27,9 @@ If you have questions concerning this license or the applicable additional terms
 */
 #ifndef __SWF_SPRITES_H__
 #define __SWF_SPRITES_H__
+#include "SWF_Bitstream.h"
+#include "../idFramework/idlib/containers/List.h"
+#include "SWF_Enums.h"
 
 /*
 ================================================

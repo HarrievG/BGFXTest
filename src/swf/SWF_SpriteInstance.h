@@ -28,6 +28,13 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __SWF_SPRITEINSTANCE_H__
 #define __SWF_SPRITEINSTANCE_H__
 
+#include "SWF_ScriptObject.h"
+#include "SWF_ParmList.h"
+#include "SWF_Types.h"
+#include "SWF_Sprites.h"
+#include "swf.h"
+
+class idMaterial;
 /*
 ================================================
 There can be multiple instances of a single sprite running
@@ -118,7 +125,7 @@ public:
 	// if this is set, apply this material when rendering any child shapes
 	int itemIndex;
 
-	//const idMaterial * materialOverride;
+	const idMaterial * materialOverride;
 	uint16 materialWidth;
 	uint16 materialHeight;
 

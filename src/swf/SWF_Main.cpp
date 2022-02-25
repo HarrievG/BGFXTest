@@ -27,7 +27,9 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 #include "swf.h"
-#include "../renderer/image.h"
+//#include "../renderer/image.h"
+#include "../idFramework/FileSystem.h"
+#include "SWF_ScriptObject.h"
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
@@ -53,10 +55,10 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
 
 	random.SetSeed( Sys_Milliseconds() );
 
-	guiSolid = declManager->FindMaterial( "guiSolid" );
-	guiCursor_arrow = declManager->FindMaterial( "ui/assets/guicursor_arrow" );
-	guiCursor_hand = declManager->FindMaterial( "ui/assets/guicursor_hand" );
-	white = declManager->FindMaterial( "_white" );
+	//guiSolid = declManager->FindMaterial( "guiSolid" );
+	//guiCursor_arrow = declManager->FindMaterial( "ui/assets/guicursor_arrow" );
+	//guiCursor_hand = declManager->FindMaterial( "ui/assets/guicursor_hand" );
+	//white = declManager->FindMaterial( "_white" );
 
 	 tooltipButtonImage.Append( keyButtonImages_t( "<JOY1>", "guis/assets/hud/controller/xb360/a", "guis/assets/hud/controller/ps3/cross", 37, 37, 0 ) );
 	 tooltipButtonImage.Append( keyButtonImages_t( "<JOY2>", "guis/assets/hud/controller/xb360/b", "guis/assets/hud/controller/ps3/circle", 37, 37, 0 ) );
@@ -72,10 +74,10 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
 	 	
 	for ( int index = 0; index < tooltipButtonImage.Num(); index++ ) {
 		if ( ( tooltipButtonImage[index].xbImage != NULL ) && ( tooltipButtonImage[index].xbImage[0] != '\0' ) ) {
-			declManager->FindMaterial( tooltipButtonImage[index].xbImage );
+			//declManager->FindMaterial( tooltipButtonImage[index].xbImage );
 		}
 		if ( ( tooltipButtonImage[index].psImage != NULL ) && ( tooltipButtonImage[index].psImage[0] != '\0' ) ) {
-			declManager->FindMaterial( tooltipButtonImage[index].psImage );
+			//declManager->FindMaterial( tooltipButtonImage[index].psImage );
 		}
 	}
 
@@ -133,7 +135,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
 	}
 	idStr atlasFileName = binaryFileName;
 	atlasFileName.SetFileExtension( ".tga" );
-	atlasMaterial = declManager->FindMaterial( atlasFileName );
+	//atlasMaterial = declManager->FindMaterial( atlasFileName );
 
 	globals = idSWFScriptObject::Alloc();
 	globals->Set( "_global", globals );
@@ -175,11 +177,11 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
 	globals->Set( "ceil", scriptFunction_ceil.Bind( this ) );
 	globals->Set( "toUpper", scriptFunction_toUpper.Bind( this ) );
 
-	globals->SetNative( "platform", swfScriptVar_platform.Bind( &scriptFunction_getPlatform ) );
-	globals->SetNative( "blackbars", swfScriptVar_blackbars.Bind( this ) );
-	globals->SetNative( "cropToHeight", swfScriptVar_crop.Bind( this ) );
-	globals->SetNative( "cropToFit", swfScriptVar_crop.Bind( this ) );
-	globals->SetNative( "crop", swfScriptVar_crop.Bind( this ) );
+	//globals->SetNative( "platform", swfScriptVar_platform.Bind( &scriptFunction_getPlatform ) );
+	//globals->SetNative( "blackbars", swfScriptVar_blackbars.Bind( this ) );
+	//globals->SetNative( "cropToHeight", swfScriptVar_crop.Bind( this ) );
+	//globals->SetNative( "cropToFit", swfScriptVar_crop.Bind( this ) );
+	//globals->SetNative( "crop", swfScriptVar_crop.Bind( this ) );
 
 	// Do this to touch any external references (like sounds)
 	// But disable script warnings because many globals won't have been created yet
@@ -341,8 +343,8 @@ idSWF::idSWFScriptFunction_precacheSound::Call
 ===================
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_precacheSound::Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ) {
-	const idSoundShader * soundShader = declManager->FindSound( parms[0].ToString(), true );
-	return soundShader->GetName();
+	//const idSoundShader * soundShader = declManager->FindSound( parms[0].ToString(), true );
+	return "NOTIMPLEMENTED";//soundShader->GetName();
 }
 
 /*
@@ -351,7 +353,7 @@ idSWF::idSWFScriptFunction_playSound::Call
 ===================
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_playSound::Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ) {
-	int channel = SCHANNEL_ANY;
+	int channel = 0;//SCHANNEL_ANY;
 	// specific channel passed in
 	if ( parms.Num() > 1 ) {
 		channel = parms[1].ToInteger();
@@ -369,7 +371,7 @@ idSWF::idSWFScriptFunction_stopSounds::Call
 */
 idSWFScriptVar idSWF::idSWFScriptFunction_stopSounds::Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ) {
 
-	int channel = SCHANNEL_ANY;
+	int channel = 0;//SCHANNEL_ANY;
 	if ( parms.Num() == 1 ) {
 		channel = parms[0].ToInteger();
 	}
@@ -692,18 +694,18 @@ idSWFScriptVar idSWF::idSWFScriptFunction_shortcutKeys_clear::Call( idSWFScriptO
 	return idSWFScriptVar();
 }
 
-idSWFScriptVar idSWF::idSWFScriptNativeVar_blackbars::Get( idSWFScriptObject * object ) {
-	return pThis->blackbars;
-}
-
-void idSWF::idSWFScriptNativeVar_blackbars::Set( idSWFScriptObject * object, const idSWFScriptVar & value ) {
-	pThis->blackbars = value.ToBool();
-}
-
-idSWFScriptVar idSWF::idSWFScriptNativeVar_crop::Get( idSWFScriptObject * object ) {
-	return pThis->crop;
-}
-
-void idSWF::idSWFScriptNativeVar_crop::Set( idSWFScriptObject * object, const idSWFScriptVar & value ) {
-	pThis->crop = value.ToBool();
-}
+//idSWFScriptVar idSWF::idSWFScriptNativeVar_blackbars::Get( idSWFScriptObject * object ) {
+//	return pThis->blackbars;
+//}
+//
+//void idSWF::idSWFScriptNativeVar_blackbars::Set( idSWFScriptObject * object, const idSWFScriptVar & value ) {
+//	pThis->blackbars = value.ToBool();
+//}
+//
+//idSWFScriptVar idSWF::idSWFScriptNativeVar_crop::Get( idSWFScriptObject * object ) {
+//	return pThis->crop;
+//}
+//
+//void idSWF::idSWFScriptNativeVar_crop::Set( idSWFScriptObject * object, const idSWFScriptVar & value ) {
+//	pThis->crop = value.ToBool();
+//}

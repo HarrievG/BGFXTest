@@ -25,8 +25,11 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
-#include "swf.h"
+#include "SWF_ScriptVar.h"
+#include "../idFramework/CVarSystem.h"
+#include "SWF_ScriptFunction.h"
+#include "../idFramework/Common.h"
+#include "../idFramework/idlib/LangDict.h"
 
 extern idCVar swf_debugShowAddress;
 

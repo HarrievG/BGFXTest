@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_ScriptObject.h"
 #include "SWF_Types.h"
 #include "swf.h"
+#include "../idFramework/KeyInput.h"
 
 /*
 ===================
@@ -241,7 +242,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 					var = hitObject->Get( "onPress" );
 					if ( var.IsFunction() ) {
 						idSWFParmList parms;
-						parms.Append( event->inputDevice );
+						//parms.Append( event->inputDevice );
 						var.GetFunction()->Call( hitObject, parms );
 						parms.Clear();
 						return true;
@@ -268,7 +269,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 					var = mouseObject->Get( "onRelease" );
 					if ( var.IsFunction() ) {
 						idSWFParmList parms;
-						parms.Append( mouseObject ); // FIXME: Remove this
+						//parms.Append( mouseObject ); // FIXME: Remove this
 						var.GetFunction()->Call( mouseObject, parms );
 					}					
 					mouseObject->Release();
@@ -292,7 +293,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 		for ( int runaway = 0; runaway < 32; runaway++ ) {
 			idSWFParmList eventParms;
 			eventParms.Clear();
-			eventParms.Append( event->inputDevice );
+			//eventParms.Append( event->inputDevice );
 			if ( var.IsString() ) {
 				// alias to another key
 				var = shortcutKeys->Get( var.ToString() );
@@ -356,7 +357,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 						parms.Append( event->evValue2 );
 						onKey.GetFunction()->Call( focusWindow.GetObject(), parms ).ToBool();
 						return true;
-					} else if ( event->evValue == K_LSHIFT || event->evValue == K_RSHIFT ) {
+					} else if ( event->evValue == K_SHIFT || event->evValue == K_RIGHT_SHIFT ) {
 						idSWFParmList parms;
 						parms.Append( event->evValue );
 						parms.Append( event->evValue2 );
@@ -382,12 +383,12 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 	} else if ( event->evType == SE_MOUSE_ABSOLUTE || event->evType == SE_MOUSE ) {
 		mouseEnabled = true;
 		isMouseInClientArea = true;
-
+		common->Warning("YOU KNOW THIS PART ;)");
 		// Mouse position in screen space needs to be converted to SWF space
 		if ( event->evType == SE_MOUSE_ABSOLUTE ) {
-			const float pixelAspect = renderSystem->GetPixelAspect();
-			const float sysWidth = renderSystem->GetWidth() * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
-			const float sysHeight = renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
+			const float pixelAspect = 1.0f;//renderSystem->GetPixelAspect();
+			const float sysWidth = 1920.0f;//renderSystem->GetWidth() * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
+			const float sysHeight = 1080.0f;//renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
 			float scale = swfScale * sysHeight / (float)frameHeight;
 			float invScale = 1.0f / scale;
 			float tx = 0.5f * ( sysWidth - ( frameWidth * scale ) );

@@ -64,6 +64,11 @@ public:
 	int				First( const int key ) const;
 					// get the next index from the hash, returns -1 if at the end of the hash chain
 	int				Next( const int index ) const;
+
+	// For porting purposes...
+	int				GetFirst( const int key ) const { return First( key ); }
+	int				GetNext( const int index ) const { return Next( index ); }
+
 					// insert an entry into the index and add it to the hash, increasing all indexes >= index
 	void			InsertIndex( const int key, const int index );
 					// remove an entry from the index and remove it from the hash, decreasing all indexes >= index

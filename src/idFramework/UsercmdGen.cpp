@@ -35,6 +35,11 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "idFramework/UsercmdGen.h"
 #include "idFramework/Common.h"
+
+
+
+idCVar in_useJoystick( "in_useJoystick", "0", CVAR_ARCHIVE | CVAR_BOOL, "enables/disables the gamepad for PC use" );
+
 /*
 ================
 usercmd_t::ByteSwap

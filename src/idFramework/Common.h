@@ -177,7 +177,7 @@ public:
 								// Prints message that only shows up if the "developer" cvar is set,
 								// and NEVER forces a screen update, which could cause reentrancy problems.
 	virtual void				DPrintf( const char *fmt, ... ) id_attribute((format(printf,2,3))) = 0;
-
+	virtual void				DPrintfIf(bool expr, const char *fmt, ... ) id_attribute((format(printf,2,3))) = 0;
 								// Prints WARNING %s message and adds the warning message to a queue for printing later on.
 	virtual void				Warning( const char *fmt, ... ) id_attribute((format(printf,2,3))) = 0;
 

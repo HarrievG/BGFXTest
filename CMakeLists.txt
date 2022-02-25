@@ -25,39 +25,38 @@ function(add_globbed_headers SRCLIST PATHPREFIX)
 endfunction()
 
 set(src_idSWF
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Bitstream.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Bitstream.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Dictionary.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Enums.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Events.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Image.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Load.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Main.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Names.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ParmList.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ParmList.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_PlaceObject.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Render.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptFunction.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptFunction.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptObject.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptObject.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptVar.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptVar.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ShapeParser.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ShapeParser.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Shapes.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sounds.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_SpriteInstance.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_SpriteInstance.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sprites.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sprites.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Text.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_TextInstance.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_TextInstance.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Types.h
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Zlib.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Bitstream.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Bitstream.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Dictionary.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Enums.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Events.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Image.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Load.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Main.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Names.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ParmList.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ParmList.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_PlaceObject.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptFunction.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptFunction.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptObject.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptObject.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptVar.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptVar.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ShapeParser.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ShapeParser.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Shapes.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sounds.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_SpriteInstance.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_SpriteInstance.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sprites.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Sprites.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Text.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_TextInstance.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_TextInstance.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Types.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Zlib.cpp
 )
 
 set(src_idFramework
@@ -75,6 +74,7 @@ set(src_idFramework
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/console.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idImGui/idImConsole.h
 
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/Font.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/File.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/FileSystem.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/CmdSystem.cpp
@@ -145,6 +145,7 @@ set(src_idlib
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idlib/Dict.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idlib/Str.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idlib/Parser.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idlib/RectAllocator.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idlib/MapFile.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idlib/CmdArgs.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idlib/Token.cpp

@@ -25,7 +25,6 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "swf.h"
 
 #pragma warning( disable: 4189 ) // local variable is initialized but not referenced
@@ -49,7 +48,7 @@ void idSWF::DefineFont2( idSWFBitStream & bitstream ) {
 	memcpy( fontName, bitstream.ReadData( fontNameLength ), fontNameLength );
 	fontName[ fontNameLength ] = 0;
 
-	entry->font->fontID = renderSystem->RegisterFont( fontName );
+	//entry->font->fontID = renderSystem->RegisterFont( fontName );
 
 	uint16 numGlyphs = bitstream.ReadU16();
 	entry->font->glyphs.SetNum( numGlyphs );

@@ -92,9 +92,9 @@ this string class to avoid excessive re-allocation and copying of strings.
 SwapValues
 ========================
 */
-template< typename _type_ >
-ID_INLINE void SwapValues( _type_ & a, _type_ & b ) {
-	_type_ c = a;
+template< typename type >
+ID_INLINE void SwapValues( type & a, type & b ) {
+	type c = a;
 	a = b;
 	b = c;
 }
@@ -105,11 +105,11 @@ idSort is an abstract template class for sorting an array of objects of the spec
 The array of objects is sorted such that: Compare( array[i], array[i+1] ) <= 0 for all i
 ================================================
 */
-template< typename _type_ >
+template< typename type >
 class idSort {
 public:
 	virtual			~idSort() {}
-	virtual void	Sort( _type_ * base, unsigned int num ) const = 0;
+	virtual void	Sort( type * base, unsigned int num ) const = 0;
 };
 
 /*
@@ -118,10 +118,10 @@ idSort_Quick is a sort template that implements the
 quick-sort algorithm on an array of objects of the specified data type.
 ================================================
 */
-template< typename _type_, typename _derived_ >
-class idSort_Quick : public idSort< _type_ > {
+template< typename type, typename _derived_ >
+class idSort_Quick : public idSort< type > {
 public:
-	virtual void Sort( _type_ * base, unsigned int num ) const {
+	virtual void Sort( type * base, unsigned int num ) const {
 		if ( num <= 0 ) {
 			return;
 		}
@@ -151,7 +151,7 @@ public:
 				SwapValues( base[j], base[pi] );
 
 				// Get a reference to the pivot element.
-				_type_ & pivot = base[j--];
+				type & pivot = base[j--];
 
 				// Partition the region.
 				do {
@@ -200,10 +200,10 @@ Default quick-sort comparison function that can
 be used to sort scalars from small to large.
 ================================================
 */
-template< typename _type_ >
-class idSort_QuickDefault : public idSort_Quick< _type_, idSort_QuickDefault< _type_ > > {
+template< typename type >
+class idSort_QuickDefault : public idSort_Quick< type, idSort_QuickDefault< type > > {
 public:
-	int Compare( const _type_ & a, const _type_ & b ) const { return a - b; }
+	int Compare( const type & a, const type & b ) const { return a - b; }
 };
 
 /*
@@ -232,10 +232,10 @@ idSort_Heap is a sort template class that implements the
 heap-sort algorithm on an array of objects of the specified data type.
 ================================================
 */
-template< typename _type_, typename _derived_ >
-class idSort_Heap : public idSort< _type_ > {
+template< typename type, typename _derived_ >
+class idSort_Heap : public idSort< type > {
 public:
-	virtual void Sort( _type_ * base, unsigned int num ) const {
+	virtual void Sort( type * base, unsigned int num ) const {
 		// get all elements in heap order
 #if 1
 		// O( n )
@@ -292,10 +292,10 @@ Default heap-sort comparison function that can
 be used to sort scalars from small to large.
 ================================================
 */
-template< typename _type_ >
-class idSort_HeapDefault : public idSort_Heap< _type_, idSort_HeapDefault< _type_ > > {
+template< typename type >
+class idSort_HeapDefault : public idSort_Heap< type, idSort_HeapDefault< type > > {
 public:
-	int Compare( const _type_ & a, const _type_ & b ) const { return a - b; }
+	int Compare( const type & a, const type & b ) const { return a - b; }
 };
 
 /*
@@ -304,15 +304,15 @@ idSort_Insertion is a sort template class that implements the
 insertion-sort algorithm on an array of objects of the specified data type.
 ================================================
 */
-template< typename _type_, typename _derived_ >
-class idSort_Insertion : public idSort< _type_ > {
+template< typename type, typename _derived_ >
+class idSort_Insertion : public idSort< type > {
 public:
-	virtual void Sort( _type_ * base, unsigned int num ) const {
-		_type_ * lo = base;
-		_type_ * hi = base + ( num - 1 );
+	virtual void Sort( type * base, unsigned int num ) const {
+		type * lo = base;
+		type * hi = base + ( num - 1 );
 		while( hi > lo ) {
-			_type_ * max = lo;
-			for ( _type_ * p = lo + 1; p <= hi; p++ ) {
+			type * max = lo;
+			for ( type * p = lo + 1; p <= hi; p++ ) {
 				if ( static_cast< const _derived_ * >( this )->Compare( (*p), (*max) ) > 0 ) {
 					max = p;
 				}
@@ -329,10 +329,10 @@ Default insertion-sort comparison function that can
 be used to sort scalars from small to large.
 ================================================
 */
-template< typename _type_ >
-class idSort_InsertionDefault : public idSort_Insertion< _type_, idSort_InsertionDefault< _type_ > > {
+template< typename type >
+class idSort_InsertionDefault : public idSort_Insertion< type, idSort_InsertionDefault< type > > {
 public:
-	int Compare( const _type_ & a, const _type_ & b ) const { return a - b; }
+	int Compare( const type & a, const type & b ) const { return a - b; }
 };
 
 #endif // !__SORT_H__

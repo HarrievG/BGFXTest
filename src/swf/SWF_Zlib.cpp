@@ -27,7 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 #include "swf.h"
-#include "../framework/zlib/zlib.h"
+#include "zlib.h"
 
 /*
 ========================
@@ -37,7 +37,7 @@ idSWF::Inflate
 bool idSWF::Inflate( const byte * input, int inputSize, byte * output, int outputSize ) {
 	struct local_swf_alloc_t {
 		static void * zalloc( void * opaque, uint32 items, uint32 size ) {
-			return Mem_Alloc( items * size, TAG_SWF );
+			return Mem_Alloc( items * size );
 		}
 		static void zfree( void * opaque, void * ptr ) {
 			Mem_Free( ptr );

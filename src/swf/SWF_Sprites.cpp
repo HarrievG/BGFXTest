@@ -27,6 +27,7 @@ If you have questions concerning this license or the applicable additional terms
 */
 #pragma hdrstop
 #include "swf.h"
+#include "../idFramework/File.h"
 
 /*
 ========================
@@ -188,7 +189,7 @@ void idSWFSprite::Read( idFile * f ) {
 	uint32 bufferSize;
 	f->ReadBig( bufferSize );
 
-	commandBuffer = (byte *)Mem_Alloc( bufferSize, TAG_SWF );
+	commandBuffer = (byte *)Mem_Alloc( bufferSize );
 	f->Read( commandBuffer, bufferSize );
 
 	byte * currentBuffer = commandBuffer;

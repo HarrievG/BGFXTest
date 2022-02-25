@@ -26,8 +26,14 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #pragma hdrstop
-#include "swf.h"
-#include "../renderer/Font.h"
+#include "SWF_TextInstance.h"
+#include "../idFramework/idlib/LangDict.h"
+#include "../idFramework/Font.h"
+#include "../idFramework/KeyInput.h"
+#include "../idFramework/CVarSystem.h"
+//#include "../renderer/Font.h"
+#include "SWF.h"
+#include "SWF_ScriptFunction.h"
 
 idSWFScriptObject_TextInstancePrototype textInstanceScriptObjectPrototype;
 
@@ -837,7 +843,6 @@ int idSWFTextInstance::CalcNumLines() {
 idSWFScriptObject_TextInstancePrototype
 ========================
 */
-
 #define SWF_TEXT_FUNCTION_DEFINE( x ) idSWFScriptVar idSWFScriptObject_TextInstancePrototype::idSWFScriptFunction_##x::Call( idSWFScriptObject * thisObject, const idSWFParmList & parms )
 #define SWF_TEXT_NATIVE_VAR_DEFINE_GET( x ) idSWFScriptVar idSWFScriptObject_TextInstancePrototype::idSWFScriptNativeVar_##x::Get( class idSWFScriptObject * object )
 #define SWF_TEXT_NATIVE_VAR_DEFINE_SET( x ) void  idSWFScriptObject_TextInstancePrototype::idSWFScriptNativeVar_##x::Set( class idSWFScriptObject * object, const idSWFScriptVar & value )
@@ -1040,8 +1045,8 @@ SWF_TEXT_FUNCTION_DEFINE( onKey ) {
 
 	if ( keyDown ) {
 		switch ( keyCode ) {
-			case K_LSHIFT:
-			case K_RSHIFT: {
+			case K_SHIFT:
+			case K_RIGHT_SHIFT: {
 				pThis->shiftHeld = true;
 				break;
 			}
@@ -1097,7 +1102,7 @@ SWF_TEXT_FUNCTION_DEFINE( onKey ) {
 			}
 		}
 	} else {
-		if ( keyCode == K_LSHIFT || keyCode == K_RSHIFT ) {
+		if ( keyCode == K_SHIFT || keyCode == K_RIGHT_SHIFT ) {
 			pThis->shiftHeld = false;
 		}
 	}
