@@ -19,6 +19,7 @@
 #include "idFramework/idImGui/idImConsole.h"
 #include "bgfx-stubs/Renderers/ForwardRenderer.h"
 #include "gltf-edit/gltfParser.h"
+#include "idFramework/Font.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
@@ -256,7 +257,7 @@ int main( int argc, char **argv )
 			fwRender->initialize( );
 		}, CMD_FL_SYSTEM, "restart renderer" );
 	}
-
+	idFont fnt("test" );
 	
 	common->PrintWarnings( );
 	common->ClearWarnings( "main loop" );
