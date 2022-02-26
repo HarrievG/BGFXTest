@@ -98,32 +98,3 @@ bool Sys_GetPath( sysPath_t, idStr & ) {
 int				Sys_ListFiles( const char *directory, const char *extension, idStrList &list ) { return 0; }
 
 #endif
-
-
-/*
-==============
-idSysLocal stub
-==============
-*/
-void			idSysLocal::DebugPrintf( const char *fmt, ... ) { }
-void			idSysLocal::DebugVPrintf( const char *fmt, va_list arg ) { }
-
-//double			idSysLocal::GetClockTicks( void ) { return 0.0; }
-//double			idSysLocal::ClockTicksPerSecond( void ) { return 1.0; }
-int				idSysLocal::GetProcessorId( void ) { return 0; }
-void			idSysLocal::FPU_SetFTZ( bool enable ) { }
-void			idSysLocal::FPU_SetDAZ( bool enable ) { }
-
-bool			idSysLocal::LockMemory( void *ptr, int bytes ) { return false; }
-bool			idSysLocal::UnlockMemory( void *ptr, int bytes ) { return false; }
-
-uintptr_t		idSysLocal::DLL_Load( const char *dllName ) { return 0; }
-void *idSysLocal::DLL_GetProcAddress( uintptr_t dllHandle, const char *procName ) { return NULL; }
-void			idSysLocal::DLL_Unload( uintptr_t dllHandle ) { }
-void			idSysLocal::DLL_GetFileName( const char *baseName, char *dllName, int maxLength ) { }
-
-sysEvent_t		idSysLocal::GenerateMouseButtonEvent( int button, bool down ) { sysEvent_t ev; memset( &ev, 0, sizeof( ev ) ); return ev; }
-sysEvent_t		idSysLocal::GenerateMouseMoveEvent( int deltax, int deltay ) { sysEvent_t ev; memset( &ev, 0, sizeof( ev ) ); return ev; }
-
-void			idSysLocal::OpenURL( const char *url, bool quit ) { }
-void			idSysLocal::StartProcess( const char *exeName, bool quit ) { }

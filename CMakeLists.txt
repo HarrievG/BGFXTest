@@ -86,15 +86,16 @@ set(src_idFramework
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/UsercmdGen.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/Compressor.cpp
 
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/cpu.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/cpu.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/threads.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/events.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/sys_local.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/sys_local.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_local.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_input.cpp
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_main.cpp
 	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_net.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_shared.cpp
-	#${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_syscon.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/sys/win32/win_syscon.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/idImGui/idImConsole.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/idFramework/stubs/common_stubs.cpp
 	)

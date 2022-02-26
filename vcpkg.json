@@ -13,7 +13,8 @@
     "imguizmo",
     "zlib",
     "nlohmann-json",
-    "stb"
+		"stb",
+		"freetype"
   ],
   "overrides": [
     {

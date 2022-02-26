@@ -170,7 +170,7 @@ idFont::LoadFont
 ==============================
 */
 bool idFont::LoadFont() {
-	idStr fontName = va( "newfonts/%s/48.dat", GetName() );
+	idStr fontName = va( "fonts/%s/fontImage_48.dat", GetName() );
 	idFile * fd = fileSystem->OpenFileRead( fontName );
 	if ( fd == NULL ) {
 		return false;
@@ -179,8 +179,11 @@ bool idFont::LoadFont() {
 	const int FONT_INFO_VERSION = 42;
 	const int FONT_INFO_MAGIC = ( FONT_INFO_VERSION | ( 'i' << 24 ) | ( 'd' << 16 ) | ( 'f' << 8 ) );
 
+	int fdOffset = 0;
+	//int i = fd[fdOffset] + ( fd[fdOffset + 1] << 8 ) + ( fd[fdOffset + 2] << 16 ) + ( fd[fdOffset + 3] << 24 );
+
 	uint32 version = 0;
-	fd->ReadBig( version );
+	fd->ReadUnsignedInt( version );
 	if ( version != FONT_INFO_MAGIC ) {
 		idLib::Warning( "Wrong version in %s", GetName() );
 		delete fd;
@@ -189,9 +192,9 @@ bool idFont::LoadFont() {
 
 	fontInfo = new  fontInfo_t;
 
-	short pointSize = 0;
+	int pointSize = 0;
 
-	fd->ReadBig( pointSize );
+	fd->ReadInt( pointSize );
 	assert( pointSize == 48 );
 
 	fd->ReadBig( fontInfo->ascender );

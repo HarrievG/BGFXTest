@@ -20,6 +20,10 @@
 #include "bgfx-stubs/Renderers/ForwardRenderer.h"
 #include "gltf-edit/gltfParser.h"
 #include "idFramework/Font.h"
+#include <shellapi.h>
+#include <objbase.h>
+#include <timeapi.h>
+#include "idFramework/sys/win32/win_local.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
@@ -33,12 +37,14 @@ idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
 idCVar r_useRenderThread( "r_useRenderThread", "1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "Multithreaded renderering" );
 idCVar r_fullscreen( "r_fullscreen", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_BOOL, "Fullscreen" );
 
+Win32Vars_t	win32;
+
 extern idCVar in_grabMouse;
 
 idSession *session = NULL;
 
-idSysLocal		sysLocal;
-idSys *sys = &sysLocal;
+//idSysLocal		sysLocal;
+//idSys *sys = &sysLocal;
 
 #define WINDOW_WIDTH 1024
 #define WINDOW_HEIGHT 768
@@ -257,7 +263,7 @@ int main( int argc, char **argv )
 			fwRender->initialize( );
 		}, CMD_FL_SYSTEM, "restart renderer" );
 	}
-	idFont fnt("test" );
+	idFont fnt("an" );
 	
 	common->PrintWarnings( );
 	common->ClearWarnings( "main loop" );
@@ -346,6 +352,258 @@ void Sys_Printf( const char *fmt, ... ) {
 	//}
 }
 
-unsigned int idSysLocal::GetMilliseconds( void ) {
-	return Sys_Milliseconds( );
+/*
+==================
+idSysLocal::OpenURL
+==================
+*/
+void idSysLocal::OpenURL( const char *url, bool doexit ) {
+	static bool doexit_spamguard = false;
+	HWND wnd;
+
+	if ( doexit_spamguard ) {
+		common->DPrintf( "OpenURL: already in an exit sequence, ignoring %s\n", url );
+		return;
+	}
+
+	common->Printf( "Open URL: %s\n", url );
+
+	if ( !ShellExecute( NULL, "open", url, NULL, NULL, SW_RESTORE ) ) {
+		common->Error( "Could not open url: '%s' ", url );
+		return;
+	}
+
+	wnd = GetForegroundWindow( );
+	if ( wnd ) {
+		ShowWindow( wnd, SW_MAXIMIZE );
+	}
+
+	if ( doexit ) {
+		doexit_spamguard = true;
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "quit\n" );
+	}
+}
+
+/*
+==================
+idSysLocal::StartProcess
+==================
+*/
+void idSysLocal::StartProcess( const char *exePath, bool doexit ) {
+	TCHAR				szPathOrig[_MAX_PATH];
+	STARTUPINFO			si;
+	PROCESS_INFORMATION	pi;
+
+	ZeroMemory( &si, sizeof( si ) );
+	si.cb = sizeof( si );
+
+	strncpy( szPathOrig, exePath, _MAX_PATH );
+
+	if ( !CreateProcess( NULL, szPathOrig, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi ) ) {
+		common->Error( "Could not start process: '%s' ", szPathOrig );
+		return;
+	}
+
+	if ( doexit ) {
+		cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "quit\n" );
+	}
+}
+
+/*
+==============
+Sys_DebugPrintf
+==============
+*/
+#define MAXPRINTMSG 4096
+void Sys_DebugPrintf( const char *fmt, ... ) {
+	char msg[MAXPRINTMSG];
+
+	va_list argptr;
+	va_start( argptr, fmt );
+	idStr::vsnPrintf( msg, MAXPRINTMSG - 1, fmt, argptr );
+	msg[sizeof( msg ) - 1] = '\0';
+	va_end( argptr );
+
+	printf( "%s", msg );
+
+	OutputDebugString( msg );
+}
+
+
+/*
+==============
+Sys_DebugVPrintf
+==============
+*/
+void Sys_DebugVPrintf( const char *fmt, va_list arg ) {
+	char msg[MAXPRINTMSG];
+
+	idStr::vsnPrintf( msg, MAXPRINTMSG - 1, fmt, arg );
+	msg[sizeof( msg ) - 1] = '\0';
+
+	printf( "%s", msg );
+
+	OutputDebugString( msg );
+}
+
+
+/*
+=====================
+Sys_DLL_Load
+=====================
+*/
+uintptr_t Sys_DLL_Load( const char *dllName ) {
+	HINSTANCE	libHandle;
+	libHandle = LoadLibrary( dllName );
+	if ( libHandle ) {
+		// since we can't have LoadLibrary load only from the specified path, check it did the right thing
+		char loadedPath[MAX_OSPATH];
+		GetModuleFileName( libHandle, loadedPath, sizeof( loadedPath ) - 1 );
+		if ( idStr::IcmpPath( dllName, loadedPath ) ) {
+			Sys_Printf( "ERROR: LoadLibrary '%s' wants to load '%s'\n", dllName, loadedPath );
+			Sys_DLL_Unload( ( uintptr_t ) libHandle );
+			return 0;
+		}
+	}
+	return ( uintptr_t ) libHandle;
+}
+
+/*
+=====================
+Sys_DLL_GetProcAddress
+=====================
+*/
+void *Sys_DLL_GetProcAddress( uintptr_t dllHandle, const char *procName ) {
+	return ( void * ) GetProcAddress( ( HINSTANCE ) dllHandle, procName );
+}
+
+/*
+=====================
+Sys_DLL_Unload
+=====================
+*/
+void Sys_DLL_Unload( uintptr_t dllHandle ) {
+	if ( !dllHandle ) {
+		return;
+	}
+	if ( FreeLibrary( ( HINSTANCE ) dllHandle ) == 0 ) {
+		int lastError = GetLastError( );
+		LPVOID lpMsgBuf;
+		FormatMessage(
+			FORMAT_MESSAGE_ALLOCATE_BUFFER,
+			NULL,
+			lastError,
+			MAKELANGID( LANG_NEUTRAL, SUBLANG_DEFAULT ), // Default language
+			( LPTSTR ) &lpMsgBuf,
+			0,
+			NULL
+		);
+		Sys_Error( "Sys_DLL_Unload: FreeLibrary failed - %s (%d)", lpMsgBuf, lastError );
+	}
+}
+
+
+/*
+=============
+Sys_Error
+
+Show the early console as an error dialog
+=============
+*/
+void Sys_Error( const char *error, ... ) {
+	va_list		argptr;
+	char		text[4096];
+	MSG        msg;
+
+	//if ( !Sys_IsMainThread( ) ) {
+	//	// to avoid deadlocks we mustn't call Conbuf_AppendText() etc if not in main thread!
+	//	va_start( argptr, error );
+	//	vsprintf( errorText, error, argptr );
+	//	va_end( argptr );
+
+	//	printf( "%s", errorText );
+	//	OutputDebugString( errorText );
+
+	//	hadError = true;
+	//	return;
+	//}
+
+	//va_start( argptr, error );
+	//vsprintf( text, error, argptr );
+	//va_end( argptr );
+
+	//if ( !hadError ) {
+	//	// if we had an error in another thread, printf() and OutputDebugString() has already been called for this
+	//	printf( "%s", text );
+	//	OutputDebugString( text );
+	//}
+
+	//Conbuf_AppendText( text );
+	//Conbuf_AppendText( "\n" );
+
+	//Win_SetErrorText( text );
+	//Sys_ShowConsole( 1, true );
+
+	//timeEndPeriod( 1 );
+
+	//Sys_ShutdownInput( );
+
+	//GLimp_Shutdown( );
+
+	//// wait for the user to quit
+	//while ( 1 ) {
+	//	if ( !GetMessage( &msg, NULL, 0, 0 ) ) {
+	//		common->Quit( );
+	//	}
+	//	TranslateMessage( &msg );
+	//	DispatchMessage( &msg );
+	//}
+
+	//Sys_DestroyConsole( );
+
+	exit( 1 );
+}
+
+
+/*
+================
+Sys_Init
+
+The cvar system must already be setup
+================
+*/
+void Sys_Init( void ) {
+
+	CoInitialize( NULL );
+
+	// make sure the timer is high precision, otherwise
+	// NT gets 18ms resolution
+	//timeBeginPeriod( 1 );
+
+	// get WM_TIMER messages pumped every millisecond
+	//	SetTimer( NULL, 0, 100, NULL );
+
+#ifdef DEBUG
+	cmdSystem->AddCommand( "createResourceIDs", CreateResourceIDs_f, CMD_FL_TOOL, "assigns resource IDs in _resouce.h files" );
+#endif
+#if 0
+	cmdSystem->AddCommand( "setAsyncSound", Sys_SetAsyncSound_f, CMD_FL_SYSTEM, "set the async sound option" );
+#endif
+
+	//
+	// Windows version
+	//
+	win32.osversion.dwOSVersionInfoSize = sizeof( win32.osversion );
+
+	if ( !GetVersionEx( ( LPOSVERSIONINFO ) &win32.osversion ) )
+		Sys_Error( "Couldn't get OS info" );
+
+	if ( win32.osversion.dwMajorVersion < 4 ) {
+		Sys_Error( GAME_NAME " requires Windows version 4 (NT) or greater" );
+	}
+	if ( win32.osversion.dwPlatformId == VER_PLATFORM_WIN32s ) {
+		Sys_Error( GAME_NAME " doesn't run on Win32s" );
+	}
+
+	common->Printf( "%d MB System Memory\n", Sys_GetSystemRam( ) );
 }

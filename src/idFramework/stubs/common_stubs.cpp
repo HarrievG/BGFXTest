@@ -194,6 +194,9 @@ inline void idCommonLocal::Init( int argc, char **argv ) {
 
 	idKeyInput::Init( );
 	
+	// get architecture info
+	Sys_Init( );
+
 	com_fullyInitialized = true;
 	static auto * thisPtr = this;
 	async_timer = SDL_AddTimer( USERCMD_MSEC, []( unsigned int interval, void * usr)
