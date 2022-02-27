@@ -15,6 +15,7 @@ find_package(BGFX REQUIRED)
 find_package(IMGUI REQUIRED)
 find_package(imguizmo REQUIRED)
 find_package(ZLIB REQUIRED)
+find_package(freetype CONFIG REQUIRED)
 
 add_definitions(-DID_SIZEOFPTR=${CMAKE_SIZEOF_VOID_P})
 add_compile_definitions(IMGUI_USER_CONFIG="${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imconfig.h")
@@ -195,6 +196,7 @@ target_include_directories(
   PRIVATE ${SDL2_INCLUDE_DIRS}
   PRIVATE ${IMGUI_INCLUDE_DIRS}
   private ${ZLIB_INCLUDE_DIRS}
+  private ${FREETYPE_INCLUDE_DIRS}
   
 )
 #ghp_czo78ObdlRrDLZ7QFdj9wOO0cbrgnK5GL0x7
@@ -209,6 +211,7 @@ target_link_libraries(
   imguizmo::imguizmo
   idFramework
   ${ZLIB_LIBRARY}
+  freetype
 )
 
 target_compile_options(

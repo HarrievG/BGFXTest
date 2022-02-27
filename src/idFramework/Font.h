@@ -28,6 +28,8 @@ If you have questions concerning this license or the applicable additional terms
 #ifndef __FONT_H__
 #define __FONT_H__
 
+#define BUILD_FREETYPE
+
 struct scaledGlyphInfo_t {
 	float	top, left;
 	float	width, height;
@@ -36,8 +38,54 @@ struct scaledGlyphInfo_t {
 	const class idMaterial * material;
 };
 
+// font support
+const int GLYPH_START			= 0;
+const int GLYPH_END				= 255;
+const int GLYPH_CHARSTART		= 32;
+const int GLYPH_CHAREND			= 127;
+const int GLYPHS_PER_FONT		= GLYPH_END - GLYPH_START + 1;
+
+typedef struct {
+	int					height;			// number of scan lines
+	int					top;			// top of glyph in buffer
+	int					bottom;			// bottom of glyph in buffer
+	int					pitch;			// width for copying
+	int					xSkip;			// x adjustment
+	int					imageWidth;		// width of actual image
+	int					imageHeight;	// height of actual image
+	float				s;				// x offset in image where glyph starts
+	float				t;				// y offset in image where glyph starts
+	float				s2;
+	float				t2;
+	const idMaterial *	glyph;			// shader with the glyph
+	char				shaderName[32];
+} glyphInfo_t;
+
+typedef struct {
+	glyphInfo_t			glyphs [GLYPHS_PER_FONT];
+	float				glyphScale;
+	char				name[64];
+} fontInfo_t;
+
+typedef struct {
+	fontInfo_t			fontInfoSmall;
+	fontInfo_t			fontInfoMedium;
+	fontInfo_t			fontInfoLarge;
+	int					maxHeight;
+	int					maxWidth;
+	int					maxHeightSmall;
+	int					maxWidthSmall;
+	int					maxHeightMedium;
+	int					maxWidthMedium;
+	int					maxHeightLarge;
+	int					maxWidthLarge;
+	char				name[64];
+} fontInfoEx_t;
+
 class idFont {
 public:
+	static void InitFreetype();
+	static void RegisterFont( const char *fontName, fontInfoEx_t &font  );
 	idFont( const char * n );
 	~idFont();
 
@@ -52,12 +100,13 @@ public:
 	float GetGlyphWidth( float scale, uint32 idx ) const;
 	void GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphInfo ) const;
 
-private:
+private:	
 	static idFont * RemapFont( const char * baseName );
 
 	int	GetGlyphIndex( uint32 idx ) const;
 
 	bool LoadFont();
+	void RenderFont();
 
 	struct glyphInfo_t {
 		byte	width;	// width of glyph in pixels
@@ -78,7 +127,7 @@ private:
 		short		descender;
 
 		short		numGlyphs;
-		glyphInfo_t * glyphData;
+		idFont::glyphInfo_t * glyphData;
 
 		// This is a sorted array of all characters in the font
 		// This maps directly to glyphData, so if charIndex[0] is 42 then glyphData[0] is character 42
@@ -97,7 +146,16 @@ private:
 	idFont * alias;
 
 	// If the font is NOT an alias, this is where the font data is located
-	fontInfo_t * fontInfo;
+	idFont::fontInfo_t * fontInfo;
+
+
+	//general interface
+	static idList<fontInfoEx_t> fonts;
+	static fontInfoEx_t		*activeFont;
+	static ::fontInfo_t		*useFont;
+	static idStr			fontName;
+	static idStr			fontLang;
 };
+
 
 #endif
