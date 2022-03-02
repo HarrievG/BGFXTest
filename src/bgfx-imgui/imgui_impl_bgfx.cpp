@@ -133,6 +133,8 @@ bool ImGui_Implbgfx_CreateFontsTexture()
         (uint16_t)width, (uint16_t)height, false, 1, bgfx::TextureFormat::BGRA8,
         0, bgfx::copy(pixels, width * height * 4));
 
+	bgfx::setName(g_FontTexture,"imgui_font_texture");
+
     // Store our identifier
     io.Fonts->TexID = (void*)(intptr_t)g_FontTexture.idx;
 

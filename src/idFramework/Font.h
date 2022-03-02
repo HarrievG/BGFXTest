@@ -27,8 +27,13 @@ If you have questions concerning this license or the applicable additional terms
 */
 #ifndef __FONT_H__
 #define __FONT_H__
+#include "../bgfx-stubs/cube_atlas.h"
+#include "../bgfx-stubs/font/font_manager.h"
+#include "idlib/containers/HashTable.h"
 
 #define BUILD_FREETYPE
+
+
 
 struct scaledGlyphInfo_t {
 	float	top, left;
@@ -59,6 +64,7 @@ typedef struct {
 	float				t2;
 	const idMaterial *	glyph;			// shader with the glyph
 	char				shaderName[32];
+	uint16_t			regionIndex;
 } glyphInfo_t;
 
 typedef struct {
@@ -99,6 +105,7 @@ public:
 
 	float GetGlyphWidth( float scale, uint32 idx ) const;
 	void GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphInfo ) const;
+	const Atlas *GetAtlas( ) const 	{ return atlas;}
 
 private:	
 	static idFont * RemapFont( const char * baseName );
@@ -116,6 +123,7 @@ private:
 		byte	xSkip;	// x adjustment after rendering this glyph
 		uint16	s;		// x offset in image where glyph starts (in pixels)
 		uint16	t;		// y offset in image where glyph starts (in pixels)
+		uint16_t regionIndex;
 	};
 	struct fontInfo_t {
 		struct oldInfo_t {
@@ -153,8 +161,27 @@ private:
 	static idList<fontInfoEx_t> fonts;
 	static fontInfoEx_t		*activeFont;
 	static ::fontInfo_t		*useFont;
-	static idStr			fontName;
+	
 	static idStr			fontLang;
+	static Atlas			*atlas;
+
+public:
+	static idStr			fontName;
+	static GlyphInfo blackGlyph;
+	static inline int GetFontHash(const char * name);
+	static FontInfo & GetFontInfo(int fontHash, bool create = false );
+	static idList<FontInfo> fontInfos;
+	static idHashIndex		fontInfoIndices;
+
+	static GlyphInfo & GetUnicodeGlyphInfo(int fontHash, unsigned int code);
+	static GlyphInfo & GetGlyphInfo(int fontHash, unsigned int charIndex, int * newIndex = nullptr );
+	static idList<GlyphInfo> glyphInfos;
+	static idHashIndex		glyphInfoIndices;
+	static idHashTable<GlyphInfo>	glyphInfoIndicesx;
+	//static unsigned int & GetGlyphIndex( int fontHash, unsigned long code, bool create = false);
+	static idList<unsigned long> unicodePoints;
+	static idList<unsigned int> charIndices;
+	static idHashIndex		unicodePointIndices;
 };
 
 

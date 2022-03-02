@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "idlib/LangDict.h"
 #include "../idFramework/idlib/Str.h"
+
 class idSWFScriptFunction;
 class idSWFSpriteInstance;
 class idSWFTextInstance;

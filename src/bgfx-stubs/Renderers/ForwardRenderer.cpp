@@ -70,6 +70,11 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 		RenderSceneNode(state, nodeList[child], curTrans, data );
 }
 
+
+void ForwardRenderer::RenderText( const char *text, idVec2 screenpos ) {
+
+}
+
 void ForwardRenderer::onRender(float dt)
 {
     bgfx::ViewId vDefault = 0;

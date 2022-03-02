@@ -161,6 +161,9 @@ add_globbed_headers(src_idlib "idlib")
 add_library(idFramework STATIC ${src_idlib})
 
 set(Sources 
+	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/font/utf8.cpp
+	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/font/text_buffer_manager.cpp
+	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/cube_atlas.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxRenderer.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/Renderers/ForwardRenderer.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/Renderers/LightShader.cpp
@@ -183,7 +186,7 @@ set(Sources
 include_directories(src)
 include_directories(src/idFramework)
 include_directories(${ZLIB_INCLUDE_DIRS})
-add_executable(${RELEASE_NAME} ${Sources} ${src_idFramework} ${src_idSWF})
+add_executable(${RELEASE_NAME} ${Sources} ${src_idFramework} ${src_idSWF} )
 source_group(src REGULAR_EXPRESSION src)
 
 target_include_directories(

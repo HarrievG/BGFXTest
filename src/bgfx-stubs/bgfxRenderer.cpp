@@ -82,7 +82,7 @@ void Renderer::render(float dt)
 
 	if ( r_whiteFurnaceEnabled.IsModified( ) ) 	{
 		r_whiteFurnaceEnabled.ClearModified( );
-		setMultipleScattering( r_whiteFurnaceEnabled.GetBool( ) );
+		setWhiteFurnace( r_whiteFurnaceEnabled.GetBool( ) );
 	}
 
 
@@ -102,7 +102,6 @@ void Renderer::render(float dt)
 
 	onRender(dt);
 	blitToScreen(MAX_VIEW);
-
 	// bigg doesn't do this
 	//bgfx::setViewName(MAX_VIEW + 1, "imgui");
 }
@@ -210,7 +209,7 @@ void Renderer::blitToScreen(bgfx::ViewId view)
 	bgfx::setViewClear(view, BGFX_CLEAR_NONE);
 	bgfx::setViewRect(view, 0, 0, width, height);
 	bgfx::setViewFrameBuffer(view, BGFX_INVALID_HANDLE);
-	bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW | BGFX_STATE_WRITE_RGB | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA );
+	bgfx::setState(BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA );
 	bgfx::TextureHandle frameBufferTexture = bgfx::getTexture(frameBuffer, 0);
 	bgfx::setTexture(0, blitSampler, frameBufferTexture);
 	float exposureVec[4] = { 1.0f };

@@ -3,6 +3,7 @@
 #include "UsercmdGen.h"
 #include "EventLoop.h"
 #include <idFramework/KeyInput.h>
+#include "../Font.h"
 
 #define	MAX_PRINT_MSG_SIZE	4096
 #define MAX_WARNING_LIST	256
@@ -196,6 +197,7 @@ inline void idCommonLocal::Init( int argc, char **argv ) {
 	
 	// get architecture info
 	Sys_Init( );
+	idFont::InitFreetype();
 
 	com_fullyInitialized = true;
 	static auto * thisPtr = this;

@@ -24,6 +24,7 @@
 #include <objbase.h>
 #include <timeapi.h>
 #include "idFramework/sys/win32/win_local.h"
+#include "bgfx-stubs/Font/text_buffer_manager.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
@@ -56,6 +57,36 @@ ForwardRenderer * fwRender;
 void main_loop( void *data ) {
 	auto context = static_cast< bgfxContext_t * >( data );
 
+	static int cnt = 0;
+	static idFont fnt( "impact.ttf" );
+	static TextBufferManager textMan = TextBufferManager( &fnt );
+	static TextBufferHandle bufferHandle = textMan.createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
+	static idStr tmpStr = "!123adadada123!";
+	textMan.clearTextBuffer(bufferHandle);
+	textMan.setPenPosition(bufferHandle,10,100);
+	textMan.setTextColor(bufferHandle,0xFF0000FF);
+
+	
+	// Setup style colors.
+	textMan.setStyle( bufferHandle, STYLE_BACKGROUND );
+	textMan.setBackgroundColor( bufferHandle, 0x00FF00FF );
+	textMan.setUnderlineColor( bufferHandle, 0xff2222ff );
+	textMan.setOverlineColor( bufferHandle, 0x2222ffff );
+	textMan.setStrikeThroughColor( bufferHandle, 0x000000ff );
+
+	textMan.appendText( bufferHandle, tmpStr.c_str( ), tmpStr.c_str( ) + tmpStr.Size( ) );
+
+
+	//// Background + strike-through.
+	textMan.setStyle( bufferHandle, STYLE_BACKGROUND | STYLE_STRIKE_THROUGH | STYLE_UNDERLINE | STYLE_OVERLINE );
+	textMan.appendText( bufferHandle, L"dog\n" );
+
+	textMan.setPenPosition(bufferHandle,0,0);
+	textMan.appendText( bufferHandle, L"." );
+	textMan.setPenPosition( bufferHandle, 50, 50 );
+	textMan.appendText( bufferHandle, L"." );
+	textMan.setPenPosition( bufferHandle, 500, 500 );
+	textMan.appendText( bufferHandle, L"." );
 	ImGui_Implbgfx_NewFrame( );
 	ImGui_ImplSDL2_NewFrame( context->window );
 	common->Frame();
@@ -75,6 +106,39 @@ void main_loop( void *data ) {
 		bgfxRender( context );
 	else
 		fwRender->render( com_frameTime );
+
+
+
+	const bgfx::Caps *caps = bgfx::getCaps( );
+	{
+		int txtView = 50;
+		bgfx::setViewName( 50, "TEXT" );
+		// Setup a top - left ortho matrix for screen space drawing.
+		const bx::Vec3 at = { 0.0f, 0.0f,  0.0f };
+		const bx::Vec3 eye = { 0.0f, 0.0f, -1.0f };
+
+		float view[16];
+		bx::mtxLookAt( view, eye, at );
+		float ortho[16];
+		bx::mtxOrtho(
+			ortho
+			, 0.0f
+			, context->width
+			, context->height
+			, 0.0f
+			, 0.0f
+			, 100.0f
+			, 0.0f
+			, caps->homogeneousDepth
+		);
+		bgfx::setViewTransform( txtView, view, ortho );
+		bgfx::setViewRect( txtView, 0, 0, uint16_t( context->width ), uint16_t( context->height ) );
+		bgfx::setViewClear( txtView, BGFX_CLEAR_NONE );
+		bgfx::setViewFrameBuffer( txtView, fwRender->frameBuffer );
+		bgfx::setState( BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA );
+		textMan.submitTextBuffer( bufferHandle, txtView );
+	}
+
 
 	ImGui::Render( );
 	ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
@@ -263,8 +327,8 @@ int main( int argc, char **argv )
 			fwRender->initialize( );
 		}, CMD_FL_SYSTEM, "restart renderer" );
 	}
-	idFont fnt("an" );
-	
+
+
 	common->PrintWarnings( );
 	common->ClearWarnings( "main loop" );
 #if BX_PLATFORM_EMSCRIPTEN

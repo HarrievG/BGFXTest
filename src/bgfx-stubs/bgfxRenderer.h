@@ -84,7 +84,7 @@ protected:
 		static bgfx::VertexLayout layout;
 	};
 
-	static constexpr bgfx::ViewId MAX_VIEW = 199; // imgui in bigg uses view 200
+	static constexpr bgfx::ViewId MAX_VIEW = 199; // imgui in bigg uses view 255
 
 	void setViewProjection(bgfx::ViewId view);
 	void setNormalMatrix(const idMat4& modelMat);
