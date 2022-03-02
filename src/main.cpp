@@ -58,7 +58,7 @@ void main_loop( void *data ) {
 	auto context = static_cast< bgfxContext_t * >( data );
 
 	static int cnt = 0;
-	static idFont fnt( "impact.ttf" );
+	static idFont fnt( "NotoSans-Regular.ttf" );
 	static TextBufferManager textMan = TextBufferManager( &fnt );
 	static TextBufferHandle bufferHandle = textMan.createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
 	static idStr tmpStr = "!123adadada123!";

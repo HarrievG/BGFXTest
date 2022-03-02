@@ -519,8 +519,8 @@ void TextBuffer::appendGlyph(CodePoint _codePoint, bool shadow)
 
 
 	int fontHash = idFont::GetFontHash( idFont::fontName );
-
-	const GlyphInfo* glyph = &idFont::GetUnicodeGlyphInfo(fontHash,_codePoint);//= m_fontManager->getGlyphInfo(_handle, _codePoint);
+	const GlyphInfo* glyph = &m_font->GetUnicodeGlyphInfo(fontHash,_codePoint );
+	//const GlyphInfo* glyph = &idFont::GetUnicodeGlyphInfo(fontHash,_codePoint);//= m_fontManager->getGlyphInfo(_handle, _codePoint);
 	//BX_WARN(NULL != glyph, "Glyph not found (font handle %d, code point %d)", _handle.idx, _codePoint);
 	if (NULL == glyph)
 	{
@@ -933,7 +933,7 @@ TextBufferHandle TextBufferManager::createTextBuffer(uint32_t _type, BufferType:
 	uint16_t textIdx = m_textBufferHandles.alloc();
 	BufferCache& bc = m_textBuffers[textIdx];
 
-	bc.textBuffer = new TextBuffer(nullptr	);
+	bc.textBuffer = new TextBuffer( m_font );
 	bc.fontType = _type;
 	bc.bufferType = _bufferType;
 	bc.indexBufferHandleIdx = bgfx::kInvalidHandle;

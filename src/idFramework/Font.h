@@ -106,7 +106,7 @@ public:
 	float GetGlyphWidth( float scale, uint32 idx ) const;
 	void GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphInfo ) const;
 	const Atlas *GetAtlas( ) const 	{ return atlas;}
-
+	GlyphInfo & GetUnicodeGlyphInfo(int fontHash, unsigned int code);
 private:	
 	static idFont * RemapFont( const char * baseName );
 
@@ -163,23 +163,21 @@ private:
 	static ::fontInfo_t		*useFont;
 	
 	static idStr			fontLang;
-	static Atlas			*atlas;
-
+	Atlas					*atlas;
+	idList<unsigned long>	unicodePoints;
+	idList<GlyphInfo>		glyphInfos;
 public:
 	static idStr			fontName;
-	static GlyphInfo blackGlyph;
-	static inline int GetFontHash(const char * name);
-	static FontInfo & GetFontInfo(int fontHash, bool create = false );
+	static GlyphInfo		blackGlyph;
+	static inline int		GetFontHash(const char * name);
+	static FontInfo &		GetFontInfo(int fontHash, bool create = false );
 	static idList<FontInfo> fontInfos;
 	static idHashIndex		fontInfoIndices;
 
-	static GlyphInfo & GetUnicodeGlyphInfo(int fontHash, unsigned int code);
-	static GlyphInfo & GetGlyphInfo(int fontHash, unsigned int charIndex, int * newIndex = nullptr );
-	static idList<GlyphInfo> glyphInfos;
 	static idHashIndex		glyphInfoIndices;
 	static idHashTable<GlyphInfo>	glyphInfoIndicesx;
 	//static unsigned int & GetGlyphIndex( int fontHash, unsigned long code, bool create = false);
-	static idList<unsigned long> unicodePoints;
+	
 	static idList<unsigned int> charIndices;
 	static idHashIndex		unicodePointIndices;
 };
