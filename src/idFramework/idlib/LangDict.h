@@ -60,7 +60,7 @@ public:
 	void					Clear( void );
 	bool					Load( const char *fileName, bool clear = true );
 	bool					Load( const byte * buffer, const int bufferLen, const char * name );
-	void					Save( const char *fileName );
+	bool					Save( const char *fileName );
 
 	const char *			AddString( const char *str );
 	const char *			GetString( const char *str ) const;

@@ -52,13 +52,17 @@ public:
 	virtual void			Error( const char *fmt, ... );
 	virtual void			FatalError( const char *fmt, ... );
 	virtual const idLangDict *GetLanguageDict( ) { return NULL; }
-	virtual const char *	KeysFromBinding( const char *bind ) { return NULL; }
-	virtual const char *	BindingFromKey( const char *key ) { return NULL; }
+
+	virtual const char *	KeysFromBinding( const char *bind );
+	virtual const char *	BindingFromKey( const char *key );
+
 	virtual int				ButtonState( int key ) { return 0; }
 	virtual int				KeyState( int key ) { return 0; }
 	virtual bool			SetCallback( CallbackType cbt, FunctionPointer cb, void *userArg ) { return false; }
 	virtual bool			GetAdditionalFunction( FunctionType ft, FunctionPointer *out_fnptr, void **out_userArg ) { return false; }
 
+	void					idCommonLocal::InitLanguageDict();
+	void					FilterLangList( idStrList* list, idStr lang );
 #define		MAX_CONSOLE_LINES	32
 	int			com_numConsoleLines;
 	idCmdArgs	com_consoleLines[MAX_CONSOLE_LINES];

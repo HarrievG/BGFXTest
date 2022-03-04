@@ -2,22 +2,30 @@
 #include "idFramework/Common.h"
 
 idCVar bgfx_verbose( "bgfx_verbose", "1",  CVAR_RENDERER | CVAR_INTEGER, "0 = no output, 1 = message and warnings only, 2 = warnings only, 3 = messages, warnings and location, ",0,3, idCmdSystem::ArgCompletion_Integer<0, 3> );
-idCVar bgfx_verbose_cache ( "bgfx_verbose_cache", "1",  CVAR_RENDERER | CVAR_INTEGER,"0 = no output, 1 = reads and writes, 2 = reads only, 3 = writes only ",0,3, idCmdSystem::ArgCompletion_Integer<0, 3> );
+idCVar bgfx_nonFatal( "bgfx_nonFatal", "0",  CVAR_RENDERER | CVAR_INTEGER, "1 = turn into debug warning and keep running, 0 = throw fatal error, ",0,2, idCmdSystem::ArgCompletion_Integer<0, 3> );
 //https://github.com/bkaradzic/bgfx/blob/master/examples/07-callback/callback.cpp
 namespace bgfx {
 struct CallbackStub : public CallbackI 	{
 	virtual ~CallbackStub( ) 		{ 		}
 
 	virtual void fatal( const char *_filePath, uint16_t _line, Fatal::Enum _code, const char *_str ) override {
+
+		__debugbreak();
 		switch( bgfx_verbose.GetInteger() ) {
 			case 0: // always show fatal errors.
 			default:
 			case 1:
 			case 2:
-				common->FatalError( "[BGFX] FATAL 0x%08x: %s",_code,_str);
+				if( bgfx_nonFatal.GetInteger() )
+					common->FatalError( "[BGFX] FATAL 0x%08x: %s",_code,_str);
+				else
+					common->DWarning( "[BGFX] FATAL 0x%08x: %s",_code,_str);
 				break;
 			case 3:
-				common->FatalError( "[BGFX] %s,%i, FATAL 0x%08x: %s\n", _filePath, _line, _code, _str );
+				if( bgfx_nonFatal.GetInteger() )
+					common->FatalError( "[BGFX] %s,%i, FATAL 0x%08x: %s\n", _filePath, _line, _code, _str );
+				else
+					common->DWarning( "[BGFX] %s,%i, FATAL 0x%08x: %s\n", _filePath, _line, _code, _str );
 				break;
 		}
 	}
@@ -25,16 +33,21 @@ struct CallbackStub : public CallbackI 	{
 	virtual void traceVargs( const char *_filePath, uint16_t _line, const char *_format, va_list _argList ) override {
 		bool warning = false;
 
+		if (!bgfx_verbose.GetInteger( ))
+			return;
+
+		char msg[4096];
+		idStr::vsnPrintf( msg, 4096, _format, _argList );
+
 		if (!common->IsInitialized())
 		{
-			char msg[4096];
-			idStr::vsnPrintf( msg, 4096, _format, _argList );
+
 			Sys_Printf( msg );
 			return;
 		}
 		const static idStr wrnStr( "WARN" );
-		if (idStr( _format ).Length() >= wrnStr.Length())
-			warning = idStr( _format,5,9 ).FindText( _format, wrnStr) != -1;
+		if ( strlen( msg ) >= wrnStr.Length())
+			warning = idStr::FindText(msg,wrnStr) != -1;
 
 
 		switch ( bgfx_verbose.GetInteger( ) ) {

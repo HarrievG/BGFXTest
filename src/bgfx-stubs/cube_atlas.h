@@ -6,6 +6,9 @@
 #ifndef CUBE_ATLAS_H_HEADER_GUARD
 #define CUBE_ATLAS_H_HEADER_GUARD
 
+ // this is the minimum size to be able to load 3000 glyphs at 24 pts
+const int ATLAS_DEFAULT			= 512 + 128; 
+
 /// Inspired from texture-atlas from freetype-gl (http://code.google.com/p/freetype-gl/)
 /// by Nicolas Rougier (Nicolas.Rougier@inria.fr)
 /// The actual implementation is based on the article by Jukka Jylänki : "A
@@ -56,7 +59,7 @@ public:
 	/// create an empty dynamic atlas (region can be updated and added)
 	/// @param textureSize an atlas creates a texture cube of 6 faces with size equal to (textureSize*textureSize * sizeof(RGBA) )
 	/// @param maxRegionCount maximum number of region allowed in the atlas
-	Atlas(uint16_t _textureSize, uint16_t _maxRegionsCount = 4096);
+	Atlas(uint16_t _textureSize = ATLAS_DEFAULT, uint16_t _maxRegionsCount = 4096);
 
 	/// initialize a static atlas with serialized data	(region can be updated but not added)
 	/// @param textureSize an atlas creates a texture cube of 6 faces with size equal to (textureSize*textureSize * sizeof(RGBA) )
@@ -133,6 +136,8 @@ public:
 	{
 		return m_textureBuffer;
 	}
+
+	float getTotalRegionUsage( );
 
 private:
 	struct PackedLayer;

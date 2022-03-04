@@ -50,6 +50,7 @@ const int GLYPH_CHARSTART		= 32;
 const int GLYPH_CHAREND			= 127;
 const int GLYPHS_PER_FONT		= GLYPH_END - GLYPH_START + 1;
 
+
 typedef struct {
 	int					height;			// number of scan lines
 	int					top;			// top of glyph in buffer
@@ -86,34 +87,36 @@ typedef struct {
 	int					maxHeightLarge;
 	int					maxWidthLarge;
 	char				name[64];
-} fontInfoEx_t;
+} fontInfoExas_t;
 
 class idFont {
 public:
 	static void InitFreetype();
-	static void RegisterFont( const char *fontName, fontInfoEx_t &font  );
-	idFont( const char * n );
-	~idFont();
+	static idFont * RegisterFont( const char *fontName );
 
+	idFont( ):alias(nullptr),atlas(nullptr){};
+	~idFont();
+	
 	void Touch();
 
-	const char * GetName() const { return name; }
-
+	const char * GetName() const {return (alias != nullptr) ? alias->GetName() : name; }
+	void setName(const char * _name ) { name = _name; }
 	float GetLineHeight( float scale ) const;
 	float GetAscender( float scale ) const;
 	float GetMaxCharWidth( float scale ) const;
 
 	float GetGlyphWidth( float scale, uint32 idx ) const;
 	void GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphInfo ) const;
-	const Atlas *GetAtlas( ) const 	{ return atlas;}
+	const Atlas *GetAtlas( ) const 	{ return (alias != nullptr) ? alias->GetAtlas() : atlas; }
 	GlyphInfo & GetUnicodeGlyphInfo(int fontHash, unsigned int code);
-private:	
+private:
+	void Init(const char * n);
 	static idFont * RemapFont( const char * baseName );
 
 	int	GetGlyphIndex( uint32 idx ) const;
 
 	bool LoadFont();
-	void RenderFont();
+	bool RenderFont();
 
 	struct glyphInfo_t {
 		byte	width;	// width of glyph in pixels
@@ -143,43 +146,32 @@ private:
 
 		// As an optimization, provide a direct mapping for the ascii character set
 		char		ascii[128];
-
-		const idMaterial *	material;
 	};
 
 	// base name of the font (minus "fonts/" and ".dat")
-	idStr			name;
+	idStr					name;
 
 	// Fonts can be aliases to other fonts
-	idFont * alias;
+	idFont *				alias;
 
 	// If the font is NOT an alias, this is where the font data is located
 	idFont::fontInfo_t * fontInfo;
-
+	int				fontInfoIndex;
 
 	//general interface
-	static idList<fontInfoEx_t> fonts;
-	static fontInfoEx_t		*activeFont;
-	static ::fontInfo_t		*useFont;
 	
 	static idStr			fontLang;
 	Atlas					*atlas;
 	idList<unsigned long>	unicodePoints;
 	idList<GlyphInfo>		glyphInfos;
 public:
-	static idStr			fontName;
 	static GlyphInfo		blackGlyph;
 	static inline int		GetFontHash(const char * name);
 	static FontInfo &		GetFontInfo(int fontHash, bool create = false );
 	static idList<FontInfo> fontInfos;
 	static idHashIndex		fontInfoIndices;
-
-	static idHashIndex		glyphInfoIndices;
-	static idHashTable<GlyphInfo>	glyphInfoIndicesx;
-	//static unsigned int & GetGlyphIndex( int fontHash, unsigned long code, bool create = false);
-	
-	static idList<unsigned int> charIndices;
-	static idHashIndex		unicodePointIndices;
+	static idList<idFont*>	fonts;
+	static idHashIndex		fontIndices;
 };
 
 

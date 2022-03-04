@@ -34,7 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 idLangDict	idLocalization::languageDict;
 
 idCVar lang_maskLocalizedStrings( "lang_maskLocalizedStrings", "0", CVAR_BOOL, "Masks all localized strings to help debugging.  When set will replace strings with an equal length of W's and ending in an X.  Note: The masking occurs at string table load time." );
-
+idCVar lang_warn_invalid_key( "lang_warn_invalid_key", "0", CVAR_BOOL, "" );
 /*
 ========================
 idLocalization::ClearDictionary
@@ -328,27 +328,35 @@ bool idLangDict::Load( const byte * buffer, const int bufferLen, const char *nam
 }
 
 /*
-============
+========================
 idLangDict::Save
-============
+========================
 */
-void idLangDict::Save( const char *fileName ) {
-	idFile *outFile = idLib::fileSystem->OpenFileWrite( fileName );
-	outFile->WriteFloatString( "// string table\n// english\n//\n\n{\n" );
+bool idLangDict::Save( const char * fileName ) {
+	idFile * outFile = fileSystem->OpenFileWrite( fileName );
+	if ( outFile == NULL ) {
+		idLib::Warning( "Error saving: %s", fileName );
+		return false;
+	}
+	byte bof[3] = { 0xEF, 0xBB, 0xBF };
+	outFile->Write( bof, 3 );
+	outFile->WriteFloatString( "// string table\n//\n\n{\n" );
 	for ( int j = 0; j < args.Num(); j++ ) {
-		outFile->WriteFloatString( "\t\"%s\"\t\"", args[j].key.c_str() );
-		int l = args[j].value.Length();
-		char slash = '\\';
-		char tab = 't';
-		char nl = 'n';
-		for ( int k = 0; k < l; k++ ) {
-			char ch = args[j].value[k];
+		const idLangKeyValue & kvp = args[j];
+		if ( kvp.value == NULL ) {
+			continue;
+		}
+		outFile->WriteFloatString( "\t\"%s\"\t\"", kvp.key );
+		for ( int k = 0; kvp.value[k] != 0; k++ ) {
+			char ch = kvp.value[k];
 			if ( ch == '\t' ) {
-				outFile->Write( &slash, 1 );
-				outFile->Write( &tab, 1 );
+				outFile->Write( "\\t", 2 );
 			} else if ( ch == '\n' || ch == '\r' ) {
-				outFile->Write( &slash, 1 );
-				outFile->Write( &nl, 1 );
+				outFile->Write( "\\n", 2 );
+			} else if ( ch == '"' ) {
+				outFile->Write( "\\\"", 2 );
+			} else if ( ch == '\\' ) {
+				outFile->Write( "\\\\", 2 );
 			} else {
 				outFile->Write( &ch, 1 );
 			}
@@ -356,8 +364,10 @@ void idLangDict::Save( const char *fileName ) {
 		outFile->WriteFloatString( "\"\n" );
 	}
 	outFile->WriteFloatString( "\n}\n" );
-	idLib::fileSystem->CloseFile( outFile );
+	delete outFile;
+	return true;
 }
+
 
 
 /*
@@ -529,7 +539,7 @@ void idLangDict::AddKeyVal( const char *key, const char *val ) {
 	idLangKeyValue kv;
 	kv.key = key;
 	kv.value = val;
-	assert( kv.key.Cmpn( STRTABLE_ID, STRTABLE_ID_LENGTH ) == 0 );
+	//assert( kv.key.Cmpn( STRTABLE_ID, STRTABLE_ID_LENGTH ) == 0 );
 	hash.Add( GetHashKey( kv.key ), args.Append( kv ) );
 }
 
@@ -607,10 +617,12 @@ idLangDict::GetHashKey
 */
 int idLangDict::GetHashKey( const char *str ) const {
 	int hashKey = 0;
+
+	return idStr::IHash(str);
 	// DG: Replace assertion for invalid entries with a warning that's shown only once
 	//     (for D3LE mod that seems to have lots of entries like #str_adil_exis_pda_01_audio_info)
 	const char* strbk = str;
-	static bool warnedAboutInvalidKey = false;
+	static bool warnedAboutInvalidKey = !lang_warn_invalid_key.GetBool();
 	for ( str += STRTABLE_ID_LENGTH; str[0] != '\0'; str++ ) {
 		// assert( str[0] >= '0' && str[0] <= '9' );
 		if(!warnedAboutInvalidKey && (str[0] < '0' || str[0] > '9')) {

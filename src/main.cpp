@@ -58,35 +58,41 @@ void main_loop( void *data ) {
 	auto context = static_cast< bgfxContext_t * >( data );
 
 	static int cnt = 0;
-	static idFont fnt( "NotoSans-Regular.ttf" );
-	static TextBufferManager textMan = TextBufferManager( &fnt );
-	static TextBufferHandle bufferHandle = textMan.createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
+	static idFont *fnt = nullptr;
+	static bool initFont = true;
+	static TextBufferManager *textMan;
+	static TextBufferHandle bufferHandle;
+	if (!fnt)
+	{
+		fnt = idFont::RegisterFont("NotoSans-Regular.ttf");
+		textMan = new TextBufferManager( fnt );
+		bufferHandle = textMan->createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
+	}
 	static idStr tmpStr = "!123adadada123!";
-	textMan.clearTextBuffer(bufferHandle);
-	textMan.setPenPosition(bufferHandle,10,100);
-	textMan.setTextColor(bufferHandle,0xFF0000FF);
+	textMan->clearTextBuffer(bufferHandle);
+	textMan->setPenPosition(bufferHandle,10,100);
+	textMan->setTextColor(bufferHandle,0xFF0000FF);
 
-	
-	// Setup style colors.
-	textMan.setStyle( bufferHandle, STYLE_BACKGROUND );
-	textMan.setBackgroundColor( bufferHandle, 0x00FF00FF );
-	textMan.setUnderlineColor( bufferHandle, 0xff2222ff );
-	textMan.setOverlineColor( bufferHandle, 0x2222ffff );
-	textMan.setStrikeThroughColor( bufferHandle, 0x000000ff );
+	// Setu-> style colors.
+	textMan->setStyle( bufferHandle, STYLE_BACKGROUND );
+	textMan->setBackgroundColor( bufferHandle, 0x00FF00FF );
+	textMan->setUnderlineColor( bufferHandle, 0xff2222ff );
+	textMan->setOverlineColor( bufferHandle, 0x2222ffff );
+	textMan->setStrikeThroughColor( bufferHandle, 0x000000ff );
 
-	textMan.appendText( bufferHandle, tmpStr.c_str( ), tmpStr.c_str( ) + tmpStr.Size( ) );
+	textMan->appendText( bufferHandle, tmpStr.c_str( ), tmpStr.c_str( ) + tmpStr.Size( ) );
 
 
 	//// Background + strike-through.
-	textMan.setStyle( bufferHandle, STYLE_BACKGROUND | STYLE_STRIKE_THROUGH | STYLE_UNDERLINE | STYLE_OVERLINE );
-	textMan.appendText( bufferHandle, L"dog\n" );
+	textMan->setStyle( bufferHandle, STYLE_BACKGROUND | STYLE_STRIKE_THROUGH | STYLE_UNDERLINE | STYLE_OVERLINE );
+	textMan->appendText( bufferHandle, L"dog\n" );
 
-	textMan.setPenPosition(bufferHandle,0,0);
-	textMan.appendText( bufferHandle, L"." );
-	textMan.setPenPosition( bufferHandle, 50, 50 );
-	textMan.appendText( bufferHandle, L"." );
-	textMan.setPenPosition( bufferHandle, 500, 500 );
-	textMan.appendText( bufferHandle, L"." );
+	textMan->setPenPosition( bufferHandle, 0, 0 );
+	textMan->appendText( bufferHandle, L"." );
+	textMan->setPenPosition( bufferHandle, 50, 50 );
+	textMan->appendText( bufferHandle, L"." );
+	textMan->setPenPosition( bufferHandle, 500, 500 );
+	textMan->appendText( bufferHandle, L"." );
 	ImGui_Implbgfx_NewFrame( );
 	ImGui_ImplSDL2_NewFrame( context->window );
 	common->Frame();
@@ -106,7 +112,6 @@ void main_loop( void *data ) {
 		bgfxRender( context );
 	else
 		fwRender->render( com_frameTime );
-
 
 
 	const bgfx::Caps *caps = bgfx::getCaps( );
@@ -136,7 +141,7 @@ void main_loop( void *data ) {
 		bgfx::setViewClear( txtView, BGFX_CLEAR_NONE );
 		bgfx::setViewFrameBuffer( txtView, fwRender->frameBuffer );
 		bgfx::setState( BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA );
-		textMan.submitTextBuffer( bufferHandle, txtView );
+		textMan->submitTextBuffer( bufferHandle, txtView );
 	}
 
 
@@ -171,14 +176,14 @@ int main( int argc, char **argv )
 	idLib::fileSystem = fileSystem;
 	idLib::sys = sys;
 
-	idLib::Init( );
-	idCVar::RegisterStaticVars( );
-	cvarSystem->Init( );
-	cmdSystem->Init( );
-	cmdSystem->BufferCommandText(CMD_EXEC_APPEND,"exec default.cfg");
+	//idLib::Init( );
+	//idCVar::RegisterStaticVars( );
+	//cvarSystem->Init( );
+	//cmdSystem->Init( );
+	//cmdSystem->BufferCommandText(CMD_EXEC_APPEND,"exec default.cfg");
 	common->Init( argc, argv );
-	fileSystem->Init( );
-	eventLoop->Init();
+	//fileSystem->Init( );
+	//eventLoop->Init();
 	if ( com_editing.GetBool() )
 		sceneEditor->Init( );
 

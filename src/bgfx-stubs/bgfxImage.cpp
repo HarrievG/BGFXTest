@@ -103,7 +103,8 @@ void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle * targetHa
 
 int bgfxImageLoadThread( void *prunning ) {
 	bool *running = ( bool * ) prunning;
-
+	//this start really early, and the loading thread should actually be starting after intialization and the first drawn frame.
+	//but for now, lets just wait a bit
 	while ( ( *running ) ) {
 		SDL_SemWait(loadSem);
 		imageLoad_t *next = GetNextImage( );

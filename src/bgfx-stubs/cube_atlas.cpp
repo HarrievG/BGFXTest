@@ -429,6 +429,15 @@ void Atlas::packFaceLayerUV(uint32_t _idx, uint8_t* _vertexBuffer, uint32_t _off
 	packUV(m_layers[_idx].faceRegion, _vertexBuffer, _offset, _stride);
 }
 
+//returns the total amount of region used in percentage [1..100]
+float Atlas::getTotalRegionUsage()
+{
+	float ratio = 0;
+	for ( int ii = 0; ii < 6; ++ii ) 
+		ratio += m_layers[ii].packer.getUsageRatio();
+	return (ratio / 6 ) * 100;
+}
+
 void Atlas::packUV(uint16_t _regionHandle, uint8_t* _vertexBuffer, uint32_t _offset, uint32_t _stride) const
 {
 	const AtlasRegion& region = m_regions[_regionHandle];

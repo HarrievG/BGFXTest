@@ -4,6 +4,8 @@
 #include "EventLoop.h"
 #include <idFramework/KeyInput.h>
 #include "../Font.h"
+#include "../FileSystem.h"
+#include "../idlib/LangDict.h"
 
 #define	MAX_PRINT_MSG_SIZE	4096
 #define MAX_WARNING_LIST	256
@@ -173,6 +175,89 @@ void idCommonLocal::VPrintf( const char *fmt, va_list args ) {
 //
 //#endif
 }
+/*
+===============
+idCommonLocal::FilterLangList
+===============
+*/
+void idCommonLocal::FilterLangList( idStrList* list, idStr lang ) {
+
+	idStr temp;
+	for( int i = 0; i < list->Num(); i++ ) {
+		temp = (*list)[i];
+		temp = temp.Right(temp.Length()-strlen("strings/"));
+		temp = temp.Left(lang.Length());
+		if(idStr::Icmp(temp, lang) != 0) {
+			list->RemoveIndex(i);
+			i--;
+		}
+	}
+}
+
+/*
+===============
+idCommonLocal::InitLanguageDict
+===============
+*/
+extern idCVar sys_lang;
+void idCommonLocal::InitLanguageDict() {
+	idStr fileName;
+
+	//D3XP: Instead of just loading a single lang file for each language
+	//we are going to load all files that begin with the language name
+	//similar to the way pak files work. So you can place english001.lang
+	//to add new strings to the english language dictionary
+	idFileList*	langFiles;
+	langFiles =  fileSystem->ListFilesTree( "strings", ".lang", true );
+	
+	idStrList langList = langFiles->GetList();
+
+	// Loop through the list and filter
+	idStrList currentLangList = langList;
+	FilterLangList( &currentLangList, sys_lang.GetString() );
+
+	if ( currentLangList.Num() == 0 ) {
+		// reset to english and try to load again
+		sys_lang.SetString( ID_LANG_ENGLISH );
+		currentLangList = langList;
+		FilterLangList( &currentLangList, sys_lang.GetString() );
+	}
+
+	idLocalization::ClearDictionary();
+	for( int i = 0; i < currentLangList.Num(); i++ ) {
+		//common->DPrintf("idLocalization::LoadDictionary %s\n", currentLangList[i].c_str());
+		const byte * buffer = NULL;
+		int len = fileSystem->ReadFile( currentLangList[i], (void**)&buffer );
+		if ( len <= 0 ) {
+			assert( false && "couldn't read the language dict file" );
+			break;
+		}
+		idLocalization::LoadDictionary( buffer, len, currentLangList[i] );
+		fileSystem->FreeFile( (void *)buffer );
+	}
+
+	fileSystem->FreeFileList(langFiles);
+}
+
+/*
+===============
+KeysFromBinding()
+Returns the key bound to the command
+===============
+*/
+const char* idCommonLocal::KeysFromBinding( const char *bind ) {
+	return idKeyInput::KeysFromBinding( bind );
+}
+
+/*
+===============
+BindingFromKey()
+Returns the binding bound to key
+===============
+*/
+const char* idCommonLocal::BindingFromKey( const char *key ) {
+	return idKeyInput::BindingFromKey( key );
+}
 
 inline void idCommonLocal::Init( int argc, char **argv ) {
 	// in case UINTPTR_MAX isn't defined (or wrong), do a runtime check at startup
@@ -180,6 +265,15 @@ inline void idCommonLocal::Init( int argc, char **argv ) {
 		common->FatalError( "Something went wrong in your build: CMake assumed that sizeof(void*) == %d but in reality it's %d!\n",
 			( int ) ID_SIZEOFPTR, ( int ) sizeof( void * ) );
 	}
+
+	idLib::Init( );
+	idCVar::RegisterStaticVars( );
+	cvarSystem->Init( );
+	cmdSystem->Init( );
+	cmdSystem->BufferCommandText( CMD_EXEC_APPEND, "exec default.cfg" );
+	//common->Init( argc, argv );
+
+
 
 	if ( SDL_Init( SDL_INIT_TIMER | SDL_INIT_VIDEO | SDL_INIT_JOYSTICK ) < 0 ) {
 		common->FatalError( "SDL could not initialize. SDL_Error: %s\n", SDL_GetError( ) );
@@ -198,7 +292,9 @@ inline void idCommonLocal::Init( int argc, char **argv ) {
 	// get architecture info
 	Sys_Init( );
 	idFont::InitFreetype();
-
+	fileSystem->Init( );
+	eventLoop->Init( );
+	InitLanguageDict();
 	com_fullyInitialized = true;
 	static auto * thisPtr = this;
 	async_timer = SDL_AddTimer( USERCMD_MSEC, []( unsigned int interval, void * usr)

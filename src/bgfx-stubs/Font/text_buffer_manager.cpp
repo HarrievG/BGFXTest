@@ -368,13 +368,9 @@ void TextBuffer::appendText(const char* _string, const char* _end)
 	}
 	BX_ASSERT(_end >= _string, "");
 
+	int fontHash = idFont::GetFontHash( m_font->GetName() );
+	FontInfo &font = idFont::GetFontInfo( fontHash );
 
-	int fontHash = idFont::GetFontHash( idFont::fontName);//"fonts/open-sans.regular.ttf" );
-	FontInfo &font = idFont::GetFontInfo( fontHash );//  = registeredFonts[registeredFontCount++];
-
-	//const FontInfo& font = m_font->
-	//FontInfo font;// = m_fontManager->getFontInfo(_fontHandle);
-	//font.fontType = 0;
 	if (font.fontType & FONT_TYPE_MASK_DISTANCE_DROP_SHADOW)
 	{
 		float savePenX = m_penX;
@@ -427,8 +423,9 @@ void TextBuffer::appendText(const wchar_t* _string, const wchar_t* _end)
 	}
 	BX_ASSERT(_end >= _string, "");
 
-	int fontHash = idFont::GetFontHash( idFont::fontName);
-	FontInfo &font = idFont::GetFontInfo( fontHash );//  = registeredFonts[registeredFontCount++];
+	int fontHash = idFont::GetFontHash( m_font->GetName( ) );
+	FontInfo &font = idFont::GetFontInfo( fontHash );
+
 	if (font.fontType & FONT_TYPE_MASK_DISTANCE_DROP_SHADOW)
 	{
 		float savePenX = m_penX;
@@ -518,8 +515,8 @@ void TextBuffer::appendGlyph(CodePoint _codePoint, bool shadow)
 	}
 
 
-	int fontHash = idFont::GetFontHash( idFont::fontName );
-	const GlyphInfo* glyph = &m_font->GetUnicodeGlyphInfo(fontHash,_codePoint );
+	int fontHash = idFont::GetFontHash( m_font->GetName( ) );
+	const GlyphInfo *glyph = &m_font->GetUnicodeGlyphInfo( fontHash, _codePoint );
 	//const GlyphInfo* glyph = &idFont::GetUnicodeGlyphInfo(fontHash,_codePoint);//= m_fontManager->getGlyphInfo(_handle, _codePoint);
 	//BX_WARN(NULL != glyph, "Glyph not found (font handle %d, code point %d)", _handle.idx, _codePoint);
 	if (NULL == glyph)

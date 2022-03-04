@@ -390,7 +390,6 @@ void bgfxRegisterCallback( bgfxCallback callback )
 
 int bgfxRenderThread( void *prunning ) {
 	bool *running = ( bool * ) prunning;
-
 	while ( ( *running ) ) {
 		bgfx::renderFrame();
 	}

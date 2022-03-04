@@ -200,6 +200,24 @@ bool			Sys_GetPath(sysPath_t type, idStr &path);
 // returns -1 if directory was not found (the list is cleared)
 int				Sys_ListFiles( const char *directory, const char *extension, idList<class idStr> &list );
 
+
+/*
+==============================================================
+
+localization
+
+==============================================================
+*/
+
+#define ID_LANG_ENGLISH		"english"
+#define ID_LANG_FRENCH		"french"
+#define ID_LANG_ITALIAN		"italian"
+#define ID_LANG_GERMAN		"german"
+#define ID_LANG_SPANISH		"spanish"
+#define ID_LANG_JAPANESE	"japanese"
+int Sys_NumLangs( );
+const char *Sys_Lang( int idx );
+
 /*
 ==============================================================
 

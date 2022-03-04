@@ -69,6 +69,15 @@ template< class type >
 ID_INLINE type *idListNewElement( void ) {
 	return new type;
 }
+/*
+================
+idListNewElement<type,argType>
+================
+*/
+template< class type , typename argType>
+ID_INLINE type *idListNewElementA( argType arg  ) {
+	return new type(arg);
+}
 
 /*
 ================
@@ -113,6 +122,8 @@ public:
 	void			SetNum( int newnum, bool resize = true );			// set number of elements in list and resize to exactly this number if necessary
 	void			AssureSize( int newSize);							// assure list has given number of elements, but leave them uninitialized
 	void			AssureSize( int newSize, const type &initValue );	// assure list has given number of elements and initialize any new elements
+	void			AssureSizeAlloc( int newSize, new_t *allocator );	// assure the pointer list has the given number of elements and allocate any new elements
+	template <class argType>
 	void			AssureSizeAlloc( int newSize, new_t *allocator );	// assure the pointer list has the given number of elements and allocate any new elements
 
 	type *			Ptr( void );										// returns a pointer to the list

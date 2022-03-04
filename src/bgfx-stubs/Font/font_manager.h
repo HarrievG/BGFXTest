@@ -47,6 +47,8 @@ struct FontInfo
 	float underlineThickness;
 	/// The position of the underline relatively to the baseline.
 	float underlinePosition;
+	/// The maximum height for glyps in the font;
+	float maxHeight;
 
 	/// Scale to apply to glyph data.
 	float scale;

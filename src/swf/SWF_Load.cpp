@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../idFramework/FileSystem.h"
 #include "SWF_Types.h"
 #include "SWF.h"
+#include "../idFramework/Font.h"
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
@@ -245,8 +246,7 @@ bool idSWF::LoadBinary( const char * bfilename, ID_TIME_T sourceTime ) {
 				idSWFFont * font = dictionary[i].font;
 				idStr fontName;
 				f->ReadString( fontName );
-				common->Warning("MISSING FONT ID");
-				//font->fontID = renderSystem->RegisterFont( fontName );
+				font->fontID = idFont::RegisterFont( fontName );
 				f->ReadBig( font->ascent );
 				f->ReadBig( font->descent );
 				f->ReadBig( font->leading );

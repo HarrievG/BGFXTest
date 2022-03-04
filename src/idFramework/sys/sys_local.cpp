@@ -32,12 +32,26 @@ If you have questions concerning this license or the applicable additional terms
 #define BUILD_LIBRARY_SUFFIX
 #include "sys/sys_local.h"
 
-const char * sysLanguageNames[] = {
-	"english", "spanish", "italian", "german", "french", "russian",
-	"polish", "korean", "japanese", "chinese", NULL
+const char *sysLanguageNames[] = {
+	ID_LANG_ENGLISH, ID_LANG_FRENCH, ID_LANG_ITALIAN, ID_LANG_GERMAN, ID_LANG_SPANISH, ID_LANG_JAPANESE, NULL
 };
+const int numLanguages = sizeof( sysLanguageNames ) / sizeof sysLanguageNames[ 0 ] - 1;
 
 idCVar sys_lang( "sys_lang", "english", CVAR_SYSTEM | CVAR_ARCHIVE,  "", sysLanguageNames, idCmdSystem::ArgCompletion_String<sysLanguageNames> );
+
+// return number of supported languages
+int Sys_NumLangs( ) {
+	return numLanguages;
+}
+
+// get language name by index
+const char *Sys_Lang( int idx ) {
+	if ( idx >= 0 && idx < numLanguages ) {
+		return sysLanguageNames[idx];
+	}
+	return "";
+}
+
 
 idSysLocal			sysLocal;
 idSys *				sys = &sysLocal;

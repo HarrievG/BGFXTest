@@ -1103,7 +1103,7 @@ int idFileSystemLocal::ReadFile( const char *relativePath, void **buffer, ID_TIM
 
 	// if we are journalling and it is a config file, write it to the journal file
 	if ( isConfig && eventLoop && eventLoop->JournalLevel() == 1 ) {
-		common->DPrintf( "Writing %s to journal file.\n", relativePath );
+		common->DPrintf( "FS: Writing %s to journal file.\n", relativePath );
 		eventLoop->com_journalDataFile->Write( &len, sizeof( len ) );
 		eventLoop->com_journalDataFile->Write( buf, len );
 		eventLoop->com_journalDataFile->Flush();
@@ -1149,7 +1149,7 @@ int idFileSystemLocal::WriteFile( const char *relativePath, const void *buffer, 
 
 	f = idFileSystemLocal::OpenFileWrite( relativePath, basePath );
 	if ( !f ) {
-		common->Printf( "Failed to open %s\n", relativePath );
+		common->Printf( "idFileSystemLocal: Failed to open %s\n", relativePath );
 		return -1;
 	}
 

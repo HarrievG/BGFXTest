@@ -121,7 +121,7 @@ bgfx::AttribType::Enum GetComponentTypeEnum( int id  , uint * sizeInBytes = null
 idList<gltfData *>	gltfData::dataList;
 idHashIndex			gltfData::fileDataHash;
 
-idCVar gltf_parseVerbose( "gltf_parseVerbose", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "print gltf json data while parsing" );
+idCVar gltf_parseVerbose( "gltf_parseVerbose", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "print gltf json data while parsing" );
 
 void gltfPropertyArray::Iterator::operator ++( ) {
 
@@ -1230,13 +1230,15 @@ gltfProperty GLTF_Parser::ParseProp( idToken & token )
 			return prop;
 		}
 		skipping = true;
-		common->DPrintf( "Searching for buffer tag. Skipping %s.", token.c_str());
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->DPrintf( "Searching for buffer tag. Skipping %s.", token.c_str());
 	}else 
 	{
 		if (( prop == BUFFERS && buffersDone)  || (prop == BUFFERVIEWS && bufferViewsDone ))
 		{
 			skipping = true;
-			common->DPrintf( "Skipping %s , already done.", token.c_str( ) );
+			if ( gltf_parseVerbose.GetBool( ) )
+				common->DPrintf( "Skipping %s , already done.", token.c_str( ) );
 		}
 	}
 
@@ -1437,7 +1439,8 @@ bool GLTF_Parser::Parse( ) {
 		if ( token.type != TT_STRING )
 			common->FatalError( "Expected an \"string\" " );
 
-		common->Printf( token.c_str( ) );
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( token.c_str( ) );
 		gltfProperty prop = ParseProp( token );
 
 		if (( prop == BUFFERS && !buffersDone ))
@@ -1454,7 +1457,8 @@ bool GLTF_Parser::Parse( ) {
 			bufferViewsDone = true;
 			continue;
 		}
-		common->Printf( "\n" );
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "\n" );
 		parsing = parser.PeekTokenString( "," );
 		if ( parsing )
 			parser.ExpectTokenString( "," );

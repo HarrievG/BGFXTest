@@ -43,7 +43,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "Common.h"
 #include "idlib/lib.h"
 
-const char * DEFAULT_FONT = "Arial_Narrow";
+const char * DEFAULT_FONT = "open-sans-regular.ttf";
+idCVar font_glyph_ondemand_render( "font_glyph_ondemand_render", "0", CVAR_ARCHIVE | CVAR_GUI| CVAR_INIT| CVAR_BOOL, " 0: All glyphs within font are created on load.\n 1 : Font glyphs are rendered to the fontatlas when needed \n" );
+
 
 static const float old_scale2 = 0.6f;
 static const float old_scale1 = 0.3f;
@@ -57,21 +59,22 @@ FT_Library ftLibrary;
 #define _CEIL(x)   (((x)+63) & -64)
 #define _TRUNC(x)  ((x) >> 6)
 
-idList<fontInfoEx_t>	idFont::fonts;
-fontInfoEx_t	*		idFont::activeFont;
-fontInfo_t		*		idFont::useFont;
-idStr					idFont::fontName;
 idStr					idFont::fontLang;
 idHashIndex				idFont::fontInfoIndices;
 idList<FontInfo>		idFont::fontInfos;
 GlyphInfo				idFont::blackGlyph;
-
+idList<idFont *>		idFont::fonts;
+idHashIndex				idFont::fontIndices;
 
 GlyphInfo &idFont::GetUnicodeGlyphInfo(int fontHash, unsigned int code )
 {
+	if (alias!=nullptr )
+		 return alias->GetUnicodeGlyphInfo(fontHash,code);
+	
 	int charIndex  = unicodePoints.FindIndex(code);
 	if ( charIndex == -1 )
 		return blackGlyph;
+
 	return glyphInfos[charIndex];
 }
 
@@ -79,7 +82,6 @@ int idFont::GetFontHash(const char * name )
 {
 	return fontInfoIndices.GenerateKey( name );
 }
-
 
 FontInfo & idFont::GetFontInfo( int fontHash, bool create)
 {
@@ -94,35 +96,14 @@ FontInfo & idFont::GetFontInfo( int fontHash, bool create)
 
 }
 
-
-//unsigned int &idFont::GetGlyphIndex( int fontHash, unsigned long code, bool create = false);
-//
-//	//int hash = glyphInfoIndices.GenerateKey( fontHash, code );
-//	//int index = glyphInfoIndices.First( hash );
-//	//if ( index == -1 ) 	{
-//	//	index = glyphInfos.Append( GlyphInfo( ) );
-//	//	glyphInfoIndices.Add( hash, index );
-//	//}
-//
-//	return charIndices[0];
-//}
-
-/*
-==============================
-Old_SelectValueForScale
-==============================
-*/
-ID_INLINE float Old_SelectValueForScale( float scale, float v0, float v1, float v2 ) {
-	return ( scale >= old_scale2 ) ? v2 : ( scale >= old_scale1 ) ? v1 : v0;
-}
-
 /*
 ==============================
 idFont::RemapFont
 ==============================
 */
 idFont * idFont::RemapFont( const char * baseName ) {
-	idStr cleanName = baseName;
+	idStr cleanName;
+	cleanName += baseName;
 
 	if ( cleanName == DEFAULT_FONT ) {
 		return NULL;
@@ -130,17 +111,17 @@ idFont * idFont::RemapFont( const char * baseName ) {
 
 	const char * remapped = idLocalization::FindString( "#font_" + cleanName );
 	if ( remapped != NULL ) {
-		//return renderSystem->RegisterFont( remapped );
+		return idFont::RegisterFont( remapped );
 	}
 
 	const char * wildcard = idLocalization::FindString( "#font_*" );
 	if ( wildcard != NULL && cleanName.Icmp( wildcard ) != 0 ) {
-		//return renderSystem->RegisterFont( wildcard );
+		return idFont::RegisterFont( wildcard );
 	}
 
 	// Note single | so both sides are always executed
 	if ( cleanName.ReplaceChar( ' ', '_' ) | cleanName.ReplaceChar( '-', '_' ) ) {
-		//return renderSystem->RegisterFont( cleanName );
+		return idFont::RegisterFont( cleanName );
 	}
 
 	return NULL;
@@ -153,97 +134,56 @@ idFont::~idFont
 */
 idFont::~idFont() {
 	delete fontInfo;
+	common->DWarning("DELETE ALL OF ME PLS");
 }
 
 void idFont::InitFreetype( ) 
 {
 		FT_Error ret = FT_Init_FreeType(&ftLibrary);
 		if (ret)
-			common->Warning("Cannot initialize freetype" );
+			common->Warning("idFont: Cannot initialize freetype" );
 
 }
 
-void idFont::RegisterFont( const char *fontName, fontInfoEx_t &font ) 
+idFont * idFont::RegisterFont( const char *fontName ) 
 {
-
+	int fontHash = GetFontHash( fontName );
+	int index = fontIndices.First( fontHash );
+	if ( index == -1 ) 	{
+		index = fonts.Num();
+		fonts.AssureSizeAlloc( fonts.Num()+1,idListNewElement<idFont>); 
+		fontIndices.Add( fontHash, index );
+		fonts[index]->Init(fontName);
+	}
+	return fonts[index];
 }
 
-/*
-==============================
-idFont::idFont
-==============================
-*/
-idFont::idFont( const char * n ) : name( n ) {
+
+void idFont::Init(const char * n)
+{
+	setName(n);
 	fontInfo = NULL;
 	alias = RemapFont( n );
 
 	if ( alias != NULL ) {
 		// Make sure we don't have a circular reference
 		for ( idFont * f = alias; f != NULL; f = f->alias ) {
-			if ( f == this ) {
+			if ( f == this  ) {
 				common->FatalError( "Font alias \"%s\" is a circular reference!", n );
 			}
 		}
+		
 		return;
 	}
 
 	if ( !LoadFont() ) {
-		if ( name.Icmp( DEFAULT_FONT ) == 0 ) {
-			common->FatalError( "Could not load default font \"%s\"", DEFAULT_FONT );
+		if ( idStr::Icmp(n,( DEFAULT_FONT )) == 0 ) {
+			common->FatalError( "idFont: Could not load default font \"%s\"", DEFAULT_FONT );
 		} else {
-			idLib::Warning( "Could not load font %s", n );
-			//alias = renderSystem->RegisterFont( DEFAULT_FONT );
+			idLib::Warning( "idFont: Could not load font %s , trying default %s", n, DEFAULT_FONT);
+			alias = RegisterFont( DEFAULT_FONT );
 		}
 	}
-}
-
-struct oldGlyphInfo_t {
-	int					height;			// number of scan lines
-	int					top;			// top of glyph in buffer
-	int					bottom;			// bottom of glyph in buffer
-	int					pitch;			// width for copying
-	int					xSkip;			// x adjustment
-	int					imageWidth;		// width of actual image
-	int					imageHeight;	// height of actual image
-	float				s;				// x offset in image where glyph starts
-	float				t;				// y offset in image where glyph starts
-	float				s2;
-	float				t2;
-	int					junk;
-	char				materialName[32];
-};
-
-/*
-==============================
-LoadOldGlyphData
-==============================
-*/
-bool LoadOldGlyphData( const char * filename, oldGlyphInfo_t glyphInfo[GLYPHS_PER_FONT] ) {
-	idFile * fd = fileSystem->OpenFileRead( filename );
-	if ( fd == NULL ) {
-		return false;
-	}
-	fd->Read( glyphInfo, GLYPHS_PER_FONT * sizeof( oldGlyphInfo_t ) );
-	for ( int i = 0; i < GLYPHS_PER_FONT; i++ ) {
-		idSwap::Little( glyphInfo[i].height );
-		idSwap::Little( glyphInfo[i].top );
-		idSwap::Little( glyphInfo[i].bottom );
-		idSwap::Little( glyphInfo[i].pitch );
-		idSwap::Little( glyphInfo[i].xSkip );
-		idSwap::Little( glyphInfo[i].imageWidth );
-		idSwap::Little( glyphInfo[i].imageHeight );
-		idSwap::Little( glyphInfo[i].s );
-		idSwap::Little( glyphInfo[i].t );
-		idSwap::Little( glyphInfo[i].s2 );
-		idSwap::Little( glyphInfo[i].t2 );
-		assert( glyphInfo[i].imageWidth == glyphInfo[i].pitch );
-		assert( glyphInfo[i].imageHeight == glyphInfo[i].height );
-		assert( glyphInfo[i].imageWidth == ( glyphInfo[i].s2 - glyphInfo[i].s ) * 256 );
-		assert( glyphInfo[i].imageHeight == ( glyphInfo[i].t2 - glyphInfo[i].t ) * 256 );
-		assert( glyphInfo[i].junk == 0 );
-	}
-	delete fd;
-	return true;
 }
 
 /*
@@ -252,10 +192,10 @@ idFont::LoadFont
 ==============================
 */
 bool idFont::LoadFont() {
-	fontName =  va( "fonts/%s", GetName() );
-	RenderFont();
+	name =  va( "fonts/%s", GetName() );
+	bool ret = RenderFont();
 	
-	return true;
+	return ret;
 }
 
 /*
@@ -264,31 +204,36 @@ idFont::GetGlyphIndex
 ==============================
 */
 int	idFont::GetGlyphIndex( uint32 idx ) const {
-	if ( idx < 128 ) {
-		return fontInfo->ascii[idx];
-	}
-	if ( fontInfo->numGlyphs == 0 ) {
-		return -1;
-	}
-	if ( fontInfo->charIndex == NULL ) {
-		return idx;
-	}
-	int len = fontInfo->numGlyphs;
-	int mid = fontInfo->numGlyphs;
-	int offset = 0;
-	while ( mid > 0 ) {
-		mid = len >> 1;
-		if ( fontInfo->charIndex[offset+mid] <= idx ) {
-			offset += mid;
-		}
-		len -= mid;
-	}
-	return ( fontInfo->charIndex[offset] == idx ) ? offset : -1;
+	
+	return unicodePoints.FindIndex( idx );
+	
+	// hvg todo
+	// 	   bring back ascii optimize
+	//if ( idx < 128 ) {
+	//	return fontInfo->ascii[idx];
+	//}
+	//if ( fontInfo->numGlyphs == 0 ) {
+	//	return -1;
+	//}
+	//if ( fontInfo->charIndex == NULL ) {
+	//	return idx;
+	//}
+	//int len = fontInfo->numGlyphs;
+	//int mid = fontInfo->numGlyphs;
+	//int offset = 0;
+	//while ( mid > 0 ) {
+	//	mid = len >> 1;
+	//	if ( fontInfo->charIndex[offset+mid] <= idx ) {
+	//		offset += mid;
+	//	}
+	//	len -= mid;
+	//}
+	//return ( fontInfo->charIndex[offset] == idx ) ? offset : -1;
 }
 
 /*
 ==============================
-idFont::GetLineHeight
+idFont::GetLineHeight 
 ==============================
 */
 float idFont::GetLineHeight( float scale ) const {
@@ -296,8 +241,9 @@ float idFont::GetLineHeight( float scale ) const {
 		return alias->GetLineHeight( scale );
 	}
 	if ( fontInfo != NULL ) {
-		return scale * Old_SelectValueForScale( scale, fontInfo->oldInfo[0].maxHeight, fontInfo->oldInfo[1].maxHeight, fontInfo->oldInfo[2].maxHeight );
+		return scale * fontInfos[fontInfoIndex].maxHeight;
 	}
+
 	return 0.0f;
 }
 
@@ -311,7 +257,7 @@ float idFont::GetAscender( float scale ) const {
 		return alias->GetAscender( scale );
 	}
 	if ( fontInfo != NULL ) {
-		return scale * fontInfo->ascender;
+		return scale *  fontInfos[fontInfoIndex].ascender;
 	}
 	return 0.0f;
 }
@@ -326,7 +272,7 @@ float idFont::GetMaxCharWidth( float scale ) const {
 		return alias->GetMaxCharWidth( scale );
 	}
 	if ( fontInfo != NULL ) {
-		return scale * Old_SelectValueForScale( scale, fontInfo->oldInfo[0].maxWidth, fontInfo->oldInfo[1].maxWidth, fontInfo->oldInfo[2].maxWidth );
+		return scale *  fontInfos[fontInfoIndex].maxAdvanceWidth;
 	}
 	return 0.0f;
 }
@@ -359,7 +305,7 @@ idFont::GetScaledGlyph
 ==============================
 */
 void idFont::GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphInfo ) const {
-	common->Warning("GetScaledGlyph WILL FAIL! fontInfo->material->GetImageWidth()" );
+	common->Warning("idFont: GetScaledGlyph WILL FAIL! fontInfo->material->GetImageWidth()" );
 	if ( alias != NULL ) {
 		return alias->GetScaledGlyph( scale, idx, glyphInfo );
 	}
@@ -382,7 +328,7 @@ void idFont::GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphI
 			glyphInfo.t1 = ( gi.t - 0.5f ) * invMaterialHeight;
 			glyphInfo.s2 = ( gi.s + gi.width + 0.5f ) * invMaterialWidth;
 			glyphInfo.t2 = ( gi.t + gi.height + 0.5f ) * invMaterialHeight;
-			glyphInfo.material = fontInfo->material;
+			//glyphInfo.material = fontInfo->material;
 			return;
 		}
 	}
@@ -404,7 +350,7 @@ void idFont::Touch() {
 	}
 }
 
-void idFont::RenderFont()
+bool idFont::RenderFont()
 {
 	FT_Face face;
 
@@ -413,34 +359,34 @@ void idFont::RenderFont()
 	int len, fontCount;
 
 	if (ftLibrary == NULL) {
-		common->Warning( "RegisterFont: FreeType not initialized." );
-		return;
+		common->Warning( "RenderFont: FreeType not initialized." );
+		return false;
 	}
-	name = fontName;
-	len = fileSystem->ReadFile(fontName, &faceData, &ftime);
+
+	len = fileSystem->ReadFile(name, &faceData, &ftime);
 	if ( len <= 0 ) {
-		common->Warning( "RegisterFont: Unable to read font file" );
-		return;
+		common->Warning( "RenderFont: Unable to read font file" );
+		return false;
 	}
 
 	// allocate on the stack first in case we fail
 	if ( FT_New_Memory_Face( ftLibrary, (FT_Byte*)faceData, len, 0, &face ) ) {
-		common->Warning( "RegisterFont: FreeType2, unable to allocate new face." );
-		return;
+		common->Warning( "RenderFont: FreeType2, unable to allocate new face." );
+		return false;
 	}
 
 	int pointSize = 24;
 	int dpi = 144;
 	if ( FT_Set_Char_Size( face, 0, pointSize << 6, dpi, dpi) ) {
-		common->Warning( "RegisterFont: FreeType2, Unable to set face char size." );
-		return;
+		common->Warning( "RenderFont: FreeType2, Unable to set face char size." );
+		return false;
 	}
 
-	if (useFont == nullptr )
-		useFont = new ::fontInfo_t;
-
-	int fontHash = GetFontHash(fontName);
+	int fontHash = GetFontHash(name);
+	int tmpFontInfoCnt = fontInfos.Num();
 	FontInfo & font = GetFontInfo(fontHash,true);
+	if (tmpFontInfoCnt != fontInfos.Num() )
+		fontInfoIndex = tmpFontInfoCnt;
 
 	font.ascender = (float)(face->size->metrics.ascender  >> 6);
 	font.descender = (float)(face->size->metrics.descender >> 6);
@@ -467,7 +413,7 @@ void idFont::RenderFont()
 		blackGlyph.glyphIndex=-1;
 		blackGlyph.offset_x=0.0f;
 		blackGlyph.offset_y=0.0f;
-		atlas = new Atlas( 512 );
+		atlas = new Atlas( );
 		///make sure the black glyph doesn't bleed by using a one pixel inner outline
 		blackGlyph.regionIndex = atlas->addRegion( W, W, buffer, AtlasRegion::TYPE_GRAY, 1 );
 	 }
@@ -511,13 +457,20 @@ void idFont::RenderFont()
 			charRenderCount++;
 			//common->DPrintf("Codepoint: {%llu}, gid: {%i}\n", charcode, gindex);
 			glyphInfo.regionIndex = atlas->addRegion( glyphInfo.width, glyphInfo.height, face->glyph->bitmap.buffer, AtlasRegion::TYPE_GRAY );
+
+			if (glyphInfo.regionIndex == UINT16_MAX )
+				common->Warning("idFont :  %s : Failed to add region %i to Atlas \nloaded %i glyphs , rendered %i , atlas usage %f",name.c_str(),charcode,charCount,charRenderCount,atlas->getTotalRegionUsage());
+
 			maxHeight = Max((float)maxHeight, glyphInfo.height);
 		}
 
 		charcode = FT_Get_Next_Char( face, charcode, &gindex );
 
 	}
-	common->Printf("IdFont  %s : loaded %i glyphs , rendererd %i\n",fontName.c_str(),charCount,charRenderCount);
+	font.maxHeight = maxHeight;
+
+	common->Printf("IdFont :  %s : loaded %i glyphs , rendered %i , atlas usage %g %% \n",name.c_str(),charCount,charRenderCount,atlas->getTotalRegionUsage());
 
 	fileSystem->FreeFile( faceData );
+	return true;
 }
