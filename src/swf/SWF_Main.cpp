@@ -33,13 +33,16 @@ If you have questions concerning this license or the applicable additional terms
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
-idCVar swf_loadBinary( "swf_loadBinary", "1", CVAR_INTEGER, "used to set whether to load binary swf from generated" );
+idCVar swf_loadBinary( "swf_loadBinary", "0", CVAR_INTEGER, "used to set whether to load binary swf from generated" );
 
 int idSWF::mouseX = -1;
 int idSWF::mouseY = -1;
 bool idSWF::isMouseInClientArea = false;
 
 extern idCVar in_useJoystick;
+
+//sound stub
+static idSoundWorld soundWorldStub;
 
 /*
 ===================
@@ -135,6 +138,8 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
 	}
 	idStr atlasFileName = binaryFileName;
 	atlasFileName.SetFileExtension( ".tga" );
+	common->DPrintf("LOAD ATLAS HERE");
+
 	//atlasMaterial = declManager->FindMaterial( atlasFileName );
 
 	globals = idSWFScriptObject::Alloc();
@@ -203,7 +208,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
 		mouseY = ( frameHeight / 2 );
 	}
 
-	soundWorld = soundWorld_;
+	soundWorld = &soundWorldStub;
 }
 
 /*

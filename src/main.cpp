@@ -25,6 +25,7 @@
 #include <timeapi.h>
 #include "idFramework/sys/win32/win_local.h"
 #include "bgfx-stubs/Font/text_buffer_manager.h"
+#include "swf/SWF.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
@@ -62,11 +63,19 @@ void main_loop( void *data ) {
 	static bool initFont = true;
 	static TextBufferManager *textMan;
 	static TextBufferHandle bufferHandle;
+	static idSWF *swfTest;
 	if (!fnt)
 	{
 		fnt = idFont::RegisterFont("NotoSans-Regular.ttf");
 		textMan = new TextBufferManager( fnt );
 		bufferHandle = textMan->createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
+
+		swfTest = new idSWF("clicktest.swf");
+		eventLoop->RegisterCallback( []( const sysEvent_t &event )
+			-> auto {
+			swfTest->HandleEvent(&event);
+		} );
+		swfTest->Activate(true);
 	}
 	static idStr tmpStr = "!123adadada123!";
 	textMan->clearTextBuffer(bufferHandle);

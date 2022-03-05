@@ -85,6 +85,16 @@ struct sysEvent_t {
 	int				evValue2;
 	int				evPtrLength;		// bytes of data pointed to by evPtr, for journaling
 	void *			evPtr;				// this must be manually freed if not NULL
+
+	int				inputDevice;
+	bool			IsKeyEvent( ) const { return evType == SE_KEY; }
+	bool			IsMouseEvent( ) const { return evType == SE_MOUSE; }
+	bool			IsCharEvent( ) const { return evType == SE_CHAR; }
+	bool			IsJoystickEvent( ) const { return evType == SE_JOYSTICK; }
+	bool			IsKeyDown( ) const { return evValue2 != 0; }
+	//keyNum_t		GetKey( ) const { return static_cast< keyNum_t >( evValue ); }
+	int				GetXCoord( ) const { return evValue; }
+	int				GetYCoord( ) const { return evValue2; }
 };
 
 enum sysPath_t {
