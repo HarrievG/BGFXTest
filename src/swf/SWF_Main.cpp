@@ -196,7 +196,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
 
 	mainspriteInstance->Run();
 	mainspriteInstance->RunActions();
-	mainspriteInstance->RunTo( 0 );
+	//mainspriteInstance->RunTo( 0 );
 
 	swf_debug.SetInteger( debug );
 

@@ -1,0 +1,168 @@
+#pragma once
+#include "sys\platform.h" 
+#include "SWF_Enums.h"
+#include "../idFramework/idlib/containers/StrList.h"
+#include "../idFramework/idlib/containers/List.h"
+#include "../idFramework/idlib/containers/HashIndex.h"
+
+struct swfMultiname
+{
+	swfConstantKind_t type;
+	uint32 nameIndex;
+	uint32 index;
+};
+
+struct swfConstant_pool_info
+{
+	idList<int32>				integers;		//u30 int_count			s32 integer[int_count]
+	idList<uint32>				uIntegers;		//u30 uint_count		u32 uinteger[uint_count]
+	idList<double>				doubles;		//u30 double_count		d64 double[double_count]
+	idStrList					utf8Strings;	//u30 string_count		string_info string[string_count] (char is 16bit code point)
+	idList<swfConstantKind_t>	namespaceKinds;	//u30 namespace_count	namespace_info namespace[namespace_count] (namespaceinfo_t.kind)
+	idStrPtrList				namespaceNames; //u30 namespace_count	namespace_info namespace[namespace_count] (namespaceinfo_t.name)
+	idList<idStrPtrList>		namespaceSets;	//u30 ns_set_count		ns_set_info ns_set[ns_set_count]
+	idList<swfMultiname>		multinameInfos;	//u30 multiname_count	multiname_info multiname[multiname_count]
+};
+
+struct swfMetadata_info
+{
+	struct item { //item_info 
+		idStrPtr	key;	//u30 key
+		idStrPtr	value;	//u30 value
+	};
+	idStrPtr		name;	//u30 name
+	idList<item>	items;	//u30 item_count item_info items[item_count]
+};
+
+
+struct swfOption_info
+{
+	struct item { //option_detail 
+		uint32				val;	//u30 val
+		swfConstantKind_t	kind;	//u8 kind
+	};
+	uint32 option_count;	//u30 option_count
+	idList<item> options;	//option_detail option[option_count]
+};
+
+struct swfMethod_info
+{
+	//zero before use.
+	enum Flags 	{
+		NEED_ARGUMENTS	= 0x01, // Suggests to the run - time that an “arguments” object( as specified by the ActionScript 3.0 Language Reference ) be created.Must not be used together with NEED_REST.See Chapter 3.
+		NEED_ACTIVATION = 0x02, // Must be set if this method uses the newactivation opcode.
+		NEED_REST		= 0x04, // This flag creates an ActionScript 3.0 rest arguments array.Must not be used with NEED_ARGUMENTS.See Chapter 3.
+		HAS_OPTIONAL	= 0x08, // Must be set if this method has optional parameters andthe options field is present in this method_info structure.
+		SET_DXNS		= 0x40, // Must be set if this method uses the dxns or dxnslate opcodes.
+		HAS_PARAM_NAMES	= 0x80, // Must be set when the param_names field is present in this method_info structure.
+	};
+
+	uint32					paramCount;		//u30 param_count
+	swfMultiname*			returnType;		//u30 return_type
+	idList<swfMultiname*>	paramTypes;		//u30 param_count //u30 param_type[param_count]
+	idStrPtr				name;			//u30 name
+	uint8					flags;			//u8 flags
+	swfOption_info			options;		//option_info options
+	idStrPtrList			paramNames;		// ( param_info )  param_names	u30 param_name[param_count]
+};
+
+struct swfTraits_info
+{
+	enum Attrib { // upper 4 bits of kind
+		Final = 0x1,	// Is used with Trait_Method, Trait_Getter andTrait_Setter.It marks a method that cannot be overridden by a sub - class
+		Override = 0x2, // Is used with Trait_Method, Trait_Getter andTrait_Setter.It marks a method that has been overridden in this class
+		Metadata = 0x4, // Is used to signal that the fields metadata_count and metadata follow the data field in the traits_info entry
+	};
+	enum Type {
+		Trait_Slot		= 0,
+		Trait_Method	= 1,
+		Trait_Getter	= 2,
+		Trait_Setter	= 3,
+		Trait_Class		= 4,
+		Trait_Function  = 5,
+		Trait_Const		= 6,
+	};
+	swfMultiname*				name;		//u30 name
+	uint8						kind;		//u8 kind
+	byte*						data;		//u8 data[]
+	idList<swfMetadata_info*>	metadatas;	//u30 metadata_count	u30 metadata[metadata_count]
+};
+
+struct swfInstance_info
+{
+	swfMultiname*			name;			//u30 name
+	swfMultiname*			super_name;		//u30 super_name
+	swfInstanceFlags_t		flags;			//u8 flags
+	uint32					protectedNs;	//u30 protectedNs
+	idList<swfMultiname*>	interfaces;		//u30 intrf_count	u30 interface[intrf_count]
+	swfMethod_info*			iinit;			//u30 iinit
+	idList<swfTraits_info>	traits;			//u30 trait_count	traits_info trait[trait_count]
+};
+
+struct swfTrait_slot
+{
+	uint32			slot_id;	//u30 slot_id
+	swfMultiname*	type_name;	//u30 type_name
+	uint32			vindex;		//u30 vindex
+	uint8			vkind;		//u8 vkind
+};
+
+struct swfClass_info
+{
+	swfMethod_info*			cinit;	//u30 cinit
+	idList<swfTraits_info>	traits; //u30 trait_count traits_info traits[trait_count]
+};
+
+struct swfTrait_class
+{
+	uint32			slot_id;	//u30 slot_id
+	swfClass_info*	classi;		//u30 classi
+};
+
+struct swfScript_info
+{
+	swfMethod_info*			init;	//u30 init
+	idList<swfTraits_info>	traits; //u30 trait_count traits_info traits[trait_count]
+};
+
+struct swfException_info
+{
+	uint32		from;		//u30 from
+	uint32		to;			//u30 to
+	uint32		target;		//u30 target
+	idStrPtr	exc_type;	//u30 exc_type
+	idStrPtr	var_name;	//u30 var_name
+};
+
+struct swfMethod_body_info
+{
+	swfMethod_info *			method;			//u30 method
+	uint32						max_stack;		//u30 max_stack
+	uint32						localCount;		//u30 local_count
+	uint32						initScopeDepth;	//u30 init_scope_depth
+	uint32						maxScopeDepth;	//u30 max_scope_depth
+	uint32						codeLength;		//u30 code_length
+	byte *						code;			//u8 code[code_length]
+	idList<swfException_info>	exceptions;		//u30 exception_count exception_info exception[exception_count]
+	idList<swfTraits_info>		traits;			//u30 trait_count traits_info traits[trait_count]
+};
+
+struct SWF_AbcFile
+{
+	void ReadMethodInfo		( idSWFBitStream &bitstream, swfMethod_info &newMethod );
+	void ReadOptionInfo		( idSWFBitStream &bitstream, swfOption_info &newOption );
+	void ReadMetaDataInfo	( idSWFBitStream &bitstream, swfMetadata_info &newMetadata );
+	void ReadInstanceInfo	( idSWFBitStream &bitstream, swfInstance_info &newInstancedata );
+	void ReadTraitsInfo		( idSWFBitStream &bitstream, swfTraits_info &newTraitsData );
+
+	uint16						minor_version;
+	uint16						major_version;
+	swfConstant_pool_info		constant_pool;
+	idList<swfMethod_info>		methods;		//u30 method_count		method_info method[method_count]
+	idList<swfMetadata_info>	metadatas;		//u30 metadata_count	metadata_info metadata[metadata_count]
+	uint32						class_count;	//u30 class_count	
+	idList<swfInstance_info>	instances;		//instance_info instance[class_count]
+	idList<swfClass_info>		classes;		//class_info class[class_count]
+	idList<swfScript_info>		scripts;		//u30 script_count script_info script[script_count]
+	idList<swfMethod_body_info>	method_bodies;	//u30 method_body_count method_body_info method_body[method_body_count]
+};

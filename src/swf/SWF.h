@@ -423,6 +423,11 @@ private:
 	//----------------------------------
 	bool			Inflate( const byte * input, int inputSize, byte * output, int outputSize );
 
+	//----------------------------------
+	// SWF_Abc.cpp
+	//----------------------------------
+	void			DoABC( idSWFBitStream & bitstream ) ;
+	void			SymbolClass( idSWFBitStream & bitstream ) ;
 public:
 	//----------------------------------
 	// SWF_Names.cpp

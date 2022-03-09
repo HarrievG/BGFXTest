@@ -25,6 +25,45 @@ function(add_globbed_headers SRCLIST PATHPREFIX)
 	set(${SRCLIST} ${tmp_hdrs} ${${SRCLIST}} PARENT_SCOPE)
 endfunction()
 
+set(src_quicJS
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libregexp.c
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libunicode.c
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/qjs.c
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-libc.c
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs.c
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/Win32Console.c
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/Win32Time.cpp
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/cutils.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/cutils.c
+#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libregexp-opcode.h
+#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libregexp.h
+#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libunicode-table.h  
+#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libunicode.h
+#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/list.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-atom.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-defs.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-libc.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-opcode.h
+${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs.h
+##${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/Win32Console.h
+##${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/windows_dirent.h
+##${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/windows_getopt.h
+)
+#
+               add_library( qjs-engine ${src_quicJS} )
+    target_compile_options( qjs-engine PRIVATE
+                                -MMD -MF
+                                #-Wno-sign-compare 
+                                #-Wno-missing-field-initializers 
+                                #-Wundef -Wuninitialized 
+                                #-Wundef -Wuninitialized -Wwrite-strings -Wchar-subscripts
+                          )
+target_compile_definitions( qjs-engine PUBLIC 
+                                       #CONFIG_BIGNUM=y
+                                       CONFIG_VERSION="2020-11-08"
+                                       _GNU_SOURCE
+                           )
+
 set(src_idSWF
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Bitstream.cpp
@@ -182,6 +221,7 @@ set(Sources
     ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.h
     ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imconfig.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Abc.cpp
 	${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 include_directories(src)
@@ -216,6 +256,7 @@ target_link_libraries(
   idFramework
   ${ZLIB_LIBRARY}
   freetype
+  qjs-engine
 )
 
 target_compile_options(
@@ -225,7 +266,9 @@ target_compile_options(
 #  PRIVATE /DVERSION="${_DLL_VERSION}"
 #  PRIVATE /D_CRT_SECURE_NO_WARNINGS
   PRIVATE /DNOMINMAX
-  PRIVATE /std:c++17
+  PRIVATE /std:c++latest
   PRIVATE /wd4068 # unknown pragma
   /DIDSTR_NO_REDIRECT
+  PUBLIC /Zc:__cplusplus
+  PRIVATE /D_cpp
 )

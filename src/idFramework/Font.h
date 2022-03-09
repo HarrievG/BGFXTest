@@ -99,7 +99,7 @@ public:
 	
 	void Touch();
 
-	const char * GetName() const {return (alias != nullptr) ? alias->GetName() : name; }
+	const char * GetName() const {return (alias != nullptr) ? alias->GetName() : this->name.c_str(); }
 	void setName(const char * _name ) { name = _name; }
 	float GetLineHeight( float scale ) const;
 	float GetAscender( float scale ) const;

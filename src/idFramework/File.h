@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "idlib/BitMsg.h"
 
 #include "idFramework/Unzip.h"
+#include "idlib/Swap.h"
 
 /*
 ==============================================================

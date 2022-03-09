@@ -116,8 +116,11 @@ idSWFSpriteInstance::FreeDisplayList
 */
 void idSWFSpriteInstance::FreeDisplayList() {
 	for ( int i = 0; i < displayList.Num(); i++ ) {
-		sprite->swf->spriteInstanceAllocator.Free( displayList[i].spriteInstance );
-		sprite->swf->textInstanceAllocator.Free( displayList[i].textInstance );
+
+		if ( displayList[i].spriteInstance )
+			sprite->swf->spriteInstanceAllocator.Free( displayList[i].spriteInstance );
+		if ( displayList[i].textInstance )
+			sprite->swf->textInstanceAllocator.Free( displayList[i].textInstance );
 	}
 	displayList.SetNum( 0 );	// not calling Clear() so we don't continuously re-allocate memory
 	currentFrame = 0;

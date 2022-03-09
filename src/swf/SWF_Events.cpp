@@ -214,9 +214,19 @@ idSWF::HandleEvent
 ===================
 */
 bool idSWF::HandleEvent( const sysEvent_t * event ) {
+
+
 	if ( !IsLoaded() || !IsActive() || ( !inhibitControl && useInhibtControl ) ) {
 		return false;
 	}
+
+	int currentTime = Sys_Milliseconds( );
+	int framesToRun = 0;
+
+	if ( paused ) {
+		lastRenderTime = currentTime;
+	}
+
 	if ( event->evType == SE_KEY ) {
 		if ( event->evValue == K_MOUSE1 ) {
 			mouseEnabled = true;

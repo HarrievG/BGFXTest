@@ -27,6 +27,41 @@ If you have questions concerning this license or the applicable additional terms
 */
 #ifndef __SWF_ENUMS_H__
 #define __SWF_ENUMS_H__
+enum swfInstanceFlags_t
+{
+	ClassSealed =		0x01,	//The class is sealed: properties can not be dynamically added to instances of the class.
+	ClassFinal  =		0x02,	//The class is final : it cannot be a base class for any other class.
+	ClassInterface =	0x04,	//The class is an interface.
+	ClassProtectedNs =	0x08,	//The class uses its protected namespace andthe protectedNs
+};
+
+enum swfConstantKind_t{
+	Undefined			= 0x00,
+	Utf8				= 0x01,
+	Int					= 0x03,
+	UInt				= 0x04,
+	PrivateNs			= 0x05,
+	Double				= 0x06,
+	QName				= 0x07,
+	Namespace			= 0x08,
+	False				= 0x0A,
+	True				= 0x0B,
+	Null				= 0x0C,
+	QNameA				= 0x0D,
+	RTQName				= 0x0F,
+	RTQNameA			= 0x10,
+	RTQNameL			= 0x11,
+	RTQNameLA			= 0x12,
+	Multiname			= 0x09,
+	MultinameA			= 0x0E,
+	MultinameL			= 0x1B,
+	MultinameLA			= 0x1C,
+	PackageNamespace	= 0x16,
+	PackageInternalNs	= 0x17,
+	ProtectedNamespace	= 0x18,
+	ExplicitNamespace	= 0x19,
+	StaticProtectedNs	= 0x1A,
+};
 
 enum swfDictType_t {
 	SWF_DICT_NULL,
@@ -38,6 +73,7 @@ enum swfDictType_t {
 	SWF_DICT_TEXT,
 	SWF_DICT_EDITTEXT
 };
+
 enum swfTag_t {
 	Tag_End = 0,
 	Tag_ShowFrame = 1,
@@ -217,6 +253,7 @@ enum swfAction_t {
 	Action_Try = 0x8F,
 
 	Action_DefineFunction2 = 0x8E,
+	//TODO swf 9 to 12
 };
 
 #endif // !__SWF_ENUMS_H__

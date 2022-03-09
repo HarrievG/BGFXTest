@@ -101,7 +101,7 @@ private:																	\
 
 gltfItemClass(integer, int, *item = token.GetIntValue( ); );
 gltfItemClass(number, float, *item = token.GetFloatValue( ); );
-gltfItemClass(boolean, bool, token.Icmp("true") == 0 ? *item=true : token.Icmp("false") == 0 ? *item=false : common->FatalError("parse error"); );
+gltfItemClass(boolean, bool, if (token.Icmp("true") == 0 ) *item=true; else{ if(token.Icmp("false") == 0)*item=false; else common->FatalError("parse error");});
 #undef gltfItemClass
 
 class gltfItemArray

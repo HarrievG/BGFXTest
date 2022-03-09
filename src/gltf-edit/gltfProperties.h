@@ -28,8 +28,8 @@ enum gltfProperty {
 	EXTENSIONS_USED,
 	EXTENSIONS_REQUIRED
 };
-class gltfData;
 
+class gltfData;
 struct gltf_sampler_mag_type_map {
 	int id;
 	uint bgfxFlagMag;
@@ -61,7 +61,6 @@ public:
 	idStr json;
 };
 
-
 class gltfExt_KHR_lights_punctual;
 class gltfExtensions {
 public:
@@ -88,9 +87,6 @@ public:
 		KHR_materials_pbrSpecularGlossiness( nullptr ) { }
 	gltfExt_KHR_materials_pbrSpecularGlossiness *KHR_materials_pbrSpecularGlossiness;
 };
-
-// todo:
-//materials,
 
 class gltfNode {
 public:
@@ -311,7 +307,6 @@ public:
 	gltfData *parent;
 };
 
-
 class gltfSampler {
 public:
 	gltfSampler( ) : magFilter( 0 ), minFilter( 0 ), wrapS( 10497 ), wrapT( 10497 ) { };
@@ -429,7 +424,6 @@ public:
 	idStr	extensions;
 	idStr	extras;
 };
-
 
 //this is not used.
 //if an extension is found, it _will_ be used. (if implemented)

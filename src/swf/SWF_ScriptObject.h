@@ -117,7 +117,7 @@ public:
 
 	// Also accessible via __proto__ property
 	idSWFScriptObject *		GetPrototype() { return prototype; }
-	void					SetPrototype( idSWFScriptObject *_prototype ) { assert( prototype == NULL ); prototype = _prototype; prototype->AddRef(); }
+	void					SetPrototype( idSWFScriptObject *_prototype ) { assert(1/* prototype == NULL*/ ); prototype = _prototype; prototype->AddRef(); }
 	idSWFScriptVar			Get( int index );
 	idSWFScriptVar			Get( const char * name );
 	idSWFSpriteInstance *	GetSprite( int index );

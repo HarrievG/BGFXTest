@@ -116,6 +116,8 @@ void idSWFSprite::Load( idSWFBitStream & bitstream, bool parseDictionary ) {
 			HANDLE_SWF_TAG( DefineText );
 			HANDLE_SWF_TAG( DefineText2 );
 			HANDLE_SWF_TAG( DefineEditText );
+			HANDLE_SWF_TAG( DoABC );
+			HANDLE_SWF_TAG( SymbolClass );
 #undef HANDLE_SWF_TAG
 			default: handled = false;
 			}
@@ -164,7 +166,7 @@ void idSWFSprite::Load( idSWFBitStream & bitstream, bool parseDictionary ) {
 
 		default:
 			// We don't care, about sprite tags we don't support ... RobA
-			//common->Printf( "Load Sprite: Unhandled tag %s\n", idSWF::GetTagName( tag ) );
+			common->DPrintf( "Load Sprite: Unhandled tag %s\n", idSWF::GetTagName( tag ) );
 			break;
 		}
 	}

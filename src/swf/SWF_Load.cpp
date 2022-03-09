@@ -62,7 +62,11 @@ bool idSWF::LoadSWF( const char * fullpath ) {
 		return false;
 	}
 
-	if ( header.version > 9 ) {
+	//we are now aiming at version 19.
+	//adding quickjs as AS3.0 bytecode vm
+	
+	//this should be because avm2.0 was introduced with swf 9
+	if ( header.version >= 9 ) {
 		idLib::Warning( "Unsupported version %d", header.version );
 		if  (swf_fatalVersionMismatch.GetBool() )
 		{

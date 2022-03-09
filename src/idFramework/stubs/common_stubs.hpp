@@ -61,7 +61,7 @@ public:
 	virtual bool			SetCallback( CallbackType cbt, FunctionPointer cb, void *userArg ) { return false; }
 	virtual bool			GetAdditionalFunction( FunctionType ft, FunctionPointer *out_fnptr, void **out_userArg ) { return false; }
 
-	void					idCommonLocal::InitLanguageDict();
+	void					InitLanguageDict();
 	void					FilterLangList( idStrList* list, idStr lang );
 #define		MAX_CONSOLE_LINES	32
 	int			com_numConsoleLines;
