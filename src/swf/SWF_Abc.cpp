@@ -64,24 +64,29 @@ void ReadConstantPoolInfo( idSWFBitStream & bitstream ,  swfConstant_pool_info &
 {
 	/*cpool_info{}*/
 	uint32 int_count = bitstream.ReadEncodedU32( );
+	target.integers.Alloc( ) = 0;
 	for ( uint i = 1; i < int_count; i++ )
 		target.integers.Alloc( ) = bitstream.ReadS32( );
 
 	uint32 uint_count = bitstream.ReadEncodedU32( ); 
+	target.uIntegers.Alloc( ) = 0;
 	for ( uint i = 1; i < uint_count; i++ )
 		target.uIntegers.Alloc( ) = bitstream.ReadU32( );
 
 	uint32 double_count = bitstream.ReadEncodedU32( );
+	target.doubles.Alloc( ) = 0.0;
 	for ( uint i = 1; i < double_count; i++ )
 		target.doubles.Alloc( ) = bitstream.ReadDouble( );
 
 	uint32 string_count = bitstream.ReadEncodedU32( ); 
+	target.utf8Strings.Alloc( ).Append("*");
 	for ( uint i = 1; i < string_count; i++ ) {
 		uint32 str_len = bitstream.ReadEncodedU32( );
 		target.utf8Strings.Alloc( ).Append( ( char * ) bitstream.ReadData( str_len ),str_len );
 	}
 
 	uint32 namespace_count = bitstream.ReadEncodedU32( );
+	target.namespaceNames.Alloc( ) = &target.utf8Strings[0];
 	for ( uint i = 1; i < namespace_count; i++ ) {
 		target.namespaceKinds.Alloc() = (swfConstantKind_t)bitstream.ReadU8();
 		uint32 str_idx = bitstream.ReadEncodedU32( );
@@ -89,6 +94,7 @@ void ReadConstantPoolInfo( idSWFBitStream & bitstream ,  swfConstant_pool_info &
 	}
 
 	uint32 namespace_set_count = bitstream.ReadEncodedU32( );
+	target.namespaceSets.Alloc().Alloc() = &target.utf8Strings[0];
 	for ( uint i = 1; i < namespace_set_count; i++ ) {
 		uint32 count = bitstream.ReadEncodedU32( );
 		auto & newSet = target.namespaceSets.Alloc();
@@ -100,6 +106,8 @@ void ReadConstantPoolInfo( idSWFBitStream & bitstream ,  swfConstant_pool_info &
 	}
 
 	uint32 multiname_count = bitstream.ReadEncodedU32( );
+	auto & zeroEntry = target.multinameInfos.Alloc( );
+	memset(&zeroEntry,0,sizeof(swfMultiname ) );
 	for ( uint i = 1; i < multiname_count; i++ ) {
 		auto &newMn = target.multinameInfos.Alloc( );
 		ReadMultiName(bitstream,newMn);
@@ -127,10 +135,27 @@ void SWF_AbcFile::ReadMetaDataInfo	( idSWFBitStream & bitstream , swfMetadata_in
 	}
 }
 
+
+void SWF_AbcFile::ReadTraitData( idSWFBitStream &bitstream, swfTraits_info &newTraitsData ) 
+{
+	uint8 kind = (newTraitsData.kind << 4) >> 4; // snip upper half, lower 4 bits should remain.
+	uint8 attrib = (newTraitsData.kind >> 4); // snip lower half, upper 4 bits should remain.
+	int i=0;
+}
+
 void SWF_AbcFile::ReadTraitsInfo( idSWFBitStream &bitstream, swfTraits_info &newTraitsData ) 
 {
 	newTraitsData.name = &constant_pool.multinameInfos[bitstream.ReadEncodedU32( )];
+	//The kind field contains two four-bit fields. The lower four bits determine the kind of this trait. The 
+	//	upper four bits comprise a bit vector providing attributes of the trait. See the following tables and 
+	//	sections for full descriptions. 
+
 	newTraitsData.kind = bitstream.ReadU8();
+	ReadTraitData( bitstream, newTraitsData );
+}
+
+void SWF_AbcFile::ReadClassInfo( idSWFBitStream &bitstream, swfClass_info &newClassData ) 
+{
 
 }
 
@@ -207,10 +232,14 @@ void idSWF::DoABC( idSWFBitStream & bitstream ) {
 	}
 
 	newAbcFile.class_count = bitstream.ReadEncodedU32();
-
 	for ( uint i = 0; i < newAbcFile.class_count ; i++ ) {
 		auto &newInstance = newAbcFile.instances.Alloc( );
 		newAbcFile.ReadInstanceInfo( bitstream, newInstance );
+	}
+
+	for ( uint i = 0; i < newAbcFile.class_count ; i++ ) {
+		auto &newClass = newAbcFile.classes.Alloc( );
+		newAbcFile.ReadClassInfo( bitstream, newClass );
 	}
 
 	JSRuntime *runtime = JS_NewRuntime( );

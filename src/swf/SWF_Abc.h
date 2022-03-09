@@ -84,7 +84,7 @@ struct swfTraits_info
 	};
 	swfMultiname*				name;		//u30 name
 	uint8						kind;		//u8 kind
-	byte*						data;		//u8 data[]
+	void*						data;		//u8 data[]
 	idList<swfMetadata_info*>	metadatas;	//u30 metadata_count	u30 metadata[metadata_count]
 };
 
@@ -153,7 +153,10 @@ struct SWF_AbcFile
 	void ReadOptionInfo		( idSWFBitStream &bitstream, swfOption_info &newOption );
 	void ReadMetaDataInfo	( idSWFBitStream &bitstream, swfMetadata_info &newMetadata );
 	void ReadInstanceInfo	( idSWFBitStream &bitstream, swfInstance_info &newInstancedata );
+	void ReadTraitData		( idSWFBitStream &bitstream, swfTraits_info &newTraitsData );
 	void ReadTraitsInfo		( idSWFBitStream &bitstream, swfTraits_info &newTraitsData );
+
+	void ReadClassInfo		( idSWFBitStream &bitstream, swfClass_info &newClassData );
 
 	uint16						minor_version;
 	uint16						major_version;
