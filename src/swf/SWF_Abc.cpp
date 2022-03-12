@@ -138,9 +138,45 @@ void SWF_AbcFile::ReadMetaDataInfo	( idSWFBitStream & bitstream , swfMetadata_in
 
 void SWF_AbcFile::ReadTraitData( idSWFBitStream &bitstream, swfTraits_info &newTraitsData ) 
 {
-	uint8 kind = (newTraitsData.kind << 4) >> 4; // snip upper half, lower 4 bits should remain.
+	swfTraits_info::Type kind = (swfTraits_info::Type)((newTraitsData.kind << 4) >> 4); // snip upper half, lower 4 bits should remain.
 	uint8 attrib = (newTraitsData.kind >> 4); // snip lower half, upper 4 bits should remain.
-	int i=0;
+	
+	switch ( kind ) {
+	case swfTraits_info::Trait_Slot:
+	case swfTraits_info::Trait_Const: {
+		newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_slot ) );
+		swfTrait_slot &slot = *(( swfTrait_slot * )( newTraitsData.data ));
+		slot.slot_id = bitstream.ReadEncodedU32();
+		slot.type_name = &constant_pool.multinameInfos[bitstream.ReadEncodedU32()];
+		slot.vindex = bitstream.ReadEncodedU32();
+		if ( slot.vindex != 0 )
+			slot.vkind = bitstream.ReadU8();
+	}break;
+	case swfTraits_info::Trait_Method:
+	case swfTraits_info::Trait_Getter:
+	case swfTraits_info::Trait_Setter:{
+		newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_method ) );
+		swfTrait_method &method = *( swfTrait_method * )( newTraitsData.data );
+		method.disp_id = bitstream.ReadEncodedU32( );
+		method.method = &methods[bitstream.ReadEncodedU32( )];
+	}break;
+	case swfTraits_info::Trait_Class:{
+		newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_class ) );
+		swfTrait_class &tclass = *( swfTrait_class * )( newTraitsData.data );
+		tclass.slot_id = bitstream.ReadEncodedU32( );
+		tclass.classi = &classes[bitstream.ReadEncodedU32( )];
+	}break;
+	case swfTraits_info::Trait_Function:{ 
+		newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_function ) );
+		swfTrait_function &func = *( swfTrait_function * ) ( newTraitsData.data );
+		func.slot_id = bitstream.ReadEncodedU32( );
+		func.func = &methods[bitstream.ReadEncodedU32( )];
+	}break;
+
+	default:
+		common->FatalError("Unknown trait data");
+		break;
+	}
 }
 
 void SWF_AbcFile::ReadTraitsInfo( idSWFBitStream &bitstream, swfTraits_info &newTraitsData ) 
@@ -152,11 +188,64 @@ void SWF_AbcFile::ReadTraitsInfo( idSWFBitStream &bitstream, swfTraits_info &new
 
 	newTraitsData.kind = bitstream.ReadU8();
 	ReadTraitData( bitstream, newTraitsData );
+	uint8 attrib = ( newTraitsData.kind >> 4 ); // snip lower half, upper 4 bits should remain.
+	if ((attrib & swfTraits_info::Attrib::Metadata) != 0 ) {
+		uint32 meta_count = bitstream.ReadEncodedU32(); 
+		for (uint i = 0 ; i < meta_count; i++) {
+			newTraitsData.metadatas.Alloc() = &metadatas[bitstream.ReadEncodedU32()];
+		}
+	}
 }
 
 void SWF_AbcFile::ReadClassInfo( idSWFBitStream &bitstream, swfClass_info &newClassData ) 
 {
+	newClassData.cinit = &methods[bitstream.ReadEncodedU32()];
+	uint32 trait_count  = bitstream.ReadEncodedU32();
+	for ( uint i = 0; i < trait_count; i++ ) {
+		auto &newTrait = newClassData.traits.Alloc( );
+		ReadTraitsInfo( bitstream, newTrait );
+	}
+}
 
+void SWF_AbcFile::ReadScriptInfo( idSWFBitStream &bitstream, swfScript_info &newScriptData ) 
+{
+	uint32 init = bitstream.ReadEncodedU32( );
+	uint32 trait_count = bitstream.ReadEncodedU32( );
+	for ( uint i = 0; i < trait_count; i++ ) {
+		auto &newTrait = newScriptData.traits.Alloc( );
+		ReadTraitsInfo( bitstream, newTrait );
+	}
+}
+
+void SWF_AbcFile::ReadMethodBodyInfo( idSWFBitStream &bitstream, swfMethod_body_info &newMethodBody ) 
+{
+	newMethodBody.method = &methods[bitstream.ReadEncodedU32()];
+	newMethodBody.max_stack = bitstream.ReadEncodedU32();
+	newMethodBody.localCount = bitstream.ReadEncodedU32();
+	newMethodBody.initScopeDepth = bitstream.ReadEncodedU32();
+	newMethodBody.maxScopeDepth = bitstream.ReadEncodedU32();
+	newMethodBody.codeLength = bitstream.ReadEncodedU32();
+	newMethodBody.code = ( byte * ) Mem_ClearedAlloc( sizeof( byte ) * newMethodBody.codeLength );
+	memcpy(newMethodBody.code,bitstream.ReadData(newMethodBody.codeLength),newMethodBody.codeLength);
+	uint32 exception_count = bitstream.ReadEncodedU32( );
+	for ( uint i = 0; i < exception_count; i++ ) {
+		auto &newExceptionInfo = newMethodBody.exceptions.Alloc( );
+		ReadExceptionInfo( bitstream, newExceptionInfo );
+	}
+	uint32 trait_count = bitstream.ReadEncodedU32( );
+	for ( uint i = 0; i < trait_count; i++ ) {
+		auto &newTrait = newMethodBody.traits.Alloc( );
+		ReadTraitsInfo( bitstream, newTrait );
+	}
+}
+
+void SWF_AbcFile::ReadExceptionInfo( idSWFBitStream &bitstream, swfException_info &newException )
+{
+	newException.from = bitstream.ReadEncodedU32( );
+	newException.to = bitstream.ReadEncodedU32();
+	newException.target = bitstream.ReadEncodedU32();
+	newException.exc_type = &constant_pool.utf8Strings[bitstream.ReadEncodedU32()];
+	newException.var_name = &constant_pool.utf8Strings[bitstream.ReadEncodedU32()];
 }
 
 void SWF_AbcFile::ReadInstanceInfo( idSWFBitStream &bitstream, swfInstance_info &newInstancedata ) 
@@ -241,6 +330,19 @@ void idSWF::DoABC( idSWFBitStream & bitstream ) {
 		auto &newClass = newAbcFile.classes.Alloc( );
 		newAbcFile.ReadClassInfo( bitstream, newClass );
 	}
+
+	uint32 script_count = bitstream.ReadEncodedU32( );
+	for ( uint i = 0; i < script_count; i++ ) {
+		auto &newScript = newAbcFile.scripts.Alloc( );
+		newAbcFile.ReadScriptInfo( bitstream, newScript );
+	}
+
+	uint32 methBody_count = bitstream.ReadEncodedU32( );
+	for ( uint i = 0; i < methBody_count; i++ ) {
+		auto &newMethBody = newAbcFile.method_bodies.Alloc( );
+		newAbcFile.ReadMethodBodyInfo( bitstream, newMethBody );
+	}
+
 
 	JSRuntime *runtime = JS_NewRuntime( );
 	if ( !runtime ) {

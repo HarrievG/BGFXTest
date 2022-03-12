@@ -49,10 +49,10 @@ static idSoundWorld soundWorldStub;
 idSWF::idSWF
 ===================
 */
-idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
+idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferManager * textMan) {
 
 	atlasMaterial = NULL;
-
+	textBufferManager = textMan;
 	swfScale = 1.0f;
 	scaleToVirtual.Set( 1.0f, 1.0f );
 
@@ -196,7 +196,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ ) {
 
 	mainspriteInstance->Run();
 	mainspriteInstance->RunActions();
-	//mainspriteInstance->RunTo( 0 );
+	mainspriteInstance->RunTo( 0 );
 
 	swf_debug.SetInteger( debug );
 

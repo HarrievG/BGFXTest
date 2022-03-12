@@ -220,13 +220,6 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 		return false;
 	}
 
-	int currentTime = Sys_Milliseconds( );
-	int framesToRun = 0;
-
-	if ( paused ) {
-		lastRenderTime = currentTime;
-	}
-
 	if ( event->evType == SE_KEY ) {
 		if ( event->evValue == K_MOUSE1 ) {
 			mouseEnabled = true;
@@ -252,7 +245,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 					var = hitObject->Get( "onPress" );
 					if ( var.IsFunction() ) {
 						idSWFParmList parms;
-						//parms.Append( event->inputDevice );
+						parms.Append( event->inputDevice );
 						var.GetFunction()->Call( hitObject, parms );
 						parms.Clear();
 						return true;
@@ -393,7 +386,6 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 	} else if ( event->evType == SE_MOUSE_ABSOLUTE || event->evType == SE_MOUSE ) {
 		mouseEnabled = true;
 		isMouseInClientArea = true;
-		common->Warning("YOU KNOW THIS PART ;)");
 		// Mouse position in screen space needs to be converted to SWF space
 		if ( event->evType == SE_MOUSE_ABSOLUTE ) {
 			const float pixelAspect = 1.0f;//renderSystem->GetPixelAspect();

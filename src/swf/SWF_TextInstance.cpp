@@ -34,6 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 //#include "../renderer/Font.h"
 #include "SWF.h"
 #include "SWF_ScriptFunction.h"
+#include "../bgfx-stubs/Font/text_buffer_manager.h"
 
 idSWFScriptObject_TextInstancePrototype textInstanceScriptObjectPrototype;
 
@@ -143,6 +144,7 @@ void idSWFTextInstance::Init( idSWFEditText * _editText, idSWF * _swf ) {
 	scriptObject.SetPrototype( &textInstanceScriptObjectPrototype );
 	scriptObject.SetText( this );
 	scriptObject.SetNoAutoDelete( true );
+	textBufferHandle = swf->textBufferManager->createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
 }
 
 /*

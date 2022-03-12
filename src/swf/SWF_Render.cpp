@@ -25,10 +25,10 @@ If you have questions concerning this license or the applicable additional terms
 
 ===========================================================================
 */
-#pragma hdrstop
 #include "swf.h"
 //#include "../renderer/tr_local.h"
 #include "../idFramework/idlib/Lib.h"
+#include "../bgfx-stubs/Font/text_buffer_manager.h"
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
 idCVar swf_stopat( "swf_stopat", "0", CVAR_FLOAT, "stop at a specific frame" );
@@ -45,7 +45,299 @@ extern idCVar in_useJoystick;
 
 #define STENCIL_DECR -1
 #define STENCIL_INCR -2
+/*
+========================
+idSWF::Render
+========================
+*/
+void idSWF::Render( int time, bool isSplitscreen ) {
+	if ( !IsLoaded( ) ) {
+		return;
+	}
+	if ( !IsActive( ) ) {
+		return;
+	}
+	if ( swf_stopat.GetInteger( ) > 0 ) {
+		if ( mainspriteInstance->currentFrame == swf_stopat.GetInteger( ) ) {
+			swf_timescale.SetFloat( 0.0f );
+		}
+	}
 
+	int currentTime = Sys_Milliseconds( );
+	int framesToRun = 0;
+
+	if ( paused ) {
+		lastRenderTime = currentTime;
+	}
+
+	if ( swf_timescale.GetFloat( ) > 0.0f ) {
+		if ( lastRenderTime == 0 ) {
+			lastRenderTime = currentTime;
+			framesToRun = 1;
+		} else {
+			float deltaTime = ( currentTime - lastRenderTime );
+			float fr = ( ( float ) frameRate / 256.0f ) * swf_timescale.GetFloat( );
+			framesToRun = idMath::Ftoi( ( fr * deltaTime ) / 1000.0f );
+			lastRenderTime += ( framesToRun * ( 1000.0f / fr ) );
+			if ( framesToRun > 10 ) {
+				framesToRun = 10;
+			}
+		}
+		for ( int i = 0; i < framesToRun; i++ ) {
+			mainspriteInstance->Run( );
+			mainspriteInstance->RunActions( );
+		}
+	}
+
+	const float pixelAspect = 1920.0 / 1080.0;//renderSystem->GetPixelAspect( );
+	const float sysWidth = 1920.0  * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
+	const float sysHeight = 1080.0 / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
+	float scale = swfScale * sysHeight / ( float ) frameHeight;
+
+	swfRenderState_t renderState;
+	//renderState.stereoDepth = (stereoDepthType_t)mainspriteInstance->GetStereoDepth();
+	renderState.matrix.xx = scale;
+	renderState.matrix.yy = scale;
+	renderState.matrix.tx = 0.5f * ( sysWidth - ( frameWidth * scale ) );
+	renderState.matrix.ty = 0.5f * ( sysHeight - ( frameHeight * scale ) );
+
+	renderBorder = renderState.matrix.tx / scale;
+
+	scaleToVirtual.Set( ( float ) 640 / sysWidth, ( float ) 1080 / sysHeight );
+
+	RenderSprite( mainspriteInstance, renderState, time, isSplitscreen );
+
+	//if ( blackbars ) {
+	//	float barWidth = renderState.matrix.tx + 0.5f;
+	//	float barHeight = renderState.matrix.ty + 0.5f;
+	//	if ( barWidth > 0.0f ) {
+	//		gui->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+	//		DrawStretchPic( 0.0f, 0.0f, barWidth, sysHeight, 0, 0, 1, 1, white );
+	//		DrawStretchPic( sysWidth - barWidth, 0.0f, barWidth, sysHeight, 0, 0, 1, 1, white );
+	//	}
+	//	if ( barHeight > 0.0f ) {
+	//		gui->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
+	//		DrawStretchPic( 0.0f, 0.0f, sysWidth, barHeight, 0, 0, 1, 1, white );
+	//		DrawStretchPic( 0.0f, sysHeight - barHeight, sysWidth, barHeight, 0, 0, 1, 1, white );
+	//	}
+	//}
+
+	if ( isMouseInClientArea && ( mouseEnabled && useMouse ) && ( InhibitControl( ) || ( !InhibitControl( ) && !useInhibtControl ) ) ) {
+		//gui->SetGLState( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
+		//gui->SetColor( idVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
+		idVec2 mouse = renderState.matrix.Transform( idVec2( mouseX - 1, mouseY - 2 ) );
+		//idSWFScriptObject * hitObject = HitTest( mainspriteInstance, swfRenderState_t(), mouseX, mouseY, NULL );
+		if ( !hasHitObject ) { //hitObject == NULL ) {
+			//DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_arrow );
+		} else {
+			//DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_hand );
+		}
+	}
+
+	// restore the GL State
+	//gui->SetGLState( 0 );
+}
+
+
+
+/*
+========================
+idSWF::RenderSprite
+========================
+*/
+void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderState_t &renderState, int time, bool isSplitscreen ) {
+
+	if ( spriteInstance == NULL ) {
+		idLib::Warning( "%s: RenderSprite: spriteInstance == NULL", filename.c_str( ) );
+		return;
+	}
+	if ( !spriteInstance->isVisible ) {
+		return;
+	}
+	if ( ( ( renderState.cxf.mul.w + renderState.cxf.add.w ) <= ALPHA_EPSILON ) && ( swf_forceAlpha.GetFloat( ) <= 0.0f ) ) {
+		return;
+	}
+
+	idStaticList<const swfDisplayEntry_t *, 256> activeMasks;
+
+	for ( int i = 0; i < spriteInstance->displayList.Num( ); i++ ) {
+		const swfDisplayEntry_t &display = spriteInstance->displayList[i];
+
+		for ( int j = 0; j < activeMasks.Num( ); j++ ) {
+			const swfDisplayEntry_t *mask = activeMasks[j];
+			if ( display.depth > mask->clipDepth ) {
+				//RenderMask( gui, mask, renderState, STENCIL_DECR );
+				activeMasks.RemoveIndex( j );//fast
+			}
+		}
+		if ( display.clipDepth > 0 ) {
+			activeMasks.Append( &display );
+			//RenderMask( gui, &display, renderState, STENCIL_INCR );
+			continue;
+		}
+		idSWFDictionaryEntry *entry = FindDictionaryEntry( display.characterID );
+		if ( entry == NULL ) {
+			continue;
+		}
+
+		swfRenderState_t renderState2;
+
+		//if ( spriteInstance->stereoDepth != STEREO_DEPTH_TYPE_NONE ) {
+		//	renderState2.stereoDepth = ( stereoDepthType_t )spriteInstance->stereoDepth; 
+		//} else if ( renderState.stereoDepth != STEREO_DEPTH_TYPE_NONE ) {
+		//	renderState2.stereoDepth = renderState.stereoDepth;
+		//}
+
+		renderState2.matrix = display.matrix.Multiply( renderState.matrix );
+		renderState2.cxf = display.cxf.Multiply( renderState.cxf );
+		renderState2.ratio = display.ratio;
+		if ( display.blendMode != 0 ) {
+			renderState2.blendMode = display.blendMode;
+		} else {
+			renderState2.blendMode = renderState.blendMode;
+		}
+		renderState2.activeMasks = renderState.activeMasks + activeMasks.Num( );
+
+		if ( 0/*spriteInstance->materialOverride != NULL */ ) {
+			//renderState2.material = spriteInstance->materialOverride;
+			renderState2.materialWidth = spriteInstance->materialWidth;
+			renderState2.materialHeight = spriteInstance->materialHeight;
+		} else {
+			//renderState2.material = renderState.material;
+			//renderState2.materialWidth = renderState.materialWidth;
+			renderState2.materialHeight = renderState.materialHeight;
+		}
+
+		float xOffset = 0.0f;
+		float yOffset = 0.0f;
+
+		if ( entry->type == SWF_DICT_SPRITE ) {
+			display.spriteInstance->SetAlignment( spriteInstance->xOffset, spriteInstance->yOffset );
+
+			if ( display.spriteInstance->name[0] == '_' ) {
+				//if ( display.spriteInstance->name.Icmp( "_leftAlign" ) == 0 ) {
+				//	float adj = (float)frameWidth  * 0.10;
+				//	renderState2.matrix.tx = ( display.matrix.tx - adj ) * renderState.matrix.xx;
+				//}
+				//if ( display.spriteInstance->name.Icmp( "_rightAlign" ) == 0 ) {
+				//	renderState2.matrix.tx = ( (float)renderSystem->GetWidth() - ( ( (float)frameWidth - display.matrix.tx - adj ) * renderState.matrix.xx ) );
+				//}
+
+				float widthAdj = swf_titleSafe.GetFloat( ) * frameWidth;
+				float heightAdj = swf_titleSafe.GetFloat( ) * frameHeight;
+
+				const float pixelAspect = 1920.0 / 1080.0;//renderSystem->GetPixelAspect( );
+				const float sysWidth = 1920.0 * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
+				const float sysHeight = 1080.0 / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
+
+				if ( display.spriteInstance->name.Icmp( "_fullScreen" ) == 0 ) {
+					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
+					renderState2.matrix.ty = display.matrix.ty * renderState.matrix.yy;
+
+					float xScale = sysWidth / ( float ) frameWidth;
+					float yScale = sysHeight / ( float ) frameHeight;
+
+					renderState2.matrix.xx = xScale;
+					renderState2.matrix.yy = yScale;
+				}
+
+				if ( display.spriteInstance->name.Icmp( "_absTop" ) == 0 ) {
+					renderState2.matrix.ty = display.matrix.ty * renderState.matrix.yy;
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_top" ) == 0 ) {
+					renderState2.matrix.ty = ( display.matrix.ty + heightAdj ) * renderState.matrix.yy;
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_topLeft" ) == 0 ) {
+					renderState2.matrix.tx = ( display.matrix.tx + widthAdj ) * renderState.matrix.xx;
+					renderState2.matrix.ty = ( display.matrix.ty + heightAdj ) * renderState.matrix.yy;
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_left" ) == 0 ) {
+					float prevX = renderState2.matrix.tx;
+					renderState2.matrix.tx = ( display.matrix.tx + widthAdj ) * renderState.matrix.xx;
+					xOffset = ( ( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( idStr::FindText( display.spriteInstance->name, "_absLeft", false ) >= 0 ) {
+					float prevX = renderState2.matrix.tx;
+					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
+					xOffset = ( ( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_bottomLeft" ) == 0 ) {
+					float prevX = renderState2.matrix.tx;
+					renderState2.matrix.tx = ( display.matrix.tx + widthAdj ) * renderState.matrix.xx;
+					xOffset = ( ( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
+
+
+					float prevY = renderState2.matrix.ty;
+					renderState2.matrix.ty = ( ( float ) sysHeight - ( ( ( float ) frameHeight - display.matrix.ty + heightAdj ) * renderState.matrix.yy ) );
+					yOffset = ( ( renderState2.matrix.ty - prevY ) / renderState.matrix.yy );
+
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_absBottom" ) == 0 ) {
+					renderState2.matrix.ty = ( ( float ) sysHeight - ( ( ( float ) frameHeight - display.matrix.ty ) * renderState.matrix.yy ) );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_bottom" ) == 0 ) {
+					renderState2.matrix.ty = ( ( float ) sysHeight - ( ( ( float ) frameHeight - display.matrix.ty + heightAdj ) * renderState.matrix.yy ) );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_topRight" ) == 0 ) {
+					renderState2.matrix.tx = ( ( float ) sysWidth - ( ( ( float ) frameWidth - display.matrix.tx + widthAdj ) * renderState.matrix.xx ) );
+					renderState2.matrix.ty = ( display.matrix.ty + heightAdj ) * renderState.matrix.yy;
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_right" ) == 0 ) {
+					float prevX = renderState2.matrix.tx;
+					renderState2.matrix.tx = ( ( float ) sysWidth - ( ( ( float ) frameWidth - display.matrix.tx + widthAdj ) * renderState.matrix.xx ) );
+					xOffset = ( ( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( idStr::FindText( display.spriteInstance->name, "_absRight", true ) >= 0 ) {
+					float prevX = renderState2.matrix.tx;
+					renderState2.matrix.tx = ( ( float ) sysWidth - ( ( ( float ) frameWidth - display.matrix.tx ) * renderState.matrix.xx ) );
+					xOffset = ( ( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_bottomRight" ) == 0 ) {
+					renderState2.matrix.tx = ( ( float ) sysWidth - ( ( ( float ) frameWidth - display.matrix.tx + widthAdj ) * renderState.matrix.xx ) );
+					renderState2.matrix.ty = ( ( float ) sysHeight - ( ( ( float ) frameHeight - display.matrix.ty + heightAdj ) * renderState.matrix.yy ) );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_absTopLeft" ) == 0 ) {	// ABSOLUTE CORNERS OF SCREEN
+					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
+					renderState2.matrix.ty = display.matrix.ty * renderState.matrix.yy;
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_absTopRight" ) == 0 ) {
+					renderState2.matrix.tx = ( ( float ) sysWidth - ( ( ( float ) frameWidth - display.matrix.tx ) * renderState.matrix.xx ) );
+					renderState2.matrix.ty = display.matrix.ty * renderState.matrix.yy;
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_absBottomLeft" ) == 0 ) {
+					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
+					renderState2.matrix.ty = ( ( float ) sysHeight - ( ( ( float ) frameHeight - display.matrix.ty ) * renderState.matrix.yy ) );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				} else if ( display.spriteInstance->name.Icmp( "_absBottomRight" ) == 0 ) {
+					renderState2.matrix.tx = ( ( float ) sysWidth - ( ( ( float ) frameWidth - display.matrix.tx ) * renderState.matrix.xx ) );
+					renderState2.matrix.ty = ( ( float ) sysHeight - ( ( ( float ) frameHeight - display.matrix.ty ) * renderState.matrix.yy ) );
+					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
+				}
+			}
+
+			RenderSprite( display.spriteInstance, renderState2, time, isSplitscreen );
+		} else if ( entry->type == SWF_DICT_SHAPE ) {
+			//RenderShape( gui, entry->shape, renderState2 );
+		} else if ( entry->type == SWF_DICT_MORPH ) {
+			//RenderMorphShape( gui, entry->shape, renderState2 );
+		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
+			//RenderEditText( gui, display.textInstance, renderState2, time, isSplitscreen );
+			auto & text = display.textInstance->GetEditText()->initialText;
+			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,display.textInstance->bounds.tl.x,display.textInstance->bounds.tl.y);
+			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
+			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
+
+		} else {
+			//idLib::Warning( "%s: Tried to render an unrenderable character %d", filename.c_str(), entry->type );
+		}
+	}
+	for ( int j = 0; j < activeMasks.Num( ); j++ ) {
+		const swfDisplayEntry_t *mask = activeMasks[j];
+		//RenderMask( gui, mask, renderState, STENCIL_DECR );
+	}
+}
+
+#if 0
 /*
 ========================
 idSWF::DrawStretchPic
@@ -71,99 +363,6 @@ void idSWF::DrawStretchPic( const idVec4 & topLeft, const idVec4 & topRight, con
 
 /*
 ========================
-idSWF::Render
-========================
-*/
-void idSWF::Render( idRenderSystem * gui, int time, bool isSplitscreen ) {
-	if ( !IsLoaded() ) {
-		return;
-	}
-	if ( !IsActive() ) {
-		return;
-	}
-	if ( swf_stopat.GetInteger() > 0 ) {
-		if ( mainspriteInstance->currentFrame == swf_stopat.GetInteger() ) {
-			swf_timescale.SetFloat( 0.0f );
-		}
-	}
-
-	int currentTime = Sys_Milliseconds();
-	int framesToRun = 0;
-
-	if ( paused ) {
-		lastRenderTime = currentTime;
-	}
-
-	if ( swf_timescale.GetFloat() > 0.0f ) {
-		if ( lastRenderTime == 0 ) {
-			lastRenderTime = currentTime;
-			framesToRun = 1;
-		} else {
-			float deltaTime = ( currentTime - lastRenderTime );
-			float fr = ( (float)frameRate / 256.0f ) * swf_timescale.GetFloat();
-			framesToRun = idMath::Ftoi( ( fr * deltaTime ) / 1000.0f );
-			lastRenderTime += ( framesToRun * ( 1000.0f / fr ) );
-			if ( framesToRun > 10 ) {
-				framesToRun = 10;
-			}
-		}
-		for ( int i = 0; i < framesToRun; i++ ) {
-			mainspriteInstance->Run();
-			mainspriteInstance->RunActions();
-		}
-	}
-
-	const float pixelAspect = renderSystem->GetPixelAspect();
-	const float sysWidth = renderSystem->GetWidth() * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
-	const float sysHeight = renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
-	float scale = swfScale * sysHeight / (float)frameHeight;
-
-	swfRenderState_t renderState;
-	//renderState.stereoDepth = (stereoDepthType_t)mainspriteInstance->GetStereoDepth();
-	renderState.matrix.xx = scale;
-	renderState.matrix.yy = scale;
-	renderState.matrix.tx = 0.5f * ( sysWidth - ( frameWidth * scale ) );
-	renderState.matrix.ty = 0.5f * ( sysHeight - ( frameHeight * scale ) );
-
-	renderBorder = renderState.matrix.tx / scale;
-
-	scaleToVirtual.Set( (float)SCREEN_WIDTH / sysWidth, (float)SCREEN_HEIGHT / sysHeight );
-
-	RenderSprite( gui, mainspriteInstance, renderState, time, isSplitscreen );
-
-	if ( blackbars ) {
-		float barWidth = renderState.matrix.tx + 0.5f;
-		float barHeight = renderState.matrix.ty + 0.5f;
-		if ( barWidth > 0.0f ) {
-			gui->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-			DrawStretchPic( 0.0f, 0.0f, barWidth, sysHeight, 0, 0, 1, 1, white );
-			DrawStretchPic( sysWidth - barWidth, 0.0f, barWidth, sysHeight, 0, 0, 1, 1, white );
-		}
-		if ( barHeight > 0.0f ) {
-			gui->SetColor( idVec4( 0.0f, 0.0f, 0.0f, 1.0f ) );
-			DrawStretchPic( 0.0f, 0.0f, sysWidth, barHeight, 0, 0, 1, 1, white );
-			DrawStretchPic( 0.0f, sysHeight - barHeight, sysWidth, barHeight, 0, 0, 1, 1, white );
-		}
-	}
-
-	if ( isMouseInClientArea && ( mouseEnabled && useMouse ) && ( InhibitControl() || ( !InhibitControl() && !useInhibtControl ) ) ) {
-		gui->SetGLState( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
-		gui->SetColor( idVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
-		idVec2 mouse = renderState.matrix.Transform( idVec2( mouseX - 1, mouseY - 2 ) );
-		//idSWFScriptObject * hitObject = HitTest( mainspriteInstance, swfRenderState_t(), mouseX, mouseY, NULL );
-		if ( !hasHitObject ) { //hitObject == NULL ) {
-			DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_arrow );
-		} else {
-			DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_hand );
-		}
-	}
-
-	// restore the GL State
-	gui->SetGLState( 0 );
-}
-
-/*
-========================
 idSWF::RenderMask
 ========================
 */
@@ -184,197 +383,6 @@ void idSWF::RenderMask( idRenderSystem * gui, const swfDisplayEntry_t * mask, co
 	}
 }
 
-/*
-========================
-idSWF::RenderSprite
-========================
-*/
-void idSWF::RenderSprite( idRenderSystem * gui, idSWFSpriteInstance * spriteInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen ) {
-
-	if ( spriteInstance == NULL ) {
-		idLib::Warning( "%s: RenderSprite: spriteInstance == NULL", filename.c_str() );
-		return;
-	}
-	if ( !spriteInstance->isVisible ) {
-		return;
-	}
-	if ( ( ( renderState.cxf.mul.w + renderState.cxf.add.w ) <= ALPHA_EPSILON ) && ( swf_forceAlpha.GetFloat() <= 0.0f ) ) {
-		return;
-	}
-
-	idStaticList<const swfDisplayEntry_t *, 256> activeMasks;
-
-	for ( int i = 0; i < spriteInstance->displayList.Num(); i++ ) {
-		const swfDisplayEntry_t & display = spriteInstance->displayList[i];
-
-		for ( int j = 0; j < activeMasks.Num(); j++ ) {
-			const swfDisplayEntry_t * mask = activeMasks[ j ];
-			if ( display.depth > mask->clipDepth ) {
-				RenderMask( gui, mask, renderState, STENCIL_DECR );
-				activeMasks.RemoveIndexFast( j );
-			}
-		}
-		if ( display.clipDepth > 0 ) {
-			activeMasks.Append( &display );
-			RenderMask( gui, &display, renderState, STENCIL_INCR );
-			continue;
-		}
-		idSWFDictionaryEntry * entry = FindDictionaryEntry( display.characterID );
-		if ( entry == NULL ) {
-			continue;
-		}
-
-		swfRenderState_t renderState2;
-
-		//if ( spriteInstance->stereoDepth != STEREO_DEPTH_TYPE_NONE ) {
-		//	renderState2.stereoDepth = ( stereoDepthType_t )spriteInstance->stereoDepth; 
-		//} else if ( renderState.stereoDepth != STEREO_DEPTH_TYPE_NONE ) {
-		//	renderState2.stereoDepth = renderState.stereoDepth;
-		//}
-
-		renderState2.matrix = display.matrix.Multiply( renderState.matrix );
-		renderState2.cxf = display.cxf.Multiply( renderState.cxf );
-		renderState2.ratio = display.ratio;
-		if ( display.blendMode != 0 ) {
-			renderState2.blendMode = display.blendMode;
-		} else {
-			renderState2.blendMode = renderState.blendMode;
-		}
-		renderState2.activeMasks = renderState.activeMasks + activeMasks.Num();
-
-		if ( 0/*spriteInstance->materialOverride != NULL */) {
-			//renderState2.material = spriteInstance->materialOverride;
-			renderState2.materialWidth = spriteInstance->materialWidth;
-			renderState2.materialHeight = spriteInstance->materialHeight;
-		} else {
-			//renderState2.material = renderState.material;
-			//renderState2.materialWidth = renderState.materialWidth;
-			renderState2.materialHeight = renderState.materialHeight;
-		}
-
-		float xOffset = 0.0f;
-		float yOffset = 0.0f;
-
-		if ( entry->type == SWF_DICT_SPRITE ) {
-			display.spriteInstance->SetAlignment( spriteInstance->xOffset, spriteInstance->yOffset );
-
-			if ( display.spriteInstance->name[0] == '_' ) {
-				//if ( display.spriteInstance->name.Icmp( "_leftAlign" ) == 0 ) {
-				//	float adj = (float)frameWidth  * 0.10;
-				//	renderState2.matrix.tx = ( display.matrix.tx - adj ) * renderState.matrix.xx;
-				//}
-				//if ( display.spriteInstance->name.Icmp( "_rightAlign" ) == 0 ) {
-				//	renderState2.matrix.tx = ( (float)renderSystem->GetWidth() - ( ( (float)frameWidth - display.matrix.tx - adj ) * renderState.matrix.xx ) );
-				//}
-		
-				float widthAdj = swf_titleSafe.GetFloat() * frameWidth;
-				float heightAdj = swf_titleSafe.GetFloat() * frameHeight;
-
-				const float pixelAspect = renderSystem->GetPixelAspect();
-				const float sysWidth = renderSystem->GetWidth() * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
-				const float sysHeight = renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
-
-				if ( display.spriteInstance->name.Icmp( "_fullScreen" ) == 0 ) {
-					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
-					renderState2.matrix.ty = display.matrix.ty * renderState.matrix.yy;
-
-					float xScale = sysWidth / (float)frameWidth;
-					float yScale = sysHeight / (float)frameHeight;
-
-					renderState2.matrix.xx = xScale;
-					renderState2.matrix.yy = yScale;
-				}
-
-				if ( display.spriteInstance->name.Icmp( "_absTop" ) == 0 ) {
-					renderState2.matrix.ty = display.matrix.ty * renderState.matrix.yy;
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_top" ) == 0 ) {
-					renderState2.matrix.ty = ( display.matrix.ty + heightAdj ) * renderState.matrix.yy;
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_topLeft" ) == 0 ) {
-					renderState2.matrix.tx = ( display.matrix.tx + widthAdj ) * renderState.matrix.xx;
-					renderState2.matrix.ty = ( display.matrix.ty + heightAdj ) * renderState.matrix.yy;
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_left" ) == 0 ) {
-					float prevX = renderState2.matrix.tx;
-					renderState2.matrix.tx = ( display.matrix.tx + widthAdj ) * renderState.matrix.xx;
-					xOffset = (( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( idStr::FindText( display.spriteInstance->name, "_absLeft", false ) >= 0 ) {
-					float prevX = renderState2.matrix.tx;
-					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
-					xOffset = (( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_bottomLeft" ) == 0 ) {
-					float prevX = renderState2.matrix.tx;
-					renderState2.matrix.tx = ( display.matrix.tx + widthAdj ) * renderState.matrix.xx;
-					xOffset = (( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
-					
-
-					float prevY = renderState2.matrix.ty;
-					renderState2.matrix.ty = ( (float)sysHeight - ( ( (float)frameHeight - display.matrix.ty + heightAdj ) * renderState.matrix.yy ) );
-					yOffset = (( renderState2.matrix.ty - prevY ) / renderState.matrix.yy );
-					
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_absBottom" ) == 0 ) {
-					renderState2.matrix.ty = ( (float)sysHeight - ( ( (float)frameHeight - display.matrix.ty ) * renderState.matrix.yy ) );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_bottom" ) == 0 ) {
-					renderState2.matrix.ty = ( (float)sysHeight - ( ( (float)frameHeight - display.matrix.ty + heightAdj ) * renderState.matrix.yy ) );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_topRight" ) == 0 ) {
-					renderState2.matrix.tx = ( (float)sysWidth - ( ( (float)frameWidth - display.matrix.tx + widthAdj ) * renderState.matrix.xx ) );
-					renderState2.matrix.ty = ( display.matrix.ty + heightAdj ) * renderState.matrix.yy;
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_right" ) == 0 ) {
-					float prevX = renderState2.matrix.tx;
-					renderState2.matrix.tx = ( (float)sysWidth - ( ( (float)frameWidth - display.matrix.tx + widthAdj ) * renderState.matrix.xx ) );
-					xOffset = (( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( idStr::FindText( display.spriteInstance->name, "_absRight", true ) >= 0 ) {
-					float prevX = renderState2.matrix.tx;
-					renderState2.matrix.tx = ( (float)sysWidth - ( ( (float)frameWidth - display.matrix.tx ) * renderState.matrix.xx ) );
-					xOffset = (( renderState2.matrix.tx - prevX ) / renderState.matrix.xx );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );					
-				} else if ( display.spriteInstance->name.Icmp( "_bottomRight" ) == 0 ) {
-					renderState2.matrix.tx = ( (float)sysWidth - ( ( (float)frameWidth - display.matrix.tx + widthAdj ) * renderState.matrix.xx ) );
-					renderState2.matrix.ty = ( (float)sysHeight - ( ( (float)frameHeight - display.matrix.ty + heightAdj ) * renderState.matrix.yy ) );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_absTopLeft" ) == 0 ) {	// ABSOLUTE CORNERS OF SCREEN
-					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
-					renderState2.matrix.ty = display.matrix.ty * renderState.matrix.yy;
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_absTopRight" ) == 0 ) {
-					renderState2.matrix.tx = ( (float)sysWidth - ( ( (float)frameWidth - display.matrix.tx ) * renderState.matrix.xx ) );
-					renderState2.matrix.ty = display.matrix.ty * renderState.matrix.yy;
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_absBottomLeft" ) == 0 ) {
-					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
-					renderState2.matrix.ty = ( (float)sysHeight - ( ( (float)frameHeight - display.matrix.ty ) * renderState.matrix.yy ) );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				} else if ( display.spriteInstance->name.Icmp( "_absBottomRight" ) == 0 ) {
-					renderState2.matrix.tx = ( (float)sysWidth - ( ( (float)frameWidth - display.matrix.tx ) * renderState.matrix.xx ) );
-					renderState2.matrix.ty = ( (float)sysHeight - ( ( (float)frameHeight - display.matrix.ty ) * renderState.matrix.yy ) );
-					display.spriteInstance->SetAlignment( spriteInstance->xOffset + xOffset, spriteInstance->yOffset + yOffset );
-				}
-			}
-			
-			RenderSprite( gui, display.spriteInstance, renderState2, time, isSplitscreen );
-		} else if ( entry->type == SWF_DICT_SHAPE ) {
-			RenderShape( gui, entry->shape, renderState2 );
-		} else if ( entry->type == SWF_DICT_MORPH ) {
-			RenderMorphShape( gui, entry->shape, renderState2 );
-		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
-			RenderEditText( gui, display.textInstance, renderState2, time, isSplitscreen );
-		} else {
-			//idLib::Warning( "%s: Tried to render an unrenderable character %d", filename.c_str(), entry->type );
-		}
-	}
-	for ( int j = 0; j < activeMasks.Num(); j++ ) {
-		const swfDisplayEntry_t * mask = activeMasks[ j ];
-		RenderMask( gui, mask, renderState, STENCIL_DECR );
-	}
-}
 
 /*
 ========================
@@ -1535,5 +1543,4 @@ void idSWF::FindTooltipIcons( idStr * text ) {
 		}
 	}
 }
-
-
+#endif

@@ -119,6 +119,16 @@ struct swfTrait_class
 	swfClass_info*	classi;		//u30 classi
 };
 
+struct swfTrait_function {
+	uint32				slot_id;	//u30 slot_id
+	swfMethod_info *	func;		//u30 function
+};
+
+struct swfTrait_method {
+	uint32				disp_id;	//u30 disp_id
+	swfMethod_info *	method;		//u30 method
+};
+
 struct swfScript_info
 {
 	swfMethod_info*			init;	//u30 init
@@ -155,8 +165,10 @@ struct SWF_AbcFile
 	void ReadInstanceInfo	( idSWFBitStream &bitstream, swfInstance_info &newInstancedata );
 	void ReadTraitData		( idSWFBitStream &bitstream, swfTraits_info &newTraitsData );
 	void ReadTraitsInfo		( idSWFBitStream &bitstream, swfTraits_info &newTraitsData );
-
 	void ReadClassInfo		( idSWFBitStream &bitstream, swfClass_info &newClassData );
+	void ReadScriptInfo		( idSWFBitStream &bitstream, swfScript_info &newScriptData );
+	void ReadMethodBodyInfo	( idSWFBitStream &bitstream, swfMethod_body_info &newMethodBody );
+	void ReadExceptionInfo	( idSWFBitStream &bitstream, swfException_info &newException );
 
 	uint16						minor_version;
 	uint16						major_version;

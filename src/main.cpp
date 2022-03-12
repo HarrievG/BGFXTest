@@ -54,14 +54,15 @@ idSession *session = NULL;
 //#define WINDOW_WIDTH 3840
 //#define WINDOW_HEIGHT 2160
 ForwardRenderer * fwRender;
-
+static TextBufferManager * textMan;
+static TextBufferHandle * gTextHandle = nullptr;
 void main_loop( void *data ) {
 	auto context = static_cast< bgfxContext_t * >( data );
 
 	static int cnt = 0;
 	static idFont *fnt = nullptr;
 	static bool initFont = true;
-	static TextBufferManager *textMan;
+	
 	static TextBufferHandle bufferHandle;
 	static idSWF *swfTest;
 	if (!fnt)
@@ -70,13 +71,17 @@ void main_loop( void *data ) {
 		textMan = new TextBufferManager( fnt );
 		bufferHandle = textMan->createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
 
-		swfTest = new idSWF("clicktest.swf");
+		swfTest = new idSWF("clicktest.swf",0,textMan);
+
 		eventLoop->RegisterCallback( []( const sysEvent_t &event )
 			-> auto {
 			swfTest->HandleEvent(&event);
 		} );
 		swfTest->Activate(true);
 	}
+
+
+	swfTest->Render( Sys_Milliseconds() );
 	static idStr tmpStr = "!123adadada123!";
 	textMan->clearTextBuffer(bufferHandle);
 	textMan->setPenPosition(bufferHandle,10,100);
@@ -151,6 +156,8 @@ void main_loop( void *data ) {
 		bgfx::setViewFrameBuffer( txtView, fwRender->frameBuffer );
 		bgfx::setState( BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA );
 		textMan->submitTextBuffer( bufferHandle, txtView );
+		if (gTextHandle != nullptr )
+			textMan->submitTextBuffer( *gTextHandle, txtView );
 	}
 
 

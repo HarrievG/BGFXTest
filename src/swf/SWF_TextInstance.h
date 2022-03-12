@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_ScriptObject.h"
 #include "SWF_Types.h"
 #include "SWF.h"
+#include "../bgfx-stubs/Font/text_buffer_manager.h"
 class idSWF;
 
 struct subTimingWordData_t {
@@ -190,6 +191,8 @@ public:
 	int			inputTextStartChar;
 	
 	idList< subTimingWordData_t > subtitleTimingInfo;
+
+	TextBufferHandle textBufferHandle;
 };
 
 /*

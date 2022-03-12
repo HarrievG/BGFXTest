@@ -44,9 +44,9 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_SpriteInstance.h"
 #include "SWF_ShapeParser.h"
 #include "SWF_TextInstance.h"
+#include "../bgfx-stubs/Font/text_buffer_manager.h"
 
 class idSWFSpriteInstance;
-
 
 class idImage {
 
@@ -104,7 +104,7 @@ This class handles loading and rendering SWF files
 */
 class idSWF {
 public:
-	idSWF( const char * filename, idSoundWorld * soundWorld = NULL );
+	idSWF( const char * filename, idSoundWorld * soundWorld = NULL,TextBufferManager * textMan = NULL);
 	~idSWF();
 
 	bool	IsLoaded() { return ( frameRate > 0 ); }
@@ -119,7 +119,7 @@ public:
 	void SetPausedRender( bool valid ) { pausedRender = valid; }
 	bool GetPausedRender() { return pausedRender; } 
 
-	//void Render( idRenderSystem * gui, int time = 0, bool isSplitscreen = false );
+	void Render( int time = 0, bool isSplitscreen = false );
 	bool HandleEvent( const sysEvent_t * event );
 	bool InhibitControl();
 	void ForceInhibitControl( bool val ) { inhibitControl = val; }
@@ -163,7 +163,7 @@ public:
 	int	GetNumDictionaryEntry() { return dictionary.Num(); }
 
 	idSWFScriptObject * HitTest( idSWFSpriteInstance * spriteInstance, const swfRenderState_t & renderState, int x, int y, idSWFScriptObject * parentObject );
-
+	TextBufferManager *		textBufferManager;
 private:
 	idStr			filename;
 	ID_TIME_T		timestamp;
@@ -214,7 +214,7 @@ private:
 	idSoundWorld *			soundWorld;
 
 	const idMaterial *		atlasMaterial;
-
+	
 	idBlockAlloc< idSWFSpriteInstance, 16 >	spriteInstanceAllocator;
 	idBlockAlloc< idSWFTextInstance, 16 >	textInstanceAllocator;
 
@@ -353,7 +353,7 @@ private:
 	//----------------------------------
 	//void			DrawStretchPic( float x, float y, float w, float h, float s1, float t1, float s2, float t2, const idMaterial *material );
 	//void			DrawStretchPic( const idVec4 & topLeft, const idVec4 & topRight, const idVec4 & bottomRight, const idVec4 & bottomLeft, const idMaterial * material );
-	//void			RenderSprite( idRenderSystem * gui, idSWFSpriteInstance * sprite, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
+	void			RenderSprite(idSWFSpriteInstance * sprite, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
 	//void			RenderMask( idRenderSystem * gui, const swfDisplayEntry_t * mask, const swfRenderState_t & renderState, const int stencilMode );
 	//void			RenderShape( idRenderSystem * gui, const idSWFShape * shape, const swfRenderState_t & renderState );
 	//void			RenderMorphShape( idRenderSystem * gui, const idSWFShape* shape, const swfRenderState_t & renderState );
