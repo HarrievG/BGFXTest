@@ -145,7 +145,10 @@ void idSWFSprite::Load( idSWFBitStream & bitstream, bool parseDictionary ) {
 				label.frameLabel = tagStream.ReadString();
 			}
 			break;
-
+		case Tag_DoABC :
+		{
+			int a;
+		}
 		case Tag_DoInitAction: {
 			tagStream.ReadU16();
 
@@ -170,6 +173,9 @@ void idSWFSprite::Load( idSWFBitStream & bitstream, bool parseDictionary ) {
 			break;
 		}
 	}
+
+	//try to insert actions that correspond to the current scripts
+
 }
 
 /*

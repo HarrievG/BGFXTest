@@ -189,6 +189,7 @@ enum swfTextRenderMode_t {
 	SWF_TEXT_RENDER_AUTOSCROLL,
 	SWF_TEXT_RENDER_MODE_COUNT,
 };
+//each edit text should hold an textbufferhandle
 
 class idSWFEditText {
 public:

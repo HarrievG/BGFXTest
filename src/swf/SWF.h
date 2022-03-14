@@ -47,6 +47,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../bgfx-stubs/Font/text_buffer_manager.h"
 
 class idSWFSpriteInstance;
+class SDL_Cursor;
 
 class idImage {
 
@@ -321,6 +322,8 @@ private:
 	const idMaterial *guiCursor_hand;
 	const idMaterial *white;
 
+	SDL_Cursor * cursorHand;
+	SDL_Cursor * cursorArrow;
 private:
 	friend class idSWFSprite;
 	friend class idSWFSpriteInstance;
@@ -359,7 +362,7 @@ private:
 	//void			RenderMorphShape( idRenderSystem * gui, const idSWFShape* shape, const swfRenderState_t & renderState );
 	//void			DrawEditCursor( idRenderSystem * gui, float x, float y, float w, float h, const swfMatrix_t & matrix );
 	//void			DrawLine( idRenderSystem * gui, const idVec2 & p1, const idVec2 & p2, float width, const swfMatrix_t & matrix );
-	//void			RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
+	void			RenderEditText( idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
 	//uint64			GLStateForRenderState( const swfRenderState_t & renderState );
 	//void			FindTooltipIcons( idStr * text );
 

@@ -32,6 +32,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_Types.h"
 #include "SWF.h"
 #include "../idFramework/Font.h"
+#include "SDL_mouse.h"
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
@@ -122,6 +123,8 @@ bool idSWF::LoadSWF( const char * fullpath ) {
 
 	// parse everything
 	mainsprite->Load( bitstream, true );
+	cursorArrow = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
+	cursorHand = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
 
 	// now that all images have been loaded, write out the combined image
 	idStr atlasFileName = "generated/";

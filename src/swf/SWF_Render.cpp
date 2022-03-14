@@ -29,6 +29,7 @@ If you have questions concerning this license or the applicable additional terms
 //#include "../renderer/tr_local.h"
 #include "../idFramework/idlib/Lib.h"
 #include "../bgfx-stubs/Font/text_buffer_manager.h"
+#include <SDL_mouse.h>
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
 idCVar swf_stopat( "swf_stopat", "0", CVAR_FLOAT, "stop at a specific frame" );
@@ -126,10 +127,24 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 		//gui->SetGLState( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 		//gui->SetColor( idVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
 		idVec2 mouse = renderState.matrix.Transform( idVec2( mouseX - 1, mouseY - 2 ) );
-		//idSWFScriptObject * hitObject = HitTest( mainspriteInstance, swfRenderState_t(), mouseX, mouseY, NULL );
+		idSWFScriptObject * hitObject = HitTest( mainspriteInstance, swfRenderState_t(), mouseX, mouseY, NULL );
+		static bool isHand = false;
+		static bool isCursor = false;
 		if ( !hasHitObject ) { //hitObject == NULL ) {
-			//DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_arrow );
+			SDL_SetCursor(cursorArrow);
+			if (!isCursor){
+				SDL_SetCursor(cursorHand);
+				isCursor = true;
+				isHand = false;
+			}
+				//DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_arrow );
 		} else {
+			if (!isHand){
+				SDL_SetCursor(cursorHand);
+				isCursor = false;
+				isHand = true;
+			}
+			
 			//DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_hand );
 		}
 	}
@@ -321,12 +336,11 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 		} else if ( entry->type == SWF_DICT_MORPH ) {
 			//RenderMorphShape( gui, entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
-			//RenderEditText( gui, display.textInstance, renderState2, time, isSplitscreen );
+			RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
 			auto & text = display.textInstance->GetEditText()->initialText;
-			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,display.textInstance->bounds.tl.x,display.textInstance->bounds.tl.y);
+			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,display.textInstance->bounds.br.x,display.textInstance->bounds.br.y);
 			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
-			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
-
+			//textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
 		} else {
 			//idLib::Warning( "%s: Tried to render an unrenderable character %d", filename.c_str(), entry->type );
 		}
@@ -694,7 +708,8 @@ void idSWF::DrawEditCursor( idRenderSystem * gui, float x, float y, float w, flo
 idSWF::RenderEditText
 ========================
 */
-void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen ) {
+#endif
+void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen ) {
 	if ( textInstance == NULL ) {
 		idLib::Warning( "%s: RenderEditText: textInstance == NULL", filename.c_str() );
 		return;
@@ -742,7 +757,7 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 	}	
 
 	if ( textInstance->tooltip ) {
-		FindTooltipIcons( &text );
+		//FindTooltipIcons( &text );
 	} else {
 		tooltipIconList.Clear();
 	}
@@ -815,8 +830,8 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 	idVec4 selColor( defaultColor );
 	selColor.w *= 0.5f;
 
-	gui->SetColor( defaultColor );
-	gui->SetGLState( GLStateForRenderState( renderState ) );
+	//gui->SetColor( defaultColor );
+	//gui->SetGLState( GLStateForRenderState( renderState ) );
 
 	swfRect_t bounds;
 	bounds.tl.x = xScale * ( shape->bounds.tl.x + SWFTWIP( shape->leftMargin ) );
@@ -843,8 +858,15 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 		scaledGlyphInfo_t glyph;
 		fontInfo->GetScaledGlyph( glyphScale, ' ', glyph );
 		yPos = glyph.height / 2.0f;
-		DrawEditCursor( gui, bounds.tl.x, yPos, 1.0f, linespacing, matrix );
+		//DrawEditCursor( gui, bounds.tl.x, yPos, 1.0f, linespacing, matrix );
 	}
+
+	idVec2 topl = matrix.Transform( idVec2( bounds.tl.x, fontInfo->GetLineHeight(glyphScale) ) );
+	//idVec2 bl = matrix.Transform( idVec2( bounds.tl.x, fontInfo->GetLineHeight ) );
+
+	//textBufferManager->setPenPosition(textInstance->textBufferHandle, topl.x,topl.y);
+	//textBufferManager->appendText( textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
+	//textBufferManager->submitTextBuffer(textInstance->textBufferHandle,50);
 
 	if ( textInstance->IsSubtitle() ) {
 		if ( text.IsEmpty() && textInstance->subtitleText.IsEmpty() ) {
@@ -1208,6 +1230,12 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 
 		y = bounds.tl.y + ( index * linespacing );
 
+		// all of the size calculation should go here.
+		// 1. there was a bug in it anyway
+		// 2. we dont draw single glyphs anymore, but the whole field.
+		//TODO
+		//	because of the above, images in text have to be reimplemented.
+		//	current approach :  break up textfield on each image position.
 		float biggestGlyphHeight = 0.0f;		
 		/*for ( int image = 0; image < tooltipIconList.Num(); ++image ) {
 			if ( tooltipIconList[image].startIndex >= startCharacter && tooltipIconList[image].endIndex < endCharacter ) {
@@ -1365,9 +1393,9 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 				//uint32 color = gui->GetColor();
 				idVec4 imgColor = colorWhite;
 				imgColor.w = defaultColor.w;
-				gui->SetColor( imgColor );
-				DrawStretchPic( idVec4( topl.x, topl.y, s1, t1 ), idVec4( topr.x, topr.y, s2, t1 ), idVec4( br.x, br.y, s2, t2 ), idVec4( bl.x, bl.y, s1, t2 ), icon.material );
-				gui->SetColor( defaultColor );
+				//gui->SetColor( imgColor );
+				//DrawStretchPic( idVec4( topl.x, topl.y, s1, t1 ), idVec4( topr.x, topr.y, s2, t1 ), idVec4( br.x, br.y, s2, t2 ), idVec4( bl.x, bl.y, s1, t2 ), icon.material );
+				//gui->SetColor( defaultColor );
 
 				x += icon.imageWidth * imageScale;
 				x += extraSpace;
@@ -1413,9 +1441,9 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 				idVec2 topr = matrix.Transform( idVec2( x + glyphSkip, y ) );
 				idVec2 br = matrix.Transform( idVec2( x + glyphSkip, y + linespacing ) );
 				idVec2 bl = matrix.Transform( idVec2( x, y + linespacing ) );
-				gui->SetColor( selColor );
-				DrawStretchPic( idVec4( topl.x, topl.y, 0, 0 ), idVec4( topr.x, topr.y, 1, 0 ), idVec4( br.x, br.y, 1, 1 ), idVec4( bl.x, bl.y, 0, 1 ), white );
-				gui->SetColor( textColor );
+				//gui->SetColor( selColor );
+				//DrawStretchPic( idVec4( topl.x, topl.y, 0, 0 ), idVec4( topr.x, topr.y, 1, 0 ), idVec4( br.x, br.y, 1, 1 ), idVec4( bl.x, bl.y, 0, 1 ), white );
+				//gui->SetColor( textColor );
 			}
 
 			if ( textInstance->GetHasDropShadow() ) {
@@ -1430,14 +1458,14 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 
 				idVec4 dsColor = colorBlack;
 				dsColor.w = defaultColor.w;
-				gui->SetColor( dsColor );
-				DrawStretchPic( idVec4( dstopl.x, dstopl.y, s1, t1 ), idVec4( dstopr.x, dstopr.y, s2, t1 ), idVec4( dsbr.x, dsbr.y, s2, t2 ), idVec4( dsbl.x, dsbl.y, s1, t2 ), glyph.material );
-				gui->SetColor( textColor );
+				//gui->SetColor( dsColor );
+				//DrawStretchPic( idVec4( dstopl.x, dstopl.y, s1, t1 ), idVec4( dstopr.x, dstopr.y, s2, t1 ), idVec4( dsbr.x, dsbr.y, s2, t2 ), idVec4( dsbl.x, dsbl.y, s1, t2 ), glyph.material );
+				//gui->SetColor( textColor );
 			} else if ( textInstance->HasStroke() ) {
 				
 				idVec4 strokeColor = colorBlack;
 				strokeColor.w = textInstance->GetStrokeStrength() * defaultColor.w;
-				gui->SetColor( strokeColor );
+				//gui->SetColor( strokeColor );
 				for ( int index = 0; index < 4; ++index ) {
 					float xPos = glyphX + ( ( strokeXOffsets[ index ] * textInstance->GetStrokeWeight() ) * glyphScale );
 					float yPos = glyphY + ( ( strokeYOffsets[ index ] * textInstance->GetStrokeWeight() ) * glyphScale );
@@ -1445,16 +1473,16 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 					idVec2 topRight = matrix.Transform( idVec2( xPos + glyphW, yPos ) );
 					idVec2 botRight = matrix.Transform( idVec2( xPos + glyphW, yPos + glyphH ) );
 					idVec2 botLeft = matrix.Transform( idVec2( xPos, yPos + glyphH ) );					
-					DrawStretchPic( idVec4( topLeft.x, topLeft.y, s1, t1 ), idVec4( topRight.x, topRight.y, s2, t1 ), idVec4( botRight.x, botRight.y, s2, t2 ), idVec4( botLeft.x, botLeft.y, s1, t2 ), glyph.material );					
+					//DrawStretchPic( idVec4( topLeft.x, topLeft.y, s1, t1 ), idVec4( topRight.x, topRight.y, s2, t1 ), idVec4( botRight.x, botRight.y, s2, t2 ), idVec4( botLeft.x, botLeft.y, s1, t2 ), glyph.material );					
 				}
-				gui->SetColor( textColor );
+				//gui->SetColor( textColor );
 			}
 
-			DrawStretchPic( idVec4( topl.x, topl.y, s1, t1 ), idVec4( topr.x, topr.y, s2, t1 ), idVec4( br.x, br.y, s2, t2 ), idVec4( bl.x, bl.y, s1, t2 ), glyph.material );
+			//DrawStretchPic( idVec4( topl.x, topl.y, s1, t1 ), idVec4( topr.x, topr.y, s2, t1 ), idVec4( br.x, br.y, s2, t2 ), idVec4( bl.x, bl.y, s1, t2 ), glyph.material );
 			x += glyphSkip;
 			x += extraSpace;
 			if ( cursorPos == c ) {
-				DrawEditCursor( gui, x - 1.0f, y, 1.0f, linespacing, matrix );
+				//DrawEditCursor( gui, x - 1.0f, y, 1.0f, linespacing, matrix );
 			}
 			c++;
 			overallIndex += i - overallLineIndex;
@@ -1465,6 +1493,7 @@ void idSWF::RenderEditText( idRenderSystem * gui, idSWFTextInstance * textInstan
 	}
 }
 
+#if 0
 /*
 ========================
 idSWF::FindTooltipIcons

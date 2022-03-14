@@ -305,7 +305,7 @@ idFont::GetScaledGlyph
 ==============================
 */
 void idFont::GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphInfo ) const {
-	common->Warning("idFont: GetScaledGlyph WILL FAIL! fontInfo->material->GetImageWidth()" );
+	//common->Warning("idFont: GetScaledGlyph WILL FAIL! fontInfo->material->GetImageWidth()" );
 	if ( alias != NULL ) {
 		return alias->GetScaledGlyph( scale, idx, glyphInfo );
 	}
