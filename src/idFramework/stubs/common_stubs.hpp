@@ -40,6 +40,7 @@ public:
 	virtual void			BeginRedirect( char *buffer, int buffersize, void ( *flush )( const char * ) ) { }
 	virtual void			EndRedirect( void ) { }
 	virtual void			SetRefreshOnPrint( bool set ) { }
+	virtual void			PrintPrefix( const char * pre );
 	virtual void			Printf( const char *fmt, ... );
 	virtual void			VPrintf( const char *fmt, va_list arg );
 	virtual void			DPrintf( const char *fmt, ... );

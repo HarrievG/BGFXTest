@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #pragma warning( disable: 4189 ) // local variable is initialized but not referenced
 
+idCVar swf_FontBitmaps( "swf_FontBitmaps", "1", CVAR_BOOL, "use bitmap fonts instead of vector fonts" );
 /*
 ========================
 idSWFShapeParser::ParseShape
@@ -135,10 +136,13 @@ void idSWFShapeParser::ParseFont( idSWFBitStream & bitstream, idSWFFontGlyph & s
 	rgba = false;
 	morph = false;
 
-	fillDraws.SetNum( 1 );
+	if (!swf_FontBitmaps.GetBool())
+	{
+		fillDraws.SetNum( 1 );
 
-	ParseShapes( bitstream, NULL, true );
-	TriangulateSoup( shape );
+		ParseShapes( bitstream, NULL, true );
+		TriangulateSoup( shape );
+	}
 }
 
 /*

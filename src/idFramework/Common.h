@@ -168,6 +168,9 @@ public:
 								// Update the screen with every message printed.
 	virtual void				SetRefreshOnPrint( bool set ) = 0;
 
+								// Prefix for each console line
+	virtual void				PrintPrefix( const char * pre ) = 0;
+
 								// Prints message to the console, which may cause a screen update if com_refreshOnPrint is set.
 	virtual void				Printf( const char *fmt, ... )id_attribute((format(printf,2,3))) = 0;
 

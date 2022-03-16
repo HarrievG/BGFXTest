@@ -34,7 +34,6 @@ struct swfMetadata_info
 	idList<item>	items;	//u30 item_count item_info items[item_count]
 };
 
-
 struct swfOption_info
 {
 	struct item { //option_detail 
@@ -180,4 +179,14 @@ struct SWF_AbcFile
 	idList<swfClass_info>		classes;		//class_info class[class_count]
 	idList<swfScript_info>		scripts;		//u30 script_count script_info script[script_count]
 	idList<swfMethod_body_info>	method_bodies;	//u30 method_body_count method_body_info method_body[method_body_count]
+};
+
+struct SWF_SymbolClass
+{
+	struct Item
+	{
+		uint16 tag;
+		idStr name;
+	};
+	idList<Item> symbols;
 };

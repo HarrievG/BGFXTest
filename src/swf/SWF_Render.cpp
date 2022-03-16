@@ -336,11 +336,12 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 		} else if ( entry->type == SWF_DICT_MORPH ) {
 			//RenderMorphShape( gui, entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
-			RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
+			textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
+			//RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
 			auto & text = display.textInstance->GetEditText()->initialText;
 			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,display.textInstance->bounds.br.x,display.textInstance->bounds.br.y);
 			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
-			//textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
+ 			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
 		} else {
 			//idLib::Warning( "%s: Tried to render an unrenderable character %d", filename.c_str(), entry->type );
 		}

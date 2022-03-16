@@ -67,6 +67,18 @@ public:
 	uint32			ReadU32();
 	int16			ReadS16();
 	int32			ReadS32();
+	template< typename T >
+	T ReadEncoded(){
+		T result = 0;
+		for ( int i = 0; i < 5; i++ ) {
+			byte b = ReadU8( );
+			result |= ( b & 0x7F ) << ( 7 * i );
+			if ( ( b & 0x80 ) == 0 ) {
+				return result;
+			}
+		}
+		return result;
+	}
 	uint32			ReadEncodedU32();
 	float			ReadFixed8();
 	float			ReadFixed16();
@@ -128,6 +140,7 @@ ID_INLINE uint16	idSWFBitStream::ReadU16( ) { ResetBits( ); readp += 2; return (
 ID_INLINE uint32	idSWFBitStream::ReadU32( ) { ResetBits( ); readp += 4; return ( readp[-4] | ( readp[-3] << 8 ) | ( readp[-2] << 16 ) | ( readp[-1] << 24 ) ); }
 ID_INLINE int16_t	idSWFBitStream::ReadS16() { ResetBits(); readp += 2; return ( readp[-2] | ( readp[-1] << 8 ) ); }
 ID_INLINE int32_t	idSWFBitStream::ReadS32() { ResetBits(); readp += 4; return ( readp[-4] | ( readp[-3] << 8 ) | ( readp[-2] << 16 ) | ( readp[-1] << 24 ) ); }
+
 ID_INLINE float		idSWFBitStream::ReadFixed8() { ResetBits(); readp += 2; return SWFFIXED8( ( readp[-2] | ( readp[-1] << 8 ) ) ); }
 ID_INLINE float		idSWFBitStream::ReadFixed16() { ResetBits(); readp += 4; return SWFFIXED16( ( readp[-4] | ( readp[-3] << 8 ) | ( readp[-2] << 16 ) | ( readp[-1] << 24 ) ) ); }
 ID_INLINE float		idSWFBitStream::ReadFloat() { ResetBits(); readp += 4; uint32 i = ( readp[-4] | ( readp[-3] << 8 ) | ( readp[-2] << 16 ) | ( readp[-1] << 24 ) ); return (float &)i; }

@@ -28,7 +28,7 @@
 
 BGFX_HANDLE(TextBufferHandle)
 
-#define MAX_TEXT_BUFFER_COUNT 64
+#define MAX_TEXT_BUFFER_COUNT 1028
 
 /// type of vertex and index buffer to use with a TextBuffer
 struct BufferType

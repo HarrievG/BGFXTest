@@ -46,6 +46,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #include "idlib/Lib.h"
 
+idCVar dev_fatalAssert( "dev_fatalAssert", "1", CVAR_BOOL, "When compiled in debug; asserts are fatal" );
 /*
 ===============================================================================
 
@@ -514,7 +515,8 @@ void AssertFailed( const char *file, int line, const char *expression ) {
 	idLib::sys->DebugPrintf( "\n\nASSERTION FAILED!\n%s(%d): '%s'\n", file, line, expression );
 #ifdef _MSC_VER
 	__debugbreak();
-	_exit(1);
+	if (dev_fatalAssert.GetBool())
+		_exit(1);
 #elif defined(__unix__)
 	// __builtin_trap() causes an illegal instruction which is kinda ugly.
 	// especially if you'd like to be able to continue after the assertion during debugging

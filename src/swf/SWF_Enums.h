@@ -256,4 +256,15 @@ enum swfAction_t {
 	//TODO swf 9 to 12
 };
 
+enum SWFAbcOpcode
+{
+	#define ABC_OP(operandCount, canThrow, stack, internalOnly, nameToken)        OP_##nameToken,
+	#define ABC_UNUSED_OP(operandCount, canThrow, stack, internalOnly, nameToken) ABC_OP(operandCount, canThrow, stack, internalOnly, nameToken)
+	#include "opcodes.tbl"
+	#undef ABC_OP
+	#undef ABC_UNUSED_OP
+
+	//-----
+	OP_end_of_op_codes
+};
 #endif // !__SWF_ENUMS_H__

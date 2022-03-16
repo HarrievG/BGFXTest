@@ -18,6 +18,7 @@ idCVar com_showFPS( "com_showFPS", "0", CVAR_BOOL | CVAR_SYSTEM | CVAR_ARCHIVE |
 idCVar com_timescale( "timescale", "1", CVAR_SYSTEM | CVAR_FLOAT, "scales the time", 0.1f, 10.0f );
 idCVar com_preciseTic( "com_preciseTic", "1", CVAR_BOOL | CVAR_SYSTEM, "run one game tick every async thread update" );
 idCVar com_asyncInput( "com_asyncInput", "1", CVAR_BOOL | CVAR_SYSTEM, "sample input from the async thread" );
+idCVar com_consoleCat( "com_consoleCat", "", CVAR_SYSTEM|CVAR_ROM|CVAR_SERVERINFO, "Prefix for each console line" );
 //Compilers
 // 2 different approaches:
 // 1:	Create dscene/GLTF scene compiler, in the same spirit as dmap/map compiler. 
@@ -326,7 +327,17 @@ void idCommonLocal::Shutdown( void ) {
 	errorList.Clear();
 
 }
+/*
+==================
+idCommonLocal::PrintPrefix
 
+can be used as an trace category
+==================
+*/
+void idCommonLocal::PrintPrefix( const char *pre ) {
+	extern idCVar com_consoleCat;
+	com_consoleCat.SetString( pre );
+}
 /*
 ==================
 idCommonLocal::Printf
