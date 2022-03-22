@@ -272,7 +272,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 					var = mouseObject->Get( "onRelease" );
 					if ( var.IsFunction() ) {
 						idSWFParmList parms;
-						//parms.Append( mouseObject ); // FIXME: Remove this
+						parms.Append( mouseObject ); // FIXME: Remove this
 						var.GetFunction()->Call( mouseObject, parms );
 					}					
 					mouseObject->Release();
@@ -296,7 +296,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 		for ( int runaway = 0; runaway < 32; runaway++ ) {
 			idSWFParmList eventParms;
 			eventParms.Clear();
-			//eventParms.Append( event->inputDevice );
+			eventParms.Append( event->inputDevice );
 			if ( var.IsString() ) {
 				// alias to another key
 				var = shortcutKeys->Get( var.ToString() );
@@ -388,7 +388,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 		isMouseInClientArea = true;
 		// Mouse position in screen space needs to be converted to SWF space
 		if ( event->evType == SE_MOUSE_ABSOLUTE ) {
-			const float pixelAspect = 1.0f;//renderSystem->GetPixelAspect();
+			const float pixelAspect = 1920.0/1080.0;//renderSystem->GetPixelAspect();
 			const float sysWidth = 1920.0f;//renderSystem->GetWidth() * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
 			const float sysHeight = 1080.0f;//renderSystem->GetHeight() / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
 			float scale = swfScale * sysHeight / (float)frameHeight;

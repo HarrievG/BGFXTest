@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_Types.h"
 #include "SWF_Sprites.h"
 #include "swf.h"
+#include "SWF_Abc.h"
 
 class idMaterial;
 /*
@@ -49,7 +50,7 @@ public:
 
 	bool	Run();
 	bool	RunActions();
-
+	bool	InterpCode();
 	const char * GetName() const { return name.c_str(); }
 
 	idSWFScriptObject * GetScriptObject() { return scriptObject; }
@@ -144,6 +145,7 @@ public:
 	idList< swfDisplayEntry_t > displayList;
 	swfDisplayEntry_t * FindDisplayEntry( int depth );
 
+	SWF_AbcFile abcFile;
 	// name of this sprite instance
 	idStr name;
 
@@ -260,6 +262,8 @@ public:
 	SWF_NATIVE_VAR_DECLARE( xOffset );
 	SWF_NATIVE_VAR_DECLARE( onEnterFrame );
 	//SWF_NATIVE_VAR_DECLARE( onLoad );
+///As3.0
+	//SWF_NATIVE_VAR_DECLARE( onEnterFrame );
 };
 
 #endif

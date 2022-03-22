@@ -123,6 +123,7 @@ bool idSWF::LoadSWF( const char * fullpath ) {
 
 	// parse everything
 	mainsprite->Load( bitstream, true );
+
 	cursorArrow = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_ARROW);
 	cursorHand = SDL_CreateSystemCursor(SDL_SYSTEM_CURSOR_HAND);
 

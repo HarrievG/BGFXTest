@@ -24,7 +24,6 @@
  * by updating entries for unused op codes.  Unused op codes have a "name" that is a hex value.
  *
  */
-
 //--------------------------------------------------------------------------------------------------------
 #ifndef ABC_OP_F
 #   ifdef VMCFG_FLOAT

@@ -29,8 +29,13 @@ If you have questions concerning this license or the applicable additional terms
 #include "swf.h"
 #include "../idFramework/idlib/containers/StrList.h"
 
+
 idSWFScriptObject_SpriteInstancePrototype spriteInstanceScriptObjectPrototype;
 ID_INLINE void Prefetch( const void * ptr, int offset ) {}
+
+idSWFScriptObject &idSWF::GetRootObject( )
+{ assert( mainspriteInstance->GetScriptObject() != NULL ); return *( mainspriteInstance->GetScriptObject() ); }
+
 /*
 ========================
 idSWFSpriteInstance::idSWFSpriteInstance
@@ -75,15 +80,27 @@ void idSWFSpriteInstance::Init( idSWFSprite * _sprite, idSWFSpriteInstance * _pa
 	scriptObject->SetSprite( this );
 
 	firstRun = true;
-
 	actionScript = idSWFScriptFunction_Script::Alloc();
-
 	idList<idSWFScriptObject * > scope;
 	scope.Append( sprite->swf->globals );
 	scope.Append( scriptObject );
 	actionScript->SetScope( scope );
 	actionScript->SetDefaultSprite( this );
 
+	//mainsprite instance should execute this.
+	if ( sprite->swf->abcFile.scripts.Num() )
+	{
+		//this is the abc file entry point. 
+		//its not clear, but asuming that 
+		actionScript->SetData(sprite->swf->abcFile.scripts[_sprite->swf->abcFile.scripts.Num()-1].init);
+		actionScript->Call( scriptObject, idSWFParmList() );
+		void swf_PrintStream(SWF_AbcFile * file, idSWFBitStream &bitstream );
+		swf_PrintStream(&sprite->swf->abcFile,sprite->swf->abcFile.scripts[_sprite->swf->abcFile.scripts.Num()-1].init->body->code);
+	}
+
+
+	//actionScript->SetData(abcFile.scripts[abcFile.scripts.Num() - 1].init);
+	//actionScript->Call( scriptObject, idSWFParmList() );
 	for	(int i = 0; i < sprite->doInitActions.Num(); i++) {
 		actionScript->SetData( sprite->doInitActions[i].Ptr(), sprite->doInitActions[i].Length() );
 		actionScript->Call( scriptObject, idSWFParmList() );

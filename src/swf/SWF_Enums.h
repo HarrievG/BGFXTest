@@ -27,6 +27,8 @@ If you have questions concerning this license or the applicable additional terms
 */
 #ifndef __SWF_ENUMS_H__
 #define __SWF_ENUMS_H__
+
+
 enum swfInstanceFlags_t
 {
 	ClassSealed =		0x01,	//The class is sealed: properties can not be dynamically added to instances of the class.
@@ -36,31 +38,39 @@ enum swfInstanceFlags_t
 };
 
 enum swfConstantKind_t{
-	Undefined			= 0x00,
-	Utf8				= 0x01,
-	Int					= 0x03,
-	UInt				= 0x04,
-	PrivateNs			= 0x05,
-	Double				= 0x06,
-	QName				= 0x07,
-	Namespace			= 0x08,
-	False				= 0x0A,
-	True				= 0x0B,
-	Null				= 0x0C,
-	QNameA				= 0x0D,
-	RTQName				= 0x0F,
-	RTQNameA			= 0x10,
-	RTQNameL			= 0x11,
-	RTQNameLA			= 0x12,
-	Multiname			= 0x09,
-	MultinameA			= 0x0E,
-	MultinameL			= 0x1B,
-	MultinameLA			= 0x1C,
-	PackageNamespace	= 0x16,
-	PackageInternalNs	= 0x17,
-	ProtectedNamespace	= 0x18,
-	ExplicitNamespace	= 0x19,
-	StaticProtectedNs	= 0x1A,
+	unused_0x00        = 0x00,
+	Utf8               = 0x01,
+#ifdef SWF_FLOAT
+	Float              = 0x02,
+#endif
+	Int                = 0x03,
+	UInt               = 0x04,
+	PrivateNs          = 0x05, // non-shared namespace
+	Double             = 0x06,
+	Qname              = 0x07, // o.ns::name, ct ns, ct name
+	Namespace          = 0x08,
+	Multiname          = 0x09, // o.name, ct nsset, ct name
+	False              = 0x0A,
+	True               = 0x0B,
+	Null               = 0x0C,
+	QnameA             = 0x0D, // o.@ns::name, ct ns, ct attr-name
+	MultinameA         = 0x0E, // o.@name, ct attr-name
+	RTQname            = 0x0F, // o.ns::name, rt ns, ct name
+	RTQnameA           = 0x10, // o.@ns::name, rt ns, ct attr-name
+	RTQnameL           = 0x11, // o.ns::[name], rt ns, rt name
+	RTQnameLA          = 0x12, // o.@ns::[name], rt ns, rt attr-name
+	NamespaceSet       = 0x15,
+	PackageNamespace   = 0x16,
+	PackageInternalNs  = 0x17,
+	ProtectedNamespace = 0x18,
+	ExplicitNamespace  = 0x19,
+	StaticProtectedNs  = 0x1A,
+	MultinameL         = 0x1B,
+	MultinameLA        = 0x1C,
+	TypeName           = 0x1D,
+#ifdef SWF_FLOAT
+	Float4             = 0x1E,
+#endif
 };
 
 enum swfDictType_t {
@@ -256,15 +266,4 @@ enum swfAction_t {
 	//TODO swf 9 to 12
 };
 
-enum SWFAbcOpcode
-{
-	#define ABC_OP(operandCount, canThrow, stack, internalOnly, nameToken)        OP_##nameToken,
-	#define ABC_UNUSED_OP(operandCount, canThrow, stack, internalOnly, nameToken) ABC_OP(operandCount, canThrow, stack, internalOnly, nameToken)
-	#include "opcodes.tbl"
-	#undef ABC_OP
-	#undef ABC_UNUSED_OP
-
-	//-----
-	OP_end_of_op_codes
-};
 #endif // !__SWF_ENUMS_H__

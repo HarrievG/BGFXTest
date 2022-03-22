@@ -43,7 +43,7 @@ struct swfOption_info
 	uint32 option_count;	//u30 option_count
 	idList<item> options;	//option_detail option[option_count]
 };
-
+struct swfMethod_body_info;
 struct swfMethod_info
 {
 	//zero before use.
@@ -52,6 +52,8 @@ struct swfMethod_info
 		NEED_ACTIVATION = 0x02, // Must be set if this method uses the newactivation opcode.
 		NEED_REST		= 0x04, // This flag creates an ActionScript 3.0 rest arguments array.Must not be used with NEED_ARGUMENTS.See Chapter 3.
 		HAS_OPTIONAL	= 0x08, // Must be set if this method has optional parameters andthe options field is present in this method_info structure.
+		IGNORE_REST		= 0x10,
+		NATIVE			= 0x20,
 		SET_DXNS		= 0x40, // Must be set if this method uses the dxns or dxnslate opcodes.
 		HAS_PARAM_NAMES	= 0x80, // Must be set when the param_names field is present in this method_info structure.
 	};
@@ -63,14 +65,16 @@ struct swfMethod_info
 	uint8					flags;			//u8 flags
 	swfOption_info			options;		//option_info options
 	idStrPtrList			paramNames;		// ( param_info )  param_names	u30 param_name[param_count]
+
+	swfMethod_body_info *	body = nullptr;	
 };
 
 struct swfTraits_info
 {
 	enum Attrib { // upper 4 bits of kind
-		Final = 0x1,	// Is used with Trait_Method, Trait_Getter andTrait_Setter.It marks a method that cannot be overridden by a sub - class
-		Override = 0x2, // Is used with Trait_Method, Trait_Getter andTrait_Setter.It marks a method that has been overridden in this class
-		Metadata = 0x4, // Is used to signal that the fields metadata_count and metadata follow the data field in the traits_info entry
+		Final		= 0x1,	// Is used with Trait_Method, Trait_Getter andTrait_Setter.It marks a method that cannot be overridden by a sub - class
+		Override	= 0x2, // Is used with Trait_Method, Trait_Getter andTrait_Setter.It marks a method that has been overridden in this class
+		Metadata	= 0x4, // Is used to signal that the fields metadata_count and metadata follow the data field in the traits_info entry
 	};
 	enum Type {
 		Trait_Slot		= 0,
@@ -80,6 +84,8 @@ struct swfTraits_info
 		Trait_Class		= 4,
 		Trait_Function  = 5,
 		Trait_Const		= 6,
+		Trait_Count		= Trait_Const + 1,
+		Trait_Mask		= 15
 	};
 	swfMultiname*				name;		//u30 name
 	uint8						kind;		//u8 kind
@@ -151,7 +157,7 @@ struct swfMethod_body_info
 	uint32						initScopeDepth;	//u30 init_scope_depth
 	uint32						maxScopeDepth;	//u30 max_scope_depth
 	uint32						codeLength;		//u30 code_length
-	byte *						code;			//u8 code[code_length]
+	idSWFBitStream				code;			//u8 code[code_length]
 	idList<swfException_info>	exceptions;		//u30 exception_count exception_info exception[exception_count]
 	idList<swfTraits_info>		traits;			//u30 trait_count traits_info traits[trait_count]
 };
@@ -169,6 +175,7 @@ struct SWF_AbcFile
 	void ReadMethodBodyInfo	( idSWFBitStream &bitstream, swfMethod_body_info &newMethodBody );
 	void ReadExceptionInfo	( idSWFBitStream &bitstream, swfException_info &newException );
 
+	void RemoveAccessibility( );
 	uint16						minor_version;
 	uint16						major_version;
 	swfConstant_pool_info		constant_pool;
@@ -190,3 +197,25 @@ struct SWF_SymbolClass
 	};
 	idList<Item> symbols;
 };
+
+enum SWFAbcOpcode {
+#define ABC_OP(operandCount, canThrow, stack, internalOnly, nameToken)        OP_##nameToken,
+#define ABC_UNUSED_OP(operandCount, canThrow, stack, internalOnly, nameToken) ABC_OP(operandCount, canThrow, stack, internalOnly, nameToken)
+#include "opcodes.tbl"
+#undef ABC_OP
+#undef ABC_UNUSED_OP
+
+	//-----
+	OP_end_of_op_codes
+};
+
+struct AbcOpcodeInfo {
+	int8_t operandCount;    // uses -1 for "invalid", we can avoid that if necessary
+	int8_t canThrow;        // always 0 or 1
+	int8_t stack;           // stack movement not taking into account run-time names or function arguments
+	uint16_t wordCode;      // a map used during translation
+	const char *name;       // instruction name or OP_0xNN for undefined instructions #IFDEF DEBUGGER
+};
+
+extern const AbcOpcodeInfo opcodeInfo[];
+extern const unsigned char kindToPushOp[];

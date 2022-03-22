@@ -45,6 +45,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_ShapeParser.h"
 #include "SWF_TextInstance.h"
 #include "../bgfx-stubs/Font/text_buffer_manager.h"
+#include "SWF_Abc.h"
 
 class idSWFSpriteInstance;
 class SDL_Cursor;
@@ -128,7 +129,7 @@ public:
 	void SetGlobal( const char * name, const idSWFScriptVar & value ) { globals->Set( name, value ); }
 	void SetGlobalNative( const char * name, idSWFScriptNativeVariable * native ) { globals->SetNative( name, native ); }
 	idSWFScriptVar GetGlobal( const char * name ) { return globals->Get( name ); }
-	//idSWFScriptObject & GetRootObject() { assert( mainspriteInstance->GetScriptObject() != NULL ); return *( mainspriteInstance->GetScriptObject() ); }
+	idSWFScriptObject & GetRootObject();
 
 	void Invoke( const char *  functionName, const idSWFParmList & parms );
 	void Invoke( const char *  functionName, const idSWFParmList & parms, idSWFScriptVar & scriptVar );
@@ -165,6 +166,7 @@ public:
 
 	idSWFScriptObject * HitTest( idSWFSpriteInstance * spriteInstance, const swfRenderState_t & renderState, int x, int y, idSWFScriptObject * parentObject );
 	TextBufferManager *		textBufferManager;
+	SWF_AbcFile				abcFile;
 private:
 	idStr			filename;
 	ID_TIME_T		timestamp;
@@ -253,13 +255,17 @@ private:
 
 	SWF_NATIVE_FUNCTION_SWF_DECLARE( toUpper );
 
-	//SWF_NATIVE_VAR_DECLARE_NESTED_READONLY( platform, idSWFScriptFunction_getPlatform, Call( object, idSWFParmList() ) );
+	SWF_NATIVE_VAR_DECLARE_NESTED_READONLY( platform, idSWFScriptFunction_getPlatform, Call( object, idSWFParmList() ) );
+
+	class idSWFScriptFunction_Object;
+	SWF_NATIVE_VAR_DECLARE_NESTED_READONLY( Object, idSWFScriptFunction_Object, Call( object, idSWFParmList() ) );
 	//SWF_NATIVE_VAR_DECLARE_NESTED( blackbars, idSWF );
+	//SWF_NATIVE_VAR_DECLARE_NESTED( crop, idSWF );
 	//SWF_NATIVE_VAR_DECLARE_NESTED( crop, idSWF );
 
 	class idSWFScriptFunction_Object : public idSWFScriptFunction {
 	public:
-		idSWFScriptVar	Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ) { return idSWFScriptVar(); }
+		idSWFScriptVar	Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ) { return idSWFScriptVar(&object); }
 		void			AddRef() { }
 		void			Release() { }
 		idSWFScriptObject * GetPrototype() { return &object; }

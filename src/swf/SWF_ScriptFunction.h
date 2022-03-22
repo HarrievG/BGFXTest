@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF_ParmList.h"
 #include "SWF_ScriptObject.h"
 #include "SWF_Bitstream.h"
+#include "SWF_Abc.h"
 /*
 ========================
 Interface for calling functions from script
@@ -147,6 +148,7 @@ public:
 	// This could all be passed to Alloc (and was at one time) but in some places it's far more convenient to specify each separately
 	void	SetFlags( uint16 _flags )								{ flags = _flags; }
 	void	SetData( const byte * _data, uint32 _length )			{ data = _data; length = _length; }
+	void	SetData( swfMethod_info * method);
 	void	SetScope( idList<idSWFScriptObject *> & scope );
 	void	SetConstants( const idSWFConstantPool & _constants )	{ constants.Copy( _constants ); }
 	void	SetDefaultSprite( idSWFSpriteInstance * _sprite )		{ defaultSprite = _sprite; }
@@ -160,8 +162,17 @@ public:
 	virtual idSWFScriptVar	Call( idSWFScriptObject * thisObject, const idSWFParmList & parms );
 
 private:
-	idSWFScriptVar Run( idSWFScriptObject * thisObject, idSWFStack & stack, idSWFBitStream & bitstream );
+//////////////////////////////////////////////////////////////////////////
+//////////////////////ABC Wordcode Interpretation/////////////////////////
+//////////////////////////////////////////////////////////////////////////
+	void getlex( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
+	void getscopeobject( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
+	void pushscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
+	void getlocal0( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
+//////////////////////////////////////////////////////////////////////////
 
+	idSWFScriptVar Run( idSWFScriptObject * thisObject, idSWFStack & stack, idSWFBitStream & bitstream );
+	idSWFScriptVar RunAbc( idSWFScriptObject * thisObject, idSWFStack & stack, idSWFBitStream & bitstream );
 private:
 	int					refCount;
 
@@ -182,6 +193,8 @@ private:
 		uint8 reg;
 	};
 	idList< parmInfo_t > parameters;
+
+	swfMethod_info *methodInfo;
 };
 
 #endif // !__SWF_SCRIPTFUNCTION_H__

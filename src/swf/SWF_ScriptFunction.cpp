@@ -99,6 +99,12 @@ void idSWFScriptFunction_Script::SetScope( idList<idSWFScriptObject *> & newScop
 	}
 }
 
+
+void idSWFScriptFunction_Script::SetData( swfMethod_info *method ) {
+	methodInfo = method;
+}
+
+
 /*
 ========================
 idSWFScriptFunction_Script::Call
@@ -108,7 +114,7 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject * thisObject,
 	idSWFBitStream bitstream( data, length, false );
 
 	// We assume scope[0] is the global scope
-	assert( scope.Num() > 0 );
+	assert( scope.Num() );
 	
 	if ( thisObject == NULL ) {
 		thisObject = scope[0];
@@ -117,6 +123,23 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject * thisObject,
 	idSWFScriptObject * locals = idSWFScriptObject::Alloc();
 
 	idSWFStack stack;
+
+	if ( methodInfo != nullptr )
+	{
+		assert(methodInfo->body);
+		auto * body = methodInfo->body;
+		registers[ 0 ].SetObject( thisObject );
+		stack.Resize( body->max_stack);
+		scope.Resize( body->maxScopeDepth);
+		
+		for (int i=1; i<methodInfo->paramCount+1; i++ )
+		{
+			//registers[ i ]
+		}
+		idSWFBitStream abcStream(methodInfo->body->code.Ptr(),methodInfo->body->codeLength,false);
+		RunAbc( thisObject,stack , abcStream);
+	}
+
 	stack.SetNum( parms.Num() + 1 );
 	for ( int i = 0; i < parms.Num(); i++ ) {
 		stack[ parms.Num() - i - 1 ] = parms[i];
@@ -385,6 +408,238 @@ namespace {
 			return "UNKNOWN CODE";
 		}
 	}
+}
+
+void idSWFScriptFunction_Script::getlex( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
+	const auto & cp = file->constant_pool;
+	const auto & mn = file->constant_pool.multinameInfos[bitstream.ReadU8( )];
+	const idStrPtr propName = (idStrPtr)&cp.utf8Strings[mn.nameIndex];
+
+	for( auto * s : scope ) {
+		if (s->HasProperty(propName->c_str()))
+		{
+			stack.Alloc() = s->Get( propName->c_str());
+		}
+	}
+}
+
+void idSWFScriptFunction_Script::getscopeobject( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
+	stack.Alloc().SetObject(scope[scope.Num() - bitstream.ReadU8() - 1]);
+}
+
+void idSWFScriptFunction_Script::pushscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
+	scope.Append(stack.A().GetObjectA());
+	stack.Pop(1);
+}
+
+void idSWFScriptFunction_Script::getlocal0(SWF_AbcFile* file, idSWFStack &stack, idSWFBitStream &bitstream ) {
+	stack.Alloc() = registers[0];
+}
+/*
+========================
+idSWFScriptFunction_Script::RunAbc bytecode
+========================
+*/
+idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject, idSWFStack &stack, idSWFBitStream &bitstream ) {
+	static int callstackLevel = -1;
+	idSWFSpriteInstance *thisSprite = thisObject->GetSprite( );
+	idSWFSpriteInstance *currentTarget = thisSprite;
+
+	if ( currentTarget == NULL ) {
+		thisSprite = currentTarget = defaultSprite;
+	}
+
+	while ( bitstream.Tell( ) < bitstream.Length( ) ) {
+#define ExecWordCode( n ) case OP_##n: n(&thisSprite->sprite->GetSWF()->abcFile,stack,bitstream); continue;
+		SWFAbcOpcode opCode = (SWFAbcOpcode) bitstream.ReadU8();
+		switch ( opCode ) 	{
+		//ExecWordCode ( bkpt );
+		//ExecWordCode ( nop );
+		//ExecWordCode ( throw );
+		//ExecWordCode ( getsuper );
+		//ExecWordCode ( setsuper );
+		//ExecWordCode ( dxns );
+		//ExecWordCode ( dxnslate );
+		//ExecWordCode ( kill );
+		//ExecWordCode ( label );
+		//ExecWordCode ( ifnlt );
+		//ExecWordCode ( ifnle );
+		//ExecWordCode ( ifngt );
+		//ExecWordCode ( ifnge );
+		//ExecWordCode ( jump );
+		//ExecWordCode ( iftrue );
+		//ExecWordCode ( iffalse );
+		//ExecWordCode ( ifeq );
+		//ExecWordCode ( ifne );
+		//ExecWordCode ( iflt );
+		//ExecWordCode ( ifle );
+		//ExecWordCode ( ifgt );
+		//ExecWordCode ( ifge );
+		//ExecWordCode ( ifstricteq );
+		//ExecWordCode ( ifstrictne );
+		//ExecWordCode ( lookupswitch );
+		//ExecWordCode ( pushwith );
+		//ExecWordCode ( popscope );
+		//ExecWordCode ( nextname );
+		//ExecWordCode ( hasnext );
+		//ExecWordCode ( pushnull );
+		//ExecWordCode ( pushundefined );
+		//ExecWordCode ( nextvalue );
+		//ExecWordCode ( pushbyte );
+		//ExecWordCode ( pushshort );
+		//ExecWordCode ( pushtrue );
+		//ExecWordCode ( pushfalse );
+		//ExecWordCode ( pushnan );
+		//ExecWordCode ( pop );
+		//ExecWordCode ( dup );
+		//ExecWordCode ( swap );
+		//ExecWordCode ( pushstring );
+		//ExecWordCode ( pushint );
+		//ExecWordCode ( pushuint );
+		//ExecWordCode ( pushdouble );
+		ExecWordCode ( pushscope );
+		//ExecWordCode ( pushnamespace );
+		//ExecWordCode ( hasnext2 );
+		//ExecWordCode ( lix8 );
+		//ExecWordCode ( lix16 );
+		//ExecWordCode ( li8 );
+		//ExecWordCode ( li16 );
+		//ExecWordCode ( li32 );
+		//ExecWordCode ( lf32 );
+		//ExecWordCode ( lf64 );
+		//ExecWordCode ( si8 );
+		//ExecWordCode ( si16 );
+		//ExecWordCode ( si32 );
+		//ExecWordCode ( sf32 );
+		//ExecWordCode ( sf64 );
+		//ExecWordCode ( newfunction );
+		//ExecWordCode ( call );
+		//ExecWordCode ( construct );
+		//ExecWordCode ( callmethod );
+		//ExecWordCode ( callstatic );
+		//ExecWordCode ( callsuper );
+		//ExecWordCode ( callproperty );
+		//ExecWordCode ( returnvoid );
+		//ExecWordCode ( returnvalue );
+		//ExecWordCode ( constructsuper );
+		//ExecWordCode ( constructprop );
+		//ExecWordCode ( callsuperid );
+		//ExecWordCode ( callproplex );
+		//ExecWordCode ( callinterface );
+		//ExecWordCode ( callsupervoid );
+		//ExecWordCode ( callpropvoid );
+		//ExecWordCode ( sxi1 );
+		//ExecWordCode ( sxi8 );
+		//ExecWordCode ( sxi16 );
+		//ExecWordCode ( applytype );
+		//ExecWordCode ( DISABLED_pushfloat4 );
+		//ExecWordCode ( newobject );
+		//ExecWordCode ( newarray );
+		//ExecWordCode ( newactivation );
+		//ExecWordCode ( newclass );
+		//ExecWordCode ( getdescendants );
+		//ExecWordCode ( newcatch );
+		//ExecWordCode ( findpropglobalstrict );
+		//ExecWordCode ( findpropglobal );
+		//ExecWordCode ( findpropstrict );
+		//ExecWordCode ( findproperty );
+		//ExecWordCode ( finddef );
+		ExecWordCode ( getlex );
+		//ExecWordCode ( setproperty );
+		//ExecWordCode ( getlocal );
+		//ExecWordCode ( setlocal );
+		//ExecWordCode ( getglobalscope );
+		ExecWordCode ( getscopeobject );
+		//ExecWordCode ( getproperty );
+		//ExecWordCode ( getouterscope );
+		//ExecWordCode ( initproperty );
+		//ExecWordCode ( 0x69 );
+		//ExecWordCode ( deleteproperty );
+		//ExecWordCode ( 0x6B );
+		//ExecWordCode ( getslot );
+		//ExecWordCode ( setslot );
+		//ExecWordCode ( getglobalslot );
+		//ExecWordCode ( setglobalslot );
+		//ExecWordCode ( convert_s );
+		//ExecWordCode ( esc_xelem );
+		//ExecWordCode ( esc_xattr );
+		//ExecWordCode ( convert_i );
+		//ExecWordCode ( convert_u );
+		//ExecWordCode ( convert_d );
+		//ExecWordCode ( convert_b );
+		//ExecWordCode ( convert_o );
+		//ExecWordCode ( checkfilter );
+		//ExecWordCode ( DISABLED_convert );
+		//ExecWordCode ( DISABLED_unplus );
+		//ExecWordCode ( DISABLED_convert );
+		//ExecWordCode ( coerce );
+		//ExecWordCode ( coerce_b );
+		//ExecWordCode ( coerce_a );
+		//ExecWordCode ( coerce_i );
+		//ExecWordCode ( coerce_d );
+		//ExecWordCode ( coerce_s );
+		//ExecWordCode ( astype );
+		//ExecWordCode ( astypelate );
+		//ExecWordCode ( coerce_u );
+		//ExecWordCode ( coerce_o );
+		//ExecWordCode ( negate );
+		//ExecWordCode ( increment );
+		//ExecWordCode ( inclocal );
+		//ExecWordCode ( decrement );
+		//ExecWordCode ( declocal );
+		//ExecWordCode ( typeof );
+		//ExecWordCode ( not );
+		//ExecWordCode ( bitnot );
+		//ExecWordCode ( add );
+		//ExecWordCode ( subtract );
+		//ExecWordCode ( multiply );
+		//ExecWordCode ( divide );
+		//ExecWordCode ( modulo );
+		//ExecWordCode ( lshift );
+		//ExecWordCode ( rshift );
+		//ExecWordCode ( urshift );
+		//ExecWordCode ( bitand );
+		//ExecWordCode ( bitor );
+		//ExecWordCode ( bitxor );
+		//ExecWordCode ( equals );
+		//ExecWordCode ( strictequals );
+		//ExecWordCode ( lessthan );
+		//ExecWordCode ( lessequals );
+		//ExecWordCode ( greaterthan );
+		//ExecWordCode ( greaterequals );
+		//ExecWordCode ( instanceof );
+		//ExecWordCode ( istype );
+		//ExecWordCode ( istypelate );
+		//ExecWordCode ( in );
+		//ExecWordCode ( increment_i );
+		//ExecWordCode ( decrement_i );
+		//ExecWordCode ( inclocal_i );
+		//ExecWordCode ( declocal_i );
+		//ExecWordCode ( negate_i );
+		//ExecWordCode ( add_i );
+		//ExecWordCode ( subtract_i );
+		//ExecWordCode ( multiply_i );
+		ExecWordCode ( getlocal0 );
+		//ExecWordCode ( getlocal1 );
+		//ExecWordCode ( getlocal2 );
+		//ExecWordCode ( getlocal3 );
+		//ExecWordCode ( setlocal0 );
+		//ExecWordCode ( setlocal1 );
+		//ExecWordCode ( setlocal2 );
+		//ExecWordCode ( setlocal3 );
+		//ExecWordCode ( debug );
+		//ExecWordCode ( debugline );
+		//ExecWordCode ( debugfile );
+		//ExecWordCode ( bkptline );
+		//ExecWordCode ( timestamp );
+		//ExecWordCode ( restargc );
+		//ExecWordCode ( restarg );
+		//ExecWordCode ( codes );
+
+		}
+	}
+	callstackLevel--;
+	return idSWFScriptVar( );
 }
 
 /*

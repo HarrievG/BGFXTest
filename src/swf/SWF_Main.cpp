@@ -145,11 +145,17 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	globals = idSWFScriptObject::Alloc();
 	globals->Set( "_global", globals );
 
-	globals->Set( "Object", &scriptFunction_Object );
+
+	globals->Set( "Object", idSWFScriptObject::Alloc( ) );//swfScriptVar_Object.Bind(&scriptFunction_Object));
+	globals->Set( "EventDispatcher", idSWFScriptObject::Alloc( ));
+	globals->Set( "InteractiveObject", idSWFScriptObject::Alloc( ));
+	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ));
+	globals->Set( "Sprite", idSWFScriptObject::Alloc( ));
+	globals->Set( "MovieClip", idSWFScriptObject::Alloc( ));
 
 	mainspriteInstance = spriteInstanceAllocator.Alloc();
 	mainspriteInstance->Init( mainsprite, NULL, 0 );
-
+	
 	shortcutKeys = idSWFScriptObject::Alloc();
 	scriptFunction_shortcutKeys_clear.Bind( this );
 	scriptFunction_shortcutKeys_clear.Call( shortcutKeys, idSWFParmList() );
@@ -182,7 +188,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	globals->Set( "ceil", scriptFunction_ceil.Bind( this ) );
 	globals->Set( "toUpper", scriptFunction_toUpper.Bind( this ) );
 
-	//globals->SetNative( "platform", swfScriptVar_platform.Bind( &scriptFunction_getPlatform ) );
+	globals->SetNative( "platform", swfScriptVar_platform.Bind( &scriptFunction_getPlatform ) );
 	//globals->SetNative( "blackbars", swfScriptVar_blackbars.Bind( this ) );
 	//globals->SetNative( "cropToHeight", swfScriptVar_crop.Bind( this ) );
 	//globals->SetNative( "cropToFit", swfScriptVar_crop.Bind( this ) );

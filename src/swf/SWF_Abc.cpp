@@ -1,14 +1,3 @@
-#include "swf.h"
-#include "../idFramework/Font.h"
-
-#include  "quickJS/quickjs.h"
-#include  "quickJS/quickjs-libc.h"
-
-#include "SWF_Abc.h"
-
-
-idCVar swf_abc_verbose( "swf_abc_verbose", "1", CVAR_BOOL, "writes out all data read" );
-
 //trace( "hello" )
 //trace( "world" )
 //var clickCount = 0;
@@ -19,6 +8,17 @@ idCVar swf_abc_verbose( "swf_abc_verbose", "1", CVAR_BOOL, "writes out all data 
 //}
 //// Register the function as a listener with the button. 
 //addEventListener( MouseEvent.CLICK, playAnimation );
+
+#include "swf.h"
+#include "../idFramework/Font.h"
+
+#include  "quickJS/quickjs.h"
+#include  "quickJS/quickjs-libc.h"
+
+#include "SWF_Abc.h"
+
+
+idCVar swf_abc_verbose( "swf_abc_verbose", "1", CVAR_BOOL, "writes out all data read" );
 
 #pragma warning( disable: 4189 ) // local variable is initialized but not referenced
 
@@ -39,22 +39,22 @@ void traceMN( const char *name, swfMultiname *mn, swfConstant_pool_info &constan
 	idStr type;
 #define switchTrace( n ) case n: type = #n;break;
 	switch ( mn->type ) 	{
-		switchTrace( Undefined );
+		switchTrace( unused_0x00 );
 		switchTrace( Utf8 );
 		switchTrace( Int );
 		switchTrace( UInt );
 		switchTrace( PrivateNs );
 		switchTrace( Double );
-		switchTrace( QName );
+		switchTrace( Qname );
 		switchTrace( Namespace );
 		switchTrace( False );
 		switchTrace( True );
 		switchTrace( Null );
-		switchTrace( QNameA );
-		switchTrace( RTQName );
-		switchTrace( RTQNameA );
-		switchTrace( RTQNameL );
-		switchTrace( RTQNameLA );
+		switchTrace( QnameA );
+		switchTrace( RTQname );
+		switchTrace( RTQnameA );
+		switchTrace( RTQnameL );
+		switchTrace( RTQnameLA );
 		switchTrace( Multiname );
 		switchTrace( MultinameA );
 		switchTrace( MultinameL );
@@ -116,18 +116,18 @@ void ReadMultiName( idSWFBitStream & bitstream ,swfMultiname & target )
 	 target.nameIndex = 0;
 	 switch ( target.type ) 	
 	 {
-	 case RTQNameL:
-	 case RTQNameLA:
+	 case RTQnameL:
+	 case RTQnameLA:
 		 //0,0
 		 break;
-	 case QName:
-	 case QNameA:
+	 case Qname:
+	 case QnameA:
 		 target.index = bitstream.ReadEncodedU32();
 		 target.nameIndex = bitstream.ReadEncodedU32();
 		 break;
 
-	 case RTQName:
-	 case RTQNameA:
+	 case RTQname:
+	 case RTQnameA:
 		 target.nameIndex = bitstream.ReadEncodedU32();
 		 break;
 
@@ -293,10 +293,14 @@ void SWF_AbcFile::ReadClassInfo( idSWFBitStream &bitstream, swfClass_info &newCl
 	}
 }
 
+//The last entry in that array is the entry point for the ABC file; that is, the last entry’s
+//initialization method contains the first bytecode that’s run when the ABC file is executed.
 void SWF_AbcFile::ReadScriptInfo( idSWFBitStream &bitstream, swfScript_info &newScriptData ) 
 {
 	uint32 init = bitstream.ReadEncodedU32( );
 	uint32 trait_count = bitstream.ReadEncodedU32( );
+	newScriptData.init = &methods[init];
+	trace("%s \n",newScriptData.init->name->c_str());
 	for ( uint i = 0; i < trait_count; i++ ) {
 		auto &newTrait = newScriptData.traits.Alloc( );
 		ReadTraitsInfo( bitstream, newTrait );
@@ -306,13 +310,24 @@ void SWF_AbcFile::ReadScriptInfo( idSWFBitStream &bitstream, swfScript_info &new
 void SWF_AbcFile::ReadMethodBodyInfo( idSWFBitStream &bitstream, swfMethod_body_info &newMethodBody ) 
 {
 	newMethodBody.method = &methods[bitstream.ReadEncodedU32()];
+	assert(newMethodBody.method->body==nullptr);
+	newMethodBody.method->body = &newMethodBody;
+
 	newMethodBody.max_stack = bitstream.ReadEncodedU32();
 	newMethodBody.localCount = bitstream.ReadEncodedU32();
 	newMethodBody.initScopeDepth = bitstream.ReadEncodedU32();
 	newMethodBody.maxScopeDepth = bitstream.ReadEncodedU32();
 	newMethodBody.codeLength = bitstream.ReadEncodedU32();
-	newMethodBody.code = ( byte * ) Mem_ClearedAlloc( sizeof( byte ) * newMethodBody.codeLength );
-	memcpy(newMethodBody.code,bitstream.ReadData(newMethodBody.codeLength),newMethodBody.codeLength);
+	newMethodBody.code.Load(bitstream.ReadData(newMethodBody.codeLength),newMethodBody.codeLength,true);// ( byte * ) Mem_ClearedAlloc( sizeof( byte ) * newMethodBody.codeLength );
+	extern void swf_PrintStream(SWF_AbcFile * file ,idSWFBitStream & bitstream);
+	if ( swf_abc_verbose.GetBool( ) )
+	{
+		common->Printf("============================\n");
+		common->Printf("Method %s 's bytecode \n",newMethodBody.method->name->c_str());
+		common->Printf("============================\n");
+		swf_PrintStream(this,newMethodBody.code);
+	}
+	//memcpy(newMethodBody.code,bitstream.ReadData(newMethodBody.codeLength),newMethodBody.codeLength);
 	uint32 exception_count = bitstream.ReadEncodedU32( );
 	for ( uint i = 0; i < exception_count; i++ ) {
 		auto &newExceptionInfo = newMethodBody.exceptions.Alloc( );
@@ -359,6 +374,11 @@ void SWF_AbcFile::ReadInstanceInfo( idSWFBitStream &bitstream, swfInstance_info 
 
 }
 
+void SWF_AbcFile::RemoveAccessibility()
+{
+// look for all 
+}
+
 void SWF_AbcFile::ReadMethodInfo ( idSWFBitStream & bitstream , swfMethod_info & newMethod )
 {
 	uint32 idx = 0;
@@ -392,8 +412,11 @@ void SWF_AbcFile::ReadMethodInfo ( idSWFBitStream & bitstream , swfMethod_info &
 
 }
 
+//Remove Accessibility 
+
 void idSWF::DoABC( idSWFBitStream & bitstream ) {
-	SWF_AbcFile newAbcFile;
+
+	SWF_AbcFile &newAbcFile = abcFile;
 	int strmSize = bitstream.Length( ) + 6; // codeLength(uin16) + recordLength(uin32) 
 	uint32 flags = bitstream.ReadU32();
 	idStr name = bitstream.ReadString();	
@@ -447,33 +470,8 @@ void idSWF::DoABC( idSWFBitStream & bitstream ) {
 		newAbcFile.ReadMethodBodyInfo( bitstream, newMethBody );
 	}
 
-
-	JSRuntime *runtime = JS_NewRuntime( );
-	if ( !runtime ) {
-		common->FatalError( "line %d : JS_NewRuntime returned NULL\n", __LINE__ - 2 );
-		//free( if_contents );
-
-	}
-
-	JSContext *ctx = JS_NewContext( runtime );
-	if ( !ctx ) {
-		common->FatalError( "line %d : JS_NewContext returned NULL\n", __LINE__ - 2 );
-		free( runtime );
-		//free( if_contents );
-		//return 1;
-	}
-	//const byte *data = bitstream.ReadData( dataSize - 4 );	
-
-	//js_std_eval_binary(ctx, (const unsigned char *)data, dataSize -4 , 1);
-	//JSValue result = JS_Eval(ctx, (const char *)data, dataSize, "bitstream", JS_EVAL_TYPE_GLOBAL);
-	//JSValue jsThis = JS_DupValue( ctx, result );
-	//JSValue res = JS_Call( ctx, result, jsThis, 0, NULL );
-	//common->Printf( JS_ToCString( ctx, result ) );
-	//common->Printf( JS_ToCString( ctx, res ) );
-	//JS_FreeValue( ctx, result );
-	//JS_FreeValue( ctx, res );
-
-	int a;
+	//Create trait objects
+	//resolve subclass/superclass relations. 
 }
 
 void idSWF::SymbolClass( idSWFBitStream &bitstream ) {
@@ -497,3 +495,5 @@ void idSWF::SymbolClass( idSWFBitStream &bitstream ) {
 
 	//load bytecode
 }
+
+
