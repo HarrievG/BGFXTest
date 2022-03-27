@@ -29,7 +29,6 @@ If you have questions concerning this license or the applicable additional terms
 #include "swf.h"
 #include "../idFramework/idlib/containers/StrList.h"
 
-
 idSWFScriptObject_SpriteInstancePrototype spriteInstanceScriptObjectPrototype;
 ID_INLINE void Prefetch( const void * ptr, int offset ) {}
 
@@ -59,7 +58,10 @@ moveToXScale( 1.0f ),
 moveToYScale( 1.0f ), 
 moveToSpeed( 1.0f ),
 firstRun( false ),
-stereoDepth( 0 )
+stereoDepth( 0 ),
+actionScript( NULL ),
+frameCount ( 0 ),
+scriptObject ( NULL )
 {
 }
 
@@ -75,36 +77,44 @@ void idSWFSpriteInstance::Init( idSWFSprite * _sprite, idSWFSpriteInstance * _pa
 
 	frameCount = sprite->frameCount;
 
-	scriptObject = idSWFScriptObject::Alloc();
-	scriptObject->SetPrototype( &spriteInstanceScriptObjectPrototype );
+	if ( !scriptObject ) 	{
+		scriptObject = idSWFScriptObject::Alloc( );
+		scriptObject->SetPrototype( &spriteInstanceScriptObjectPrototype );
+	}
 	scriptObject->SetSprite( this );
 
 	firstRun = true;
-	actionScript = idSWFScriptFunction_Script::Alloc();
-	idList<idSWFScriptObject * > scope;
-	scope.Append( sprite->swf->globals );
-	scope.Append( scriptObject );
-	actionScript->SetScope( scope );
+
+	//this is already set if this is the main timeline
+	if ( !actionScript )
+	{
+		actionScript = idSWFScriptFunction_Script::Alloc( );
+		idList<idSWFScriptObject * > scope;
+		scope.Append( sprite->swf->globals );
+		scope.Append( scriptObject );
+		actionScript->SetScope( scope );
+	}
 	actionScript->SetDefaultSprite( this );
 
+	//find the init abc block
 	//mainsprite instance should execute this.
-	if ( sprite->swf->abcFile.scripts.Num() )
+	if ( actionScript->GetMethodInfo() != nullptr )
 	{
-		//this is the abc file entry point. 
-		//its not clear, but asuming that 
-		actionScript->SetData(sprite->swf->abcFile.scripts[_sprite->swf->abcFile.scripts.Num()-1].init);
-		actionScript->Call( scriptObject, idSWFParmList() );
+		//actionScript->Call( scriptObject, idSWFParmList() );
 		void swf_PrintStream(SWF_AbcFile * file, idSWFBitStream &bitstream );
 		swf_PrintStream(&sprite->swf->abcFile,sprite->swf->abcFile.scripts[_sprite->swf->abcFile.scripts.Num()-1].init->body->code);
+	}else
+	{
+		//actionScript->SetData(abcFile.scripts[abcFile.scripts.Num() - 1].init);
+		//actionScript->Call( scriptObject, idSWFParmList() );
+		for ( int i = 0; i < sprite->doInitActions.Num( ); i++ ) {
+			actionScript->SetData( sprite->doInitActions[i].Ptr( ), sprite->doInitActions[i].Length( ) );
+			actionScript->Call( scriptObject, idSWFParmList( ) );
+		}
+
 	}
 
 
-	//actionScript->SetData(abcFile.scripts[abcFile.scripts.Num() - 1].init);
-	//actionScript->Call( scriptObject, idSWFParmList() );
-	for	(int i = 0; i < sprite->doInitActions.Num(); i++) {
-		actionScript->SetData( sprite->doInitActions[i].Ptr(), sprite->doInitActions[i].Length() );
-		actionScript->Call( scriptObject, idSWFParmList() );
-	}
 
 	Play();
 }
@@ -1385,4 +1395,35 @@ SWF_SPRITE_NATIVE_VAR_DEFINE_GET( onEnterFrame ) {
 SWF_SPRITE_NATIVE_VAR_DEFINE_SET( onEnterFrame ) {
 	SWF_SPRITE_PTHIS_SET( "onEnterFrame" );
 	pThis->onEnterFrame = value;
+}
+
+
+
+/*
+========================
+idSWFScriptObject_EventDispatcherPrototype
+========================
+*/
+#define SWF_EVENTDISPATCHER_FUNCTION_DEFINE( x ) idSWFScriptVar idSWFScriptObject_EventDispatcherPrototype::idSWFScriptFunction_##x::Call( idSWFScriptObject * thisObject, const idSWFParmList & parms )
+#define SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_GET( x ) idSWFScriptVar idSWFScriptObject_EventDispatcherPrototype::idSWFScriptNativeVar_##x::Get( class idSWFScriptObject * object )
+#define SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_SET( x ) void  idSWFScriptObject_SpriteInstancePrototype::idSWFScriptNativeVar_##x::Set( class idSWFScriptObject * object, const idSWFScriptVar & value )
+
+#define SWF_EVENTDISPATCHER_PTHIS_FUNC( x ) idSWFScriptObject * pThis = thisObject ? thisObject : NULL; if ( !verify( pThis != NULL ) ) { idLib::Warning( "SWF: tried to call " x " on NULL object" ); return idSWFScriptVar(); }
+#define SWF_EVENTDISPATCHER_PTHIS_GET( x ) idSWFScriptObject * pThis = object ? object : NULL; if ( pThis == NULL ) { return idSWFScriptVar(); }
+#define SWF_EVENTDISPATCHER_PTHIS_SET( x ) idSWFScriptObject * pThis = object ? object : NULL; if ( pThis == NULL ) { return; }
+
+#define SWF_EVENTDISPATCHER_FUNCTION_SET( x ) scriptFunction_##x.AddRef(); Set( #x, &scriptFunction_##x );
+#define SWF_EVENTDISPATCHER_NATIVE_VAR_SET( x ) SetNative( #x, &swfScriptVar_##x );
+
+
+idSWFScriptObject_EventDispatcherPrototype::idSWFScriptObject_EventDispatcherPrototype()
+{
+	SWF_EVENTDISPATCHER_FUNCTION_SET( addEventListener );
+}
+
+SWF_EVENTDISPATCHER_FUNCTION_DEFINE( addEventListener ) 
+{
+	SWF_EVENTDISPATCHER_PTHIS_FUNC( "addEventListener" );
+	//add listener
+	return idSWFScriptVar( );
 }

@@ -453,7 +453,7 @@ ID_INLINE void idList<type>::Resize( int newsize, int newgranularity ) {
 		Clear();
 		return;
 	}
-
+	
 	temp	= list;
 	size	= newsize;
 	if ( size < num ) {

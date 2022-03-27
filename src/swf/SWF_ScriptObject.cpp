@@ -59,6 +59,14 @@ idSWFScriptObject::swfNamedVar_t & idSWFScriptObject::swfNamedVar_t::operator=( 
 	return *this;
 }
 
+void idSWFScriptObject::ApplyPrototype( idSWFScriptObject *_object ) {
+	if ( _object->GetPrototype( ) != NULL ) {
+		auto *obj = _object->GetPrototype( );
+		for ( int i = 0; i < obj->NumVariables( ); i++ )
+			Set( obj->EnumVariable( i ), obj->Get( obj->EnumVariable( i ) ) );
+	}
+}
+
 /*
 ========================
 idSWFScriptObject::idSWFScriptObject

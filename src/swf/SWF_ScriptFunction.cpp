@@ -28,12 +28,16 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "swf.h"
 #include "../idFramework/idlib/Lib.h"
+#include "../idFramework/sys/platform.h"
 
 idCVar swf_debug( "swf_debug", "0", CVAR_INTEGER|CVAR_ARCHIVE, "debug swf scripts.  1 shows traces/errors.  2 also shows warnings.  3 also shows disassembly.  4 shows parameters in the disassembly." );
 idCVar swf_debugInvoke( "swf_debugInvoke", "0", CVAR_INTEGER, "debug swf functions being called from game." );
 
 idSWFConstantPool::idSWFConstantPool() {
 }
+uint8 gUint8 =0;
+int32 gInt32 =0;
+
 
 
 /*
@@ -60,6 +64,15 @@ void idSWFConstantPool::Copy( const idSWFConstantPool & other ) {
 		pool[i] = other.pool[i];
 		pool[i]->AddRef();
 	}
+}
+
+
+idSWFScriptFunction_Script::idSWFScriptFunction_Script( ) : 
+	refCount( 1 ), flags( 0 ), prototype( NULL ),
+	data( NULL ), length( 0 ), defaultSprite( NULL ),
+	methodInfo( NULL ), abcFile( NULL ) 
+{
+	registers.SetNum( 4 );
 }
 
 /*
@@ -100,11 +113,6 @@ void idSWFScriptFunction_Script::SetScope( idList<idSWFScriptObject *> & newScop
 }
 
 
-void idSWFScriptFunction_Script::SetData( swfMethod_info *method ) {
-	methodInfo = method;
-}
-
-
 /*
 ========================
 idSWFScriptFunction_Script::Call
@@ -130,7 +138,7 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject * thisObject,
 		auto * body = methodInfo->body;
 		registers[ 0 ].SetObject( thisObject );
 		stack.Resize( body->max_stack);
-		scope.Resize( body->maxScopeDepth);
+		scope.Resize( body->maxScopeDepth + 1);
 		
 		for (int i=1; i<methodInfo->paramCount+1; i++ )
 		{
@@ -138,6 +146,9 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject * thisObject,
 		}
 		idSWFBitStream abcStream(methodInfo->body->code.Ptr(),methodInfo->body->codeLength,false);
 		RunAbc( thisObject,stack , abcStream);
+		
+		thisObject->Release(); // register ref
+		return thisObject;
 	}
 
 	stack.SetNum( parms.Num() + 1 );
@@ -410,31 +421,74 @@ namespace {
 	}
 }
 
-void idSWFScriptFunction_Script::getlex( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
-	const auto & cp = file->constant_pool;
-	const auto & mn = file->constant_pool.multinameInfos[bitstream.ReadU8( )];
-	const idStrPtr propName = (idStrPtr)&cp.utf8Strings[mn.nameIndex];
-
-	for( auto * s : scope ) {
-		if (s->HasProperty(propName->c_str()))
-		{
-			stack.Alloc() = s->Get( propName->c_str());
+void idSWFScriptFunction_Script::findpropstrict( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) 
+{
+	const auto &cp = file->constant_pool;
+	const auto &mn = file->constant_pool.multinameInfos[bitstream.ReadU8( )];
+	const idStrPtr propName = ( idStrPtr ) &cp.utf8Strings[mn.nameIndex];
+	//search up scope stack.
+	for ( int i = scope.Num( ) - 1; i >= 0; i-- ) {
+		auto *s = scope[i];
+		if ( s->HasProperty( propName->c_str( ) ) ) 		{
+			stack.Alloc( ) = s->Get( propName->c_str( ) );
+			break;
 		}
+	}
+	//search method closure, which is the stack up until a method call?
+}
+void idSWFScriptFunction_Script::getlex( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) 
+{
+	const auto &cp = file->constant_pool;
+	const auto &mn = file->constant_pool.multinameInfos[bitstream.ReadU8( )];
+	const idStrPtr propName = ( idStrPtr ) &cp.utf8Strings[mn.nameIndex];
+	//search up scope stack.
+	for ( int i = scope.Num( ) - 1; i >= 0; i-- ) {
+		auto *s = scope[i];
+		while ( s )
+			if ( s->HasProperty( propName->c_str( ) ))
+			{
+				stack.Alloc( ) = s->Get( propName->c_str( ) );
+				break;
+			}else if (s->GetPrototype( ) && s->GetPrototype( )->GetPrototype() )
+				s = s->GetPrototype( )->GetPrototype();
+			else
+				s = NULL;
 	}
 }
 
 void idSWFScriptFunction_Script::getscopeobject( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
-	stack.Alloc().SetObject(scope[scope.Num() - bitstream.ReadU8() - 1]);
+	uint8 index = bitstream.ReadU8();
+	stack.Alloc() = scope[index];
 }
 
 void idSWFScriptFunction_Script::pushscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
-	scope.Append(stack.A().GetObjectA());
-	stack.Pop(1);
+	if (stack.Num() > 0)
+	{ 
+		if ( stack.A().IsObject() )
+			scope.Alloc() = stack.A().GetObject();
+		else
+			common->DWarning( "tried to push a non object onto scope");
+		stack.Pop(1);
+	}
+}
+
+void idSWFScriptFunction_Script::popscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
+	scope.SetNum( scope.Num() - 1, false );
 }
 
 void idSWFScriptFunction_Script::getlocal0(SWF_AbcFile* file, idSWFStack &stack, idSWFBitStream &bitstream ) {
 	stack.Alloc() = registers[0];
 }
+
+//The class's static initializer will be run when the newclass instruction 
+// is executed on the class_info entry for the class.
+void idSWFScriptFunction_Script::newclass( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
+	const auto &ci = file->classes[bitstream.ReadEncodedU32( )];
+	idSWFScriptVar base = stack.A();stack.Pop(1);
+	//find static intializer.
+
+}
+
 /*
 ========================
 idSWFScriptFunction_Script::RunAbc bytecode
@@ -444,13 +498,14 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject
 	static int callstackLevel = -1;
 	idSWFSpriteInstance *thisSprite = thisObject->GetSprite( );
 	idSWFSpriteInstance *currentTarget = thisSprite;
+	assert( abcFile );
 
 	if ( currentTarget == NULL ) {
 		thisSprite = currentTarget = defaultSprite;
 	}
 
 	while ( bitstream.Tell( ) < bitstream.Length( ) ) {
-#define ExecWordCode( n ) case OP_##n: n(&thisSprite->sprite->GetSWF()->abcFile,stack,bitstream); continue;
+#define ExecWordCode( n ) case OP_##n: n(abcFile,stack,bitstream); continue;
 		SWFAbcOpcode opCode = (SWFAbcOpcode) bitstream.ReadU8();
 		switch ( opCode ) 	{
 		//ExecWordCode ( bkpt );
@@ -479,7 +534,7 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject
 		//ExecWordCode ( ifstrictne );
 		//ExecWordCode ( lookupswitch );
 		//ExecWordCode ( pushwith );
-		//ExecWordCode ( popscope );
+		ExecWordCode ( popscope );
 		//ExecWordCode ( nextname );
 		//ExecWordCode ( hasnext );
 		//ExecWordCode ( pushnull );
@@ -536,12 +591,12 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject
 		//ExecWordCode ( newobject );
 		//ExecWordCode ( newarray );
 		//ExecWordCode ( newactivation );
-		//ExecWordCode ( newclass );
+		ExecWordCode ( newclass );
 		//ExecWordCode ( getdescendants );
 		//ExecWordCode ( newcatch );
 		//ExecWordCode ( findpropglobalstrict );
 		//ExecWordCode ( findpropglobal );
-		//ExecWordCode ( findpropstrict );
+		ExecWordCode ( findpropstrict );
 		//ExecWordCode ( findproperty );
 		//ExecWordCode ( finddef );
 		ExecWordCode ( getlex );
@@ -1305,7 +1360,7 @@ idSWFScriptVar idSWFScriptFunction_Script::Run( idSWFScriptObject * thisObject, 
 					stack.Pop( 1 );
 					scope.Append( withObject );
 					Run( thisObject, stack, bitstream2 );
-					scope.SetNum( scope.Num() - 1 );
+					scope.SetNum( scope.Num() - 1, false );
 					withObject->Release();
 				} else {
 					if ( swf_debug.GetInteger() > 0 ) {

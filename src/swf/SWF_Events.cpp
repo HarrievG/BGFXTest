@@ -224,6 +224,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 		if ( event->evValue == K_MOUSE1 ) {
 			mouseEnabled = true;
 			idSWFScriptVar var;
+			idSWFScriptVar ed;
 			if ( event->evValue2 ) {
 
 				idSWFScriptVar waitInput = globals->Get( "waitInput" );
@@ -241,7 +242,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 				if ( hitObject != NULL ) {
 					mouseObject = hitObject;
 					mouseObject->AddRef();
-					
+					ed = hitObject->Get( "EventDispatcher" );
 					var = hitObject->Get( "onPress" );
 					if ( var.IsFunction() ) {
 						idSWFParmList parms;

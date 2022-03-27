@@ -270,6 +270,7 @@ private:
 		void			Release() { }
 		idSWFScriptObject * GetPrototype() { return &object; }
 		void			SetPrototype( idSWFScriptObject * _object ) { assert( false ); }
+		void			ApplyPrototype ( idSWFScriptObject * _object );
 		idSWFScriptObject object;
 	} scriptFunction_Object;
 

@@ -115,6 +115,7 @@ public:
 	void					SetText( idSWFTextInstance * t ) { objectType = SWF_OBJECT_TEXT; data.text = t; }
 	idSWFTextInstance *		GetText() { return ( objectType == SWF_OBJECT_TEXT ) ? data.text : NULL; }
 
+	void					ApplyPrototype( idSWFScriptObject *_object );
 	// Also accessible via __proto__ property
 	idSWFScriptObject *		GetPrototype() { return prototype; }
 	void					SetPrototype( idSWFScriptObject *_prototype ) { assert(1/* prototype == NULL*/ ); prototype = _prototype; prototype->AddRef(); }

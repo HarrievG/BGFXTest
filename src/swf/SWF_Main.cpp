@@ -30,6 +30,7 @@ If you have questions concerning this license or the applicable additional terms
 //#include "../renderer/image.h"
 #include "../idFramework/FileSystem.h"
 #include "SWF_ScriptObject.h"
+#include "SWF_SpriteInstance.h"
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
@@ -43,7 +44,7 @@ extern idCVar in_useJoystick;
 
 //sound stub
 static idSoundWorld soundWorldStub;
-
+idSWFScriptObject_EventDispatcherPrototype eventDispatcherScriptObjectPrototype;
 /*
 ===================
 idSWF::idSWF
@@ -145,17 +146,52 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	globals = idSWFScriptObject::Alloc();
 	globals->Set( "_global", globals );
 
+	auto * dispatcherObj= idSWFScriptObject::Alloc();
+	dispatcherObj->SetPrototype( &eventDispatcherScriptObjectPrototype );
 
-	globals->Set( "Object", idSWFScriptObject::Alloc( ) );//swfScriptVar_Object.Bind(&scriptFunction_Object));
-	globals->Set( "EventDispatcher", idSWFScriptObject::Alloc( ));
-	globals->Set( "InteractiveObject", idSWFScriptObject::Alloc( ));
-	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ));
-	globals->Set( "Sprite", idSWFScriptObject::Alloc( ));
-	globals->Set( "MovieClip", idSWFScriptObject::Alloc( ));
+	extern idSWFScriptObject_SpriteInstancePrototype spriteInstanceScriptObjectPrototype;
+	auto * movieclipObj = idSWFScriptObject::Alloc( );
+	movieclipObj->SetPrototype( &spriteInstanceScriptObjectPrototype );
 
-	mainspriteInstance = spriteInstanceAllocator.Alloc();
-	mainspriteInstance->Init( mainsprite, NULL, 0 );
+	globals->Set( "Object", &scriptFunction_Object );
+	globals->Set( "EventDispatcher", dispatcherObj );
+	globals->Set( "DisplayObject", idSWFScriptObject::Alloc( ) );
+	globals->Set( "InteractiveObject", idSWFScriptObject::Alloc( ) );
+	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ) );
+	globals->Set( "Sprite", idSWFScriptObject::Alloc( ) );
+	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ) );
+	globals->Set( "MovieClip", movieclipObj );
+	//////////////////////////////////////////////////////////////////////////
+	//  ORIGINAL
+	//globals->Set( "Object", &scriptFunction_Object );
+	//////////////////////////////////////////////////////////////////////////
 	
+	// run document constructor for MainTimeline/mainspriteInstance
+	idSWFScriptFunction_Script * docContructor = idSWFScriptFunction_Script::Alloc( );
+	idList<idSWFScriptObject * > scope; scope.Append( globals );
+	docContructor->SetScope( scope );
+	docContructor->SetAbcFile(&abcFile);
+	docContructor->SetData(abcFile.scripts[abcFile.scripts.Num()-1].init);
+	idSWFScriptObject * thisObj = idSWFScriptObject::Alloc();
+	docContructor->Call( thisObj, idSWFParmList() );
+
+	//in most cases this calls : this.MainTimeline = [OP_NEWCLASS ClassInfo:0 base:MovieClip];
+	//so thisObj, should have 1 prop, which is a object, called MainTimeline;
+	// prop MainTimeline should hold all props that where in the full scope while running.
+	// the compiled inheritance chain for MainTimeline:MovieClip = 
+	// Object,EventDispatcher,DisplayObject,InteractiveObject,DisplayObjectContainer,Sprite,MovieClip
+	// all of the properties from the classes above should have been scoped during construction.
+	
+	//fast way? but incompatible? 
+	mainspriteInstance = spriteInstanceAllocator.Alloc();
+	mainspriteInstance->scriptObject = thisObj;
+	mainspriteInstance->actionScript;//this should become the class instance method
+	//
+	//mainspriteInstance->actionScript = idSWFScriptFunction_Script::Alloc( );
+	//mainspriteInstance->actionScript->SetAbcFile(&abcFile);
+	//mainspriteInstance->actionScript->SetData(abcFile.scripts[abcFile.scripts.Num()-1].init);
+	mainspriteInstance->Init( mainsprite, NULL, 0 );
+
 	shortcutKeys = idSWFScriptObject::Alloc();
 	scriptFunction_shortcutKeys_clear.Bind( this );
 	scriptFunction_shortcutKeys_clear.Call( shortcutKeys, idSWFParmList() );

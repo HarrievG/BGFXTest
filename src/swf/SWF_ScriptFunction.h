@@ -138,17 +138,20 @@ idSWFScriptFunction_Script is a script function that's implemented in action scr
 */
 class idSWFScriptFunction_Script : public idSWFScriptFunction {
 public:
-				idSWFScriptFunction_Script() : refCount( 1 ), flags( 0 ), prototype( NULL ), data( NULL ), length( 0 ), defaultSprite( NULL ) { registers.SetNum( 4 ); }
+				idSWFScriptFunction_Script();
 	virtual		~idSWFScriptFunction_Script();
 
 	static idSWFScriptFunction_Script *	Alloc() { return new idSWFScriptFunction_Script; }
 	void	AddRef() { refCount++; }
 	void	Release() { if ( --refCount == 0 ) { delete this; } }
 
+	
 	// This could all be passed to Alloc (and was at one time) but in some places it's far more convenient to specify each separately
 	void	SetFlags( uint16 _flags )								{ flags = _flags; }
 	void	SetData( const byte * _data, uint32 _length )			{ data = _data; length = _length; }
-	void	SetData( swfMethod_info * method);
+	void	SetData( swfMethod_info * _method)						{ methodInfo = _method; }
+	void	SetAbcFile ( SWF_AbcFile * _file )						{ abcFile = _file; }
+	swfMethod_info * GetMethodInfo( )								{ return methodInfo;}
 	void	SetScope( idList<idSWFScriptObject *> & scope );
 	void	SetConstants( const idSWFConstantPool & _constants )	{ constants.Copy( _constants ); }
 	void	SetDefaultSprite( idSWFSpriteInstance * _sprite )		{ defaultSprite = _sprite; }
@@ -161,18 +164,23 @@ public:
 
 	virtual idSWFScriptVar	Call( idSWFScriptObject * thisObject, const idSWFParmList & parms );
 
+	
 private:
 //////////////////////////////////////////////////////////////////////////
 //////////////////////ABC Wordcode Interpretation/////////////////////////
 //////////////////////////////////////////////////////////////////////////
+	void findpropstrict( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
 	void getlex( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
 	void getscopeobject( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
 	void pushscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
+	void popscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
 	void getlocal0( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
-//////////////////////////////////////////////////////////////////////////
+	void newclass( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
+	//////////////////////////////////////////////////////////////////////////
 
 	idSWFScriptVar Run( idSWFScriptObject * thisObject, idSWFStack & stack, idSWFBitStream & bitstream );
 	idSWFScriptVar RunAbc( idSWFScriptObject * thisObject, idSWFStack & stack, idSWFBitStream & bitstream );
+	SWF_AbcFile *abcFile;
 private:
 	int					refCount;
 

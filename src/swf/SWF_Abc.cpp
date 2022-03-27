@@ -181,20 +181,17 @@ void ReadConstantPoolInfo( idSWFBitStream & bitstream ,  swfConstant_pool_info &
 	}
 
 	uint32 namespace_set_count = bitstream.ReadEncodedU32( );
-	target.namespaceSets.Alloc().Alloc() = &target.utf8Strings[0];
 	for ( uint i = 1; i < namespace_set_count; i++ ) {
 		uint32 count = bitstream.ReadEncodedU32( );
 		auto & newSet = target.namespaceSets.Alloc();
 		for (uint j = 0; j < count; j++)
 		{
 			uint32 idx = bitstream.ReadEncodedU32( );
-			newSet.Alloc() = target.namespaceNames[(int)idx];
+			newSet.Alloc() = target.namespaceNames[(int)idx-1];
 		}
 	}
 
 	uint32 multiname_count = bitstream.ReadEncodedU32( );
-	auto & zeroEntry = target.multinameInfos.Alloc( );
-	memset(&zeroEntry,0,sizeof(swfMultiname ) );
 	for ( uint i = 1; i < multiname_count; i++ ) {
 		auto &newMn = target.multinameInfos.Alloc( );
 		ReadMultiName(bitstream,newMn);
