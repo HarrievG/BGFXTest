@@ -61,7 +61,8 @@ firstRun( false ),
 stereoDepth( 0 ),
 actionScript( NULL ),
 frameCount ( 0 ),
-scriptObject ( NULL )
+scriptObject ( NULL ),
+constructed ( false )
 {
 }
 
@@ -85,20 +86,6 @@ void idSWFSpriteInstance::Init( idSWFSprite * _sprite, idSWFSpriteInstance * _pa
 	{
 		scriptObject = idSWFScriptObject::Alloc( );
 		scriptObject->SetPrototype( &spriteInstanceScriptObjectPrototype );
-	}else
-	{
-		if (scriptObject->GetPrototype() )
-		{
-			auto instanceInit = scriptObject->GetPrototype( )->Get( "__constructor__" );
-			if ( instanceInit.IsFunction( ) && !actionScript)
-			{
-				actionScript = (idSWFScriptFunction_Script*)instanceInit.GetFunction( );
-				idList<idSWFScriptObject * > scope;
-				scope.Append( sprite->swf->globals );
-				actionScript->SetScope( scope );
-				//as->Call( scriptObject, idSWFParmList( ) );
-			}
-		}
 	}
 	scriptObject->SetSprite( this );
 
@@ -115,19 +102,12 @@ void idSWFSpriteInstance::Init( idSWFSprite * _sprite, idSWFSpriteInstance * _pa
 	}
 	actionScript->SetDefaultSprite( this );
 
-	//find the init abc block
-	//mainsprite instance should execute this.
-	if ( actionScript->GetMethodInfo() != nullptr )
-	{
-		actionScript->Call( scriptObject, idSWFParmList() );
-	}else
-	{
-		for ( int i = 0; i < sprite->doInitActions.Num( ); i++ ) {
+
+	for ( int i = 0; i < sprite->doInitActions.Num( ); i++ ) {
 			actionScript->SetData( sprite->doInitActions[i].Ptr( ), sprite->doInitActions[i].Length( ) );
 			actionScript->Call( scriptObject, idSWFParmList( ) );
-		}
-
 	}
+
 
 	Play();
 }
@@ -365,6 +345,16 @@ bool idSWFSpriteInstance::RunActions() {
 		}
 	}
 
+	if ( !constructed ) {
+		if ( scriptObject->HasProperty( "__constructor__" ) ) {
+			common->DWarning( "Calling constructor for %s%\n", name.c_str( ) );
+			idSWFScriptVar instanceInit = scriptObject->Get( "__constructor__" );
+			((idSWFScriptFunction_Script *) instanceInit.GetFunction( ))->SetScope(*actionScript->GetScope());
+			instanceInit.GetFunction( )->Call( scriptObject, idSWFParmList( ) );
+			constructed = true;
+		}
+	}
+
 	return true;
 }
 
@@ -433,7 +423,7 @@ void idSWFSpriteInstance::RunTo( int targetFrame ) {
 	if ( targetFrame > sprite->frameOffsets.Num() - 1 ) {
 		targetFrame = sprite->frameOffsets.Num() - 1;
 	}
-
+	
 	//actions.Clear();
 
 	uint32 firstActionCommand = sprite->frameOffsets[ targetFrame - 1 ];
@@ -461,7 +451,6 @@ void idSWFSpriteInstance::RunTo( int targetFrame ) {
 			common->Printf( "Run Sprite: Unhandled tag %s\n", idSWF::GetTagName( command.tag ) );
 		}
 	}
-
 	currentFrame = targetFrame;
 }
 

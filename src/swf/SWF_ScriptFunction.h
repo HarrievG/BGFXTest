@@ -153,6 +153,7 @@ public:
 	void	SetAbcFile ( SWF_AbcFile * _file )						{ abcFile = _file; }
 	swfMethod_info * GetMethodInfo( )								{ return methodInfo;}
 	void	SetScope( idList<idSWFScriptObject *> & scope );
+	idList<idSWFScriptObject *> *	GetScope()						{ return &scope; }
 	void	SetConstants( const idSWFConstantPool & _constants )	{ constants.Copy( _constants ); }
 	void	SetDefaultSprite( idSWFSpriteInstance * _sprite )		{ defaultSprite = _sprite; }
 	void	AllocRegisters( int numRegs	)							{ registers.SetNum( numRegs ); }

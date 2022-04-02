@@ -162,19 +162,6 @@ void idSWFSpriteInstance::PlaceObject3( idSWFBitStream & bitstream ) {
 		characterID = bitstream.ReadU16();
 	}
 
-	idSWFDictionaryEntry * dictEntry = sprite->swf->FindDictionaryEntry( characterID );
-
-	if ( dictEntry && !dictEntry->resolved ) 	{
-		for ( auto &symbol : sprite->swf->symbolClasses.symbols ) {
-			if ( symbol.tag == characterID ) 			{
-				dictEntry->scriptClass = sprite->swf->globals->Get( symbol.name );
-				break;
-			}
-		}
-		dictEntry->resolved = true;//dictEntry->scriptClass.IsValid();
-	}
-
-
 	swfDisplayEntry_t * display = NULL;
 
 	if ( ( flags1 & PlaceFlagMove ) != 0 ) {
@@ -191,7 +178,7 @@ void idSWFSpriteInstance::PlaceObject3( idSWFBitStream & bitstream ) {
 				idLib::Warning( "PlaceObject3: Trying to change the character of a sprite after it's been created" );
 				return;
 			}
-			
+			idSWFDictionaryEntry * dictEntry = sprite->swf->FindDictionaryEntry( characterID );
 			if ( dictEntry != NULL ) {
 				if ( dictEntry->type == SWF_DICT_SPRITE || dictEntry->type == SWF_DICT_EDITTEXT ) {
 					idLib::Warning( "PlaceObject3: Trying to change the character of a shape to a sprite" );

@@ -64,6 +64,8 @@ void idSWF::CreateAbcObjects( idSWFScriptObject *globals )
 		//lookup prototype
 		if (globals->HasValidProperty(superName))
 			tmp->SetPrototype(globals->GetObject(superName)->GetPrototype());
+		else
+			common->Warning(" prototype %s not found for %s",className.c_str(),superName.c_str());
 		
 		idSWFScriptFunction_Script *  init = idSWFScriptFunction_Script::Alloc();
 		init->SetData( classInfo.cinit );
@@ -230,19 +232,16 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 
 	mainspriteInstance = spriteInstanceAllocator.Alloc();
 	mainspriteInstance->abcFile = abcFile;
-
-	//find documenent class, and instantiate.
-	for (auto & symbol : symbolClasses.symbols )
-	{
-		if (!symbol.tag)
-		{
-			//mainspriteInstance->scriptObject = idSWFScriptObject::Alloc( );
-			//auto * super = globals->Get(symbol.name).GetObject();
-			//mainspriteInstance->scriptObject->DeepCopy(super->Get("["+symbol.name+"]").GetObject());
-			//mainspriteInstance->scriptObject->SetPrototype(super);
+	mainspriteInstance->scriptObject = idSWFScriptObject::Alloc( );
+	//stage class.
+	for ( auto &symbol : symbolClasses.symbols ) {
+		if ( !symbol.tag ) {
+			mainspriteInstance->name = symbol.name;
+			auto *super = globals->Get( symbol.name ).GetObject( );
+			mainspriteInstance->scriptObject->DeepCopy( super->Get( "[" + symbol.name + "]" ).GetObject( ) );
+			mainspriteInstance->scriptObject->SetPrototype( super );
 		}
 	}
-	
 	mainspriteInstance->Init( mainsprite, NULL, 0 );
 
 	shortcutKeys = idSWFScriptObject::Alloc();

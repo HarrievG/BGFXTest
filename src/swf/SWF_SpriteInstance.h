@@ -108,6 +108,7 @@ public:
 	bool childrenRunning;
 	bool firstRun;
 
+	bool constructed;
 	// currentFrame is the frame number currently in the displayList
 	// we use 1 based frame numbers because currentFrame = 0 means nothing is in the display list
 	// it's also convenient because Flash also uses 1 based frame numbers

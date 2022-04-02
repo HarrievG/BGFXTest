@@ -126,25 +126,6 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject * thisObject,
 
 	idSWFStack stack;
 
-	if ( methodInfo != nullptr )
-	{
-		assert(methodInfo->body);
-		auto * body = methodInfo->body;
-		registers[ 0 ].SetObject( thisObject );
-		stack.Resize( body->max_stack);
-		scope.Resize( body->maxScopeDepth + 1);
-		
-		for (int i=1; i<methodInfo->paramCount+1; i++ )
-		{
-			//registers[ i ]
-		}
-		idSWFBitStream abcStream(methodInfo->body->code.Ptr(),methodInfo->body->codeLength,false);
-		RunAbc( thisObject,stack , abcStream);
-		
-		thisObject->Release(); // register ref
-		return thisObject;
-	}
-
 	stack.SetNum( parms.Num() + 1 );
 	for ( int i = 0; i < parms.Num(); i++ ) {
 		stack[ parms.Num() - i - 1 ] = parms[i];
@@ -240,8 +221,22 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject * thisObject,
 	int scopeSize = scope.Num();
 	scope.Append( locals );
 	locals->AddRef();
+	idSWFScriptVar retVal;
+	if ( methodInfo != nullptr ) 	{
+		assert( methodInfo->body );
+		auto *body = methodInfo->body;
+		registers[0].SetObject( thisObject );
+		//stack.Resize( body->max_stack );
+		//scope.Resize( body->maxScopeDepth + 1 );
 
-	idSWFScriptVar retVal = Run( thisObject, stack, bitstream );
+		for ( int i = 1; i < methodInfo->paramCount + 1; i++ ) 		{
+			//registers[ i ]
+		}
+		idSWFBitStream abcStream( methodInfo->body->code.Ptr( ), methodInfo->body->codeLength, false );
+		retVal = RunAbc( thisObject, stack, abcStream );
+		thisObject->Release( ); // register ref
+	}else
+		retVal = Run( thisObject, stack, bitstream );
 
 	assert( scope.Num() == scopeSize + 1 );
 	for ( int i = scopeSize; i < scope.Num(); i++ ) {
@@ -423,10 +418,14 @@ void idSWFScriptFunction_Script::findpropstrict( SWF_AbcFile *file, idSWFStack &
 	//search up scope stack.
 	for ( int i = scope.Num( ) - 1; i >= 0; i-- ) {
 		auto *s = scope[i];
-		if ( s->HasProperty( propName->c_str( ) ) ) 		{
-			stack.Alloc( ) = s->Get( propName->c_str( ) );
-			break;
-		}
+		while ( s )
+			if ( s->HasProperty( propName->c_str( ) ) ) 			{
+				stack.Alloc( ) = s->Get( propName->c_str( ) );
+				break;
+			} else if ( s->GetPrototype( ) && s->GetPrototype( )->GetPrototype( ) )
+				s = s->GetPrototype( )->GetPrototype( );
+			else
+				s = NULL;
 	}
 	//search method closure, which is the stack up until a method call?
 }
@@ -452,7 +451,7 @@ void idSWFScriptFunction_Script::getlex( SWF_AbcFile *file, idSWFStack &stack, i
 
 void idSWFScriptFunction_Script::getscopeobject( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
 	uint8 index = bitstream.ReadU8();
-	stack.Alloc() = scope[index+1];
+	stack.Alloc() = scope[scope.Num() - index];
 }
 
 void idSWFScriptFunction_Script::pushscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
@@ -490,10 +489,13 @@ idSWFScriptFunction_Script::RunAbc bytecode
 ========================
 */
 idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject, idSWFStack &stack, idSWFBitStream &bitstream ) {
-	static int callstackLevel = -1;
+	static int abcCallstackLevel = -1;
 	idSWFSpriteInstance *thisSprite = thisObject->GetSprite( );
 	idSWFSpriteInstance *currentTarget = thisSprite;
 	assert( abcFile );
+	return idSWFScriptVar( );
+	abcCallstackLevel++;
+
 
 	if ( currentTarget == NULL ) {
 		thisSprite = currentTarget = defaultSprite;
@@ -688,7 +690,7 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject
 
 		}
 	}
-	callstackLevel--;
+	abcCallstackLevel--;
 	return idSWFScriptVar( );
 }
 
