@@ -35,10 +35,6 @@ idCVar swf_debugInvoke( "swf_debugInvoke", "0", CVAR_INTEGER, "debug swf functio
 
 idSWFConstantPool::idSWFConstantPool() {
 }
-uint8 gUint8 =0;
-int32 gInt32 =0;
-
-
 
 /*
 ========================
@@ -65,7 +61,6 @@ void idSWFConstantPool::Copy( const idSWFConstantPool & other ) {
 		pool[i]->AddRef();
 	}
 }
-
 
 idSWFScriptFunction_Script::idSWFScriptFunction_Script( ) : 
 	refCount( 1 ), flags( 0 ), prototype( NULL ),
@@ -111,7 +106,6 @@ void idSWFScriptFunction_Script::SetScope( idList<idSWFScriptObject *> & newScop
 		}
 	}
 }
-
 
 /*
 ========================
@@ -458,7 +452,7 @@ void idSWFScriptFunction_Script::getlex( SWF_AbcFile *file, idSWFStack &stack, i
 
 void idSWFScriptFunction_Script::getscopeobject( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
 	uint8 index = bitstream.ReadU8();
-	stack.Alloc() = scope[index];
+	stack.Alloc() = scope[index+1];
 }
 
 void idSWFScriptFunction_Script::pushscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
@@ -484,9 +478,10 @@ void idSWFScriptFunction_Script::getlocal0(SWF_AbcFile* file, idSWFStack &stack,
 // is executed on the class_info entry for the class.
 void idSWFScriptFunction_Script::newclass( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream ) {
 	const auto &ci = file->classes[bitstream.ReadEncodedU32( )];
-	idSWFScriptVar base = stack.A();stack.Pop(1);
+	idSWFScriptVar  base = stack.A(); stack.Pop(1);
+	idSWFScriptVar* thisObj = &registers[0];
 	//find static intializer.
-
+	int  a = 1;
 }
 
 /*

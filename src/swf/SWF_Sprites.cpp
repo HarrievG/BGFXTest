@@ -145,10 +145,6 @@ void idSWFSprite::Load( idSWFBitStream & bitstream, bool parseDictionary ) {
 				label.frameLabel = tagStream.ReadString();
 			}
 			break;
-		case Tag_DoABC :
-		{
-			int a;
-		}
 		case Tag_DoInitAction: {
 			tagStream.ReadU16();
 

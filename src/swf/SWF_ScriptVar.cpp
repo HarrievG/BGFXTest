@@ -49,6 +49,7 @@ idSWFScriptVar::idSWFScriptVar( const idSWFScriptVar & other ) {
 	} else if ( other.type == SWF_VAR_FUNCTION ) {
 		other.value.function->AddRef();
 	}
+	traitsInfo = other.traitsInfo;
 }
 
 /*
@@ -396,6 +397,7 @@ const char * idSWFScriptVar::TypeOf() const {
 		} else if ( value.object->GetText() != NULL ) {
 			return "text";
 		} else {
+			//check class.
 			return "object";
 		}
 

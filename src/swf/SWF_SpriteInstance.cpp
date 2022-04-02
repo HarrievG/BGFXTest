@@ -74,12 +74,31 @@ void idSWFSpriteInstance::Init( idSWFSprite * _sprite, idSWFSpriteInstance * _pa
 	sprite = _sprite;
 	parent = _parent;
 	depth = _depth;
+	swfMethod_info * method = nullptr;
 
+	if (actionScript && actionScript->GetMethodInfo() )
+		method = actionScript->GetMethodInfo( );
+	
 	frameCount = sprite->frameCount;
 
-	if ( !scriptObject ) 	{
+	if ( !scriptObject ) 
+	{
 		scriptObject = idSWFScriptObject::Alloc( );
 		scriptObject->SetPrototype( &spriteInstanceScriptObjectPrototype );
+	}else
+	{
+		if (scriptObject->GetPrototype() )
+		{
+			auto instanceInit = scriptObject->GetPrototype( )->Get( "__constructor__" );
+			if ( instanceInit.IsFunction( ) && !actionScript)
+			{
+				actionScript = (idSWFScriptFunction_Script*)instanceInit.GetFunction( );
+				idList<idSWFScriptObject * > scope;
+				scope.Append( sprite->swf->globals );
+				actionScript->SetScope( scope );
+				//as->Call( scriptObject, idSWFParmList( ) );
+			}
+		}
 	}
 	scriptObject->SetSprite( this );
 
@@ -100,21 +119,15 @@ void idSWFSpriteInstance::Init( idSWFSprite * _sprite, idSWFSpriteInstance * _pa
 	//mainsprite instance should execute this.
 	if ( actionScript->GetMethodInfo() != nullptr )
 	{
-		//actionScript->Call( scriptObject, idSWFParmList() );
-		void swf_PrintStream(SWF_AbcFile * file, idSWFBitStream &bitstream );
-		swf_PrintStream(&sprite->swf->abcFile,sprite->swf->abcFile.scripts[_sprite->swf->abcFile.scripts.Num()-1].init->body->code);
+		actionScript->Call( scriptObject, idSWFParmList() );
 	}else
 	{
-		//actionScript->SetData(abcFile.scripts[abcFile.scripts.Num() - 1].init);
-		//actionScript->Call( scriptObject, idSWFParmList() );
 		for ( int i = 0; i < sprite->doInitActions.Num( ); i++ ) {
 			actionScript->SetData( sprite->doInitActions[i].Ptr( ), sprite->doInitActions[i].Length( ) );
 			actionScript->Call( scriptObject, idSWFParmList( ) );
 		}
 
 	}
-
-
 
 	Play();
 }
@@ -197,8 +210,32 @@ swfDisplayEntry_t * idSWFSpriteInstance::AddDisplayEntry( int depth, int charact
 
 	idSWFDictionaryEntry * dictEntry = sprite->swf->FindDictionaryEntry( characterID );
 	if ( dictEntry != NULL ) {
+		if (!dictEntry->resolved ) {
+			for ( auto &symbol : sprite->swf->symbolClasses.symbols ) {
+				if ( symbol.tag == characterID ) {
+					dictEntry->scriptClass = sprite->swf->globals->Get( symbol.name );
+					dictEntry->name = &symbol.name;
+					break;
+				}
+			}
+			dictEntry->resolved = true;//dictEntry->scriptClass != nullptr;
+		}
+
+
+
 		if ( dictEntry->type == SWF_DICT_SPRITE ) {
 			display.spriteInstance = sprite->swf->spriteInstanceAllocator.Alloc();
+			display.spriteInstance->abcFile = this->abcFile;
+			
+			if ( dictEntry->scriptClass.IsValid() ) {
+				display.spriteInstance->scriptObject = idSWFScriptObject::Alloc( );
+				auto *super = dictEntry->scriptClass.GetObject( );
+				display.spriteInstance->scriptObject->DeepCopy(
+					super->Get( "[" + *dictEntry->name + "]" )
+					.GetObject( ) );
+				display.spriteInstance->scriptObject->SetPrototype( super );
+			}
+
 			display.spriteInstance->Init( dictEntry->sprite, this, depth );
 			display.spriteInstance->RunTo( 1 );
 		} else if ( dictEntry->type == SWF_DICT_EDITTEXT ) {

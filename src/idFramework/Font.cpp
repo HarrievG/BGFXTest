@@ -46,14 +46,10 @@ If you have questions concerning this license or the applicable additional terms
 const char * DEFAULT_FONT = "open-sans-regular.ttf";
 idCVar font_glyph_ondemand_render( "font_glyph_ondemand_render", "0", CVAR_ARCHIVE | CVAR_GUI| CVAR_INIT| CVAR_BOOL, " 0: All glyphs within font are created on load.\n 1 : Font glyphs are rendered to the fontatlas when needed \n" );
 
-
 static const float old_scale2 = 0.6f;
 static const float old_scale1 = 0.3f;
 
-
 FT_Library ftLibrary;
-
-
 
 #define _FLOOR(x)  ((x) & -64)
 #define _CEIL(x)   (((x)+63) & -64)
@@ -139,9 +135,9 @@ idFont::~idFont() {
 
 void idFont::InitFreetype( ) 
 {
-		FT_Error ret = FT_Init_FreeType(&ftLibrary);
-		if (ret)
-			common->Warning("idFont: Cannot initialize freetype" );
+	FT_Error ret = FT_Init_FreeType( &ftLibrary );
+	if ( ret )
+		common->Warning( "idFont: Cannot initialize freetype" );
 
 }
 

@@ -108,9 +108,9 @@ idSWFScriptObject * idSWF::HitTest( idSWFSpriteInstance * spriteInstance, const 
 			}
 		} else if ( entry->type == SWF_DICT_MORPH ) {
 			// FIXME: this should be roughly the same as SWF_DICT_SHAPE
-		} else if ( entry->type == SWF_DICT_TEXT ) {
-			// FIXME: this should be roughly the same as SWF_DICT_SHAPE
-		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
+		//} else if ( entry->type == SWF_DICT_TEXT ) {
+		//	// FIXME: this should be roughly the same as SWF_DICT_SHAPE -> no we force spritetext
+		} else if ( entry->type == SWF_DICT_EDITTEXT ||  entry->type == SWF_DICT_TEXT) {
 			idSWFScriptObject * editObject = NULL;
 
 			if ( display.textInstance->scriptObject.HasProperty( "onRelease" ) || display.textInstance->scriptObject.HasProperty( "onPress" ) ) {

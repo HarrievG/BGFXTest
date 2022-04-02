@@ -72,7 +72,7 @@ void main_loop( void *data ) {
 		bufferHandle = textMan->createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
 
 		//swfTest = new idSWF("clicktest_simlpe.swf",0,textMan);
-		swfTest = new idSWF("test.swf",0,textMan);
+		swfTest = new idSWF("test_ext.swf",0,textMan);
 
 		eventLoop->RegisterCallback( []( const sysEvent_t &event )
 			-> auto {

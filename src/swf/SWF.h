@@ -78,19 +78,22 @@ public:
 	~idSWFDictionaryEntry();
 	idSWFDictionaryEntry & operator=( idSWFDictionaryEntry & other );
 
-	swfDictType_t		type;
-	const idMaterial *	material;
-	idSWFShape *		shape;
-	idSWFSprite *		sprite;
-	idSWFFont *			font;
-	idSWFText *			text;
-	idSWFEditText *		edittext;
+	swfDictType_t					type;
+	const idMaterial *				material;
+	idSWFShape *					shape;
+	idSWFSprite *					sprite;
+	idSWFFont *						font;
+	idSWFText *						text;
+	idSWFEditText *					edittext;
 
-	idVec2i				imageSize;
-	idVec2i				imageAtlasOffset;
+	idVec2i							imageSize;
+	idVec2i							imageAtlasOffset;
 	// the compressed images are normalize to reduce compression artifacts,
 	// color must be scaled down by this
-	idVec4				channelScale;
+	idVec4							channelScale;
+	idSWFScriptVar					scriptClass;
+	bool							resolved;
+	idStrPtr						name;
 };
 
 struct purgableSwfImage_t {
@@ -438,12 +441,15 @@ private:
 	//----------------------------------
 	void			DoABC( idSWFBitStream & bitstream ) ;
 	void			SymbolClass( idSWFBitStream & bitstream ) ;
+	
 public:
 	//----------------------------------
 	// SWF_Names.cpp
 	//----------------------------------
 	static const char * GetTagName( swfTag_t tag );
 	static const char * GetActionName( swfAction_t action );
+	void CreateAbcObjects( idSWFScriptObject *globals );
+	SWF_SymbolClass symbolClasses;
 
 };
 

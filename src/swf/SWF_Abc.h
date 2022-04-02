@@ -162,8 +162,12 @@ struct swfMethod_body_info
 	idList<swfTraits_info>		traits;			//u30 trait_count traits_info traits[trait_count]
 };
 
+class idSWFScriptObject;
 struct SWF_AbcFile
 {
+	template<class T>
+	T *GetTrait( const swfTraits_info &trait, idSWFScriptObject * globals = nullptr );
+
 	void ReadMethodInfo		( idSWFBitStream &bitstream, swfMethod_info &newMethod );
 	void ReadOptionInfo		( idSWFBitStream &bitstream, swfOption_info &newOption );
 	void ReadMetaDataInfo	( idSWFBitStream &bitstream, swfMetadata_info &newMetadata );
@@ -174,6 +178,11 @@ struct SWF_AbcFile
 	void ReadScriptInfo		( idSWFBitStream &bitstream, swfScript_info &newScriptData );
 	void ReadMethodBodyInfo	( idSWFBitStream &bitstream, swfMethod_body_info &newMethodBody );
 	void ReadExceptionInfo	( idSWFBitStream &bitstream, swfException_info &newException );
+
+	static idStr asString( swfConstantKind_t kind, swfConstant_pool_info &constant_pool );
+	static idStr asString( swfMultiname *mn, swfConstant_pool_info &constant_pool, bool prefix = true );
+	static void traceMN( const char *name, swfMultiname *mn, swfConstant_pool_info &constant_pool );
+	static void traceConstantPool( swfConstant_pool_info &constant_pool );
 
 	void RemoveAccessibility( );
 	uint16						minor_version;

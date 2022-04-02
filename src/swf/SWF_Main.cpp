@@ -35,6 +35,8 @@ If you have questions concerning this license or the applicable additional terms
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
 idCVar swf_loadBinary( "swf_loadBinary", "0", CVAR_INTEGER, "used to set whether to load binary swf from generated" );
+idCVar swf_printAbcObjects( "swf_printAbcObjects", "1", CVAR_INTEGER, "used to set whether to print all classes constructed form the DoAbc tag" );
+extern idCVar swf_abc_verbose;
 
 int idSWF::mouseX = -1;
 int idSWF::mouseY = -1;
@@ -45,6 +47,67 @@ extern idCVar in_useJoystick;
 //sound stub
 static idSoundWorld soundWorldStub;
 idSWFScriptObject_EventDispatcherPrototype eventDispatcherScriptObjectPrototype;
+
+void idSWF::CreateAbcObjects( idSWFScriptObject *globals ) 
+{
+	//2 passes.
+	//1. Create all classes
+	int idx = 0;
+	for (auto & classInfo : abcFile.classes )
+	{
+		swfInstance_info & instanceInfo = abcFile.instances[idx];
+
+		idSWFScriptObject * tmp = idSWFScriptObject::Alloc();
+		idStr& className = abcFile.constant_pool.utf8Strings[instanceInfo.name->nameIndex];
+		idStr& superName = abcFile.constant_pool.utf8Strings[instanceInfo.super_name->nameIndex];
+
+		//lookup prototype
+		if (globals->HasValidProperty(superName))
+			tmp->SetPrototype(globals->GetObject(superName)->GetPrototype());
+		
+		idSWFScriptFunction_Script *  init = idSWFScriptFunction_Script::Alloc();
+		init->SetData( classInfo.cinit );
+		tmp->Set( "__initializer__", idSWFScriptVar( init ) );
+		init->SetAbcFile(&abcFile);
+		idSWFScriptFunction_Script *constr = idSWFScriptFunction_Script::Alloc( );
+		constr->SetData( instanceInfo.iinit );
+		tmp->Set( "__constructor__", idSWFScriptVar( constr ) );
+		constr->SetAbcFile(&abcFile);
+		globals->Set(className,tmp);
+		idx++;
+	}
+	idx = 0;
+
+	//2, create all traits
+	for ( auto &classInfo : abcFile.classes ) 	{
+		swfInstance_info &instanceInfo = abcFile.instances[idx];
+
+		idStr &className = abcFile.constant_pool.utf8Strings[instanceInfo.name->nameIndex];
+		idSWFScriptObject *tmp = globals->GetObject( className );
+		auto * target = idSWFScriptObject::Alloc( );
+		auto *var = tmp->GetVariable( "[" + className + "]", true );
+		
+		for ( swfTraits_info &trait : instanceInfo.traits ) {
+			target->Set( abcFile.constant_pool.utf8Strings[trait.name->nameIndex], 
+				abcFile.GetTrait<idSWFScriptObject::swfNamedVar_t>( trait, globals )->value);		
+		}
+		var->value.SetObject(target);
+		target->Release();
+
+		for ( swfTraits_info &trait : classInfo.traits ) {
+			tmp->Set( abcFile.constant_pool.utf8Strings[trait.name->nameIndex],
+				abcFile.GetTrait<idSWFScriptObject::swfNamedVar_t>( trait, globals )->value
+			);
+		}
+		if (swf_printAbcObjects.GetBool())
+		{
+			tmp->PrintToConsole(className.c_str());
+			target->PrintToConsole("[" + className + "]");
+		}
+		idx++;
+	}
+}
+
 /*
 ===================
 idSWF::idSWF
@@ -137,20 +200,21 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	} else {
 		LoadSWF( filename );
 	}
+
 	idStr atlasFileName = binaryFileName;
 	atlasFileName.SetFileExtension( ".tga" );
 	common->DPrintf("LOAD ATLAS HERE");
 
 	//atlasMaterial = declManager->FindMaterial( atlasFileName );
 
-	globals = idSWFScriptObject::Alloc();
+	globals = idSWFScriptObject::Alloc( );
 	globals->Set( "_global", globals );
 
-	auto * dispatcherObj= idSWFScriptObject::Alloc();
+	auto *dispatcherObj = idSWFScriptObject::Alloc( );
 	dispatcherObj->SetPrototype( &eventDispatcherScriptObjectPrototype );
 
 	extern idSWFScriptObject_SpriteInstancePrototype spriteInstanceScriptObjectPrototype;
-	auto * movieclipObj = idSWFScriptObject::Alloc( );
+	auto *movieclipObj = idSWFScriptObject::Alloc( );
 	movieclipObj->SetPrototype( &spriteInstanceScriptObjectPrototype );
 
 	globals->Set( "Object", &scriptFunction_Object );
@@ -161,35 +225,24 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	globals->Set( "Sprite", idSWFScriptObject::Alloc( ) );
 	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ) );
 	globals->Set( "MovieClip", movieclipObj );
-	//////////////////////////////////////////////////////////////////////////
-	//  ORIGINAL
-	//globals->Set( "Object", &scriptFunction_Object );
-	//////////////////////////////////////////////////////////////////////////
-	
-	// run document constructor for MainTimeline/mainspriteInstance
-	idSWFScriptFunction_Script * docContructor = idSWFScriptFunction_Script::Alloc( );
-	idList<idSWFScriptObject * > scope; scope.Append( globals );
-	docContructor->SetScope( scope );
-	docContructor->SetAbcFile(&abcFile);
-	docContructor->SetData(abcFile.scripts[abcFile.scripts.Num()-1].init);
-	idSWFScriptObject * thisObj = idSWFScriptObject::Alloc();
-	docContructor->Call( thisObj, idSWFParmList() );
 
-	//in most cases this calls : this.MainTimeline = [OP_NEWCLASS ClassInfo:0 base:MovieClip];
-	//so thisObj, should have 1 prop, which is a object, called MainTimeline;
-	// prop MainTimeline should hold all props that where in the full scope while running.
-	// the compiled inheritance chain for MainTimeline:MovieClip = 
-	// Object,EventDispatcher,DisplayObject,InteractiveObject,DisplayObjectContainer,Sprite,MovieClip
-	// all of the properties from the classes above should have been scoped during construction.
-	
-	//fast way? but incompatible? 
+	CreateAbcObjects( globals );
+
 	mainspriteInstance = spriteInstanceAllocator.Alloc();
-	mainspriteInstance->scriptObject = thisObj;
-	mainspriteInstance->actionScript;//this should become the class instance method
-	//
-	//mainspriteInstance->actionScript = idSWFScriptFunction_Script::Alloc( );
-	//mainspriteInstance->actionScript->SetAbcFile(&abcFile);
-	//mainspriteInstance->actionScript->SetData(abcFile.scripts[abcFile.scripts.Num()-1].init);
+	mainspriteInstance->abcFile = abcFile;
+
+	//find documenent class, and instantiate.
+	for (auto & symbol : symbolClasses.symbols )
+	{
+		if (!symbol.tag)
+		{
+			//mainspriteInstance->scriptObject = idSWFScriptObject::Alloc( );
+			//auto * super = globals->Get(symbol.name).GetObject();
+			//mainspriteInstance->scriptObject->DeepCopy(super->Get("["+symbol.name+"]").GetObject());
+			//mainspriteInstance->scriptObject->SetPrototype(super);
+		}
+	}
+	
 	mainspriteInstance->Init( mainsprite, NULL, 0 );
 
 	shortcutKeys = idSWFScriptObject::Alloc();

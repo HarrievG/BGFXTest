@@ -115,7 +115,7 @@ public:
 	void					SetText( idSWFTextInstance * t ) { objectType = SWF_OBJECT_TEXT; data.text = t; }
 	idSWFTextInstance *		GetText() { return ( objectType == SWF_OBJECT_TEXT ) ? data.text : NULL; }
 
-	void					ApplyPrototype( idSWFScriptObject *_object );
+	void					DeepCopy( idSWFScriptObject *_object );
 	// Also accessible via __proto__ property
 	idSWFScriptObject *		GetPrototype() { return prototype; }
 	void					SetPrototype( idSWFScriptObject *_prototype ) { assert(1/* prototype == NULL*/ ); prototype = _prototype; prototype->AddRef(); }
@@ -143,8 +143,23 @@ public:
 	idSWFSpriteInstance *	GetNestedSprite( const char * arg1, const char * arg2 = NULL, const char * arg3 = NULL, const char * arg4 = NULL, const char * arg5 = NULL, const char * arg6 = NULL );
 	idSWFTextInstance *		GetNestedText( const char * arg1, const char * arg2 = NULL, const char * arg3 = NULL, const char * arg4 = NULL, const char * arg5 = NULL, const char * arg6 = NULL );
 
-	void					PrintToConsole() const;
+	void					PrintToConsole(const char * name = nullptr) const;
 
+	struct swfNamedVar_t {
+		swfNamedVar_t( ) : native( NULL ) { }
+		~swfNamedVar_t( );
+		swfNamedVar_t &operator=( const swfNamedVar_t &other );
+
+		int							index;
+		int							hashNext;
+		idStr						name;
+		idSWFScriptVar				value;
+		idSWFScriptNativeVariable *native;
+		int							flags;
+	};
+
+	swfNamedVar_t *	GetVariable( int index, bool create );
+	swfNamedVar_t *	GetVariable( const char * name, bool create );
 private:
 	int refCount;
 	bool noAutoDelete;
@@ -154,18 +169,7 @@ private:
 		SWF_VAR_FLAG_READONLY = BIT(1),
 		SWF_VAR_FLAG_DONTENUM = BIT(2)
 	};
-	struct swfNamedVar_t {
-									swfNamedVar_t() : native( NULL ) { }
-									~swfNamedVar_t();
-									swfNamedVar_t & operator=( const swfNamedVar_t & other );
 
-		int							index;
-		int							hashNext;
-		idStr						name;
-		idSWFScriptVar				value;
-		idSWFScriptNativeVariable *	native;
-		int							flags;
-	};
 	idList< swfNamedVar_t >	variables;
 
 	static const int VARIABLE_HASH_BUCKETS = 16;
@@ -184,9 +188,6 @@ private:
 		idSWFSpriteInstance *	sprite;			// only valid if objectType == SWF_OBJECT_SPRITE
 		idSWFTextInstance *		text;			// only valid if objectType == SWF_OBJECT_TEXT
 	} data;
-
-	swfNamedVar_t *	GetVariable( int index, bool create );
-	swfNamedVar_t *	GetVariable( const char * name, bool create );
 };
 
 #endif // !__SWF_SCRIPTOBJECT_H__
