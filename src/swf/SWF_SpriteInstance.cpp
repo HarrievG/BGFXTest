@@ -97,7 +97,7 @@ void idSWFSpriteInstance::Init( idSWFSprite * _sprite, idSWFSpriteInstance * _pa
 		actionScript = idSWFScriptFunction_Script::Alloc( );
 		idList<idSWFScriptObject * > scope;
 		scope.Append( sprite->swf->globals );
-		scope.Append( scriptObject );
+		//scope.Append( scriptObject );
 		actionScript->SetScope( scope );
 	}
 	actionScript->SetDefaultSprite( this );

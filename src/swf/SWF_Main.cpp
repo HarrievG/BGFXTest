@@ -282,6 +282,8 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	//globals->SetNative( "cropToFit", swfScriptVar_crop.Bind( this ) );
 	//globals->SetNative( "crop", swfScriptVar_crop.Bind( this ) );
 
+	globals->Set( "trace", scriptFunction_trace.Bind( this ) );
+
 	// Do this to touch any external references (like sounds)
 	// But disable script warnings because many globals won't have been created yet
 	extern idCVar swf_debug;
@@ -808,3 +810,7 @@ idSWFScriptVar idSWF::idSWFScriptFunction_shortcutKeys_clear::Call( idSWFScriptO
 //void idSWF::idSWFScriptNativeVar_crop::Set( idSWFScriptObject * object, const idSWFScriptVar & value ) {
 //	pThis->crop = value.ToBool();
 //}
+idSWFScriptVar idSWF::idSWFScriptFunction_trace::Call( idSWFScriptObject *thisObject, const idSWFParmList &parms ) {
+	common->Printf("[%s] %s\n",thisObject->GetSprite()->name.c_str(),parms[0].ToString().c_str());
+	return idSWFScriptVar();
+}

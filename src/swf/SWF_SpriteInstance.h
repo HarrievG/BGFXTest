@@ -53,7 +53,7 @@ public:
 	bool	InterpCode();
 	const char * GetName() const { return name.c_str(); }
 
-	idSWFScriptObject * GetScriptObject() { return scriptObject; }
+	idSWFScriptObject * GetScriptObject() {  scriptObject->AddRef(); return scriptObject; }
 	void SetAlignment( float x, float y ) { xOffset = x; yOffset = y; }
 
 	//void SetMaterial( const idMaterial * material, int width = -1, int height = -1 );
