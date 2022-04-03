@@ -91,8 +91,8 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 	}
 
 	const float pixelAspect = 1920.0 / 1080.0;//renderSystem->GetPixelAspect( );
-	const float sysWidth = 1920.0  * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
-	const float sysHeight = 1080.0 / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
+	const float sysWidth = 1920.0  ;/// ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
+	const float sysHeight = 1080.0 ;/// ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
 	float scale = swfScale * sysHeight / ( float ) frameHeight;
 
 	swfRenderState_t renderState;
@@ -104,7 +104,7 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 
 	renderBorder = renderState.matrix.tx / scale;
 
-	scaleToVirtual.Set( ( float ) 640 / sysWidth, ( float ) 1080 / sysHeight );
+	scaleToVirtual.Set(( float ) 1024 / sysWidth, ( float ) 768 / sysHeight );
 
 	RenderSprite( mainspriteInstance, renderState, time, isSplitscreen );
 
@@ -130,7 +130,7 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 		idSWFScriptObject * hitObject = HitTest( mainspriteInstance, swfRenderState_t(), mouseX, mouseY, NULL );
 		static bool isHand = false;
 		static bool isCursor = false;
-		if ( !hasHitObject ) { //hitObject == NULL ) {
+		if ( hitObject == NULL ) {
 			SDL_SetCursor(cursorArrow);
 			if (!isCursor){
 				SDL_SetCursor(cursorHand);
@@ -242,8 +242,8 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 				float heightAdj = swf_titleSafe.GetFloat( ) * frameHeight;
 
 				const float pixelAspect = 1920.0 / 1080.0;//renderSystem->GetPixelAspect( );
-				const float sysWidth = 1920.0 * ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
-				const float sysHeight = 1080.0 / ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
+				const float sysWidth = 1920.0;/// ( pixelAspect > 1.0f ? pixelAspect : 1.0f );
+				const float sysHeight = 1080.0;/// ( pixelAspect < 1.0f ? pixelAspect : 1.0f );
 
 				if ( display.spriteInstance->name.Icmp( "_fullScreen" ) == 0 ) {
 					renderState2.matrix.tx = display.matrix.tx * renderState.matrix.xx;
@@ -339,7 +339,8 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 			textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
 			//RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
 			auto & text = display.textInstance->GetEditText()->initialText;
-			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,display.textInstance->bounds.br.x,display.textInstance->bounds.br.y);
+			idVec2 textPos = renderState2.matrix.Transform(vec2_one)-vec2_one;
+			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,textPos.x,textPos.y);
 			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
  			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
 		} else {

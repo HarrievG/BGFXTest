@@ -12,9 +12,6 @@
 #include "swf.h"
 #include "../idFramework/Font.h"
 
-#include  "quickJS/quickjs.h"
-#include  "quickJS/quickjs-libc.h"
-
 #include "SWF_Abc.h"
 
 idCVar swf_abc_verbose( "swf_abc_verbose", "0", CVAR_INTEGER, "1 : writes out all abc data read \n 2 : print bytecode ");

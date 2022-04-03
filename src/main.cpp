@@ -48,8 +48,8 @@ idSession *session = NULL;
 //idSysLocal		sysLocal;
 //idSys *sys = &sysLocal;
 
-#define WINDOW_WIDTH 1024
-#define WINDOW_HEIGHT 768
+#define WINDOW_WIDTH 1920
+#define WINDOW_HEIGHT 1080
 
 //#define WINDOW_WIDTH 3840
 //#define WINDOW_HEIGHT 2160
@@ -83,31 +83,31 @@ void main_loop( void *data ) {
 
 
 	swfTest->Render( Sys_Milliseconds() );
-	static idStr tmpStr = "!123adadada123!";
-	textMan->clearTextBuffer(bufferHandle);
-	textMan->setPenPosition(bufferHandle,10,100);
-	textMan->setTextColor(bufferHandle,0xFF0000FF);
+	//static idStr tmpStr = "!123adadada123!";
+	//textMan->clearTextBuffer(bufferHandle);
+	//textMan->setPenPosition(bufferHandle,10,100);
+	//textMan->setTextColor(bufferHandle,0xFF0000FF);
 
 	// Setu-> style colors.
-	textMan->setStyle( bufferHandle, STYLE_BACKGROUND );
-	textMan->setBackgroundColor( bufferHandle, 0x00FF00FF );
-	textMan->setUnderlineColor( bufferHandle, 0xff2222ff );
-	textMan->setOverlineColor( bufferHandle, 0x2222ffff );
-	textMan->setStrikeThroughColor( bufferHandle, 0x000000ff );
+	//textMan->setStyle( bufferHandle, STYLE_BACKGROUND );
+	//textMan->setBackgroundColor( bufferHandle, 0x00FF00FF );
+	//textMan->setUnderlineColor( bufferHandle, 0xff2222ff );
+	//textMan->setOverlineColor( bufferHandle, 0x2222ffff );
+	//textMan->setStrikeThroughColor( bufferHandle, 0x000000ff );
 
-	textMan->appendText( bufferHandle, tmpStr.c_str( ), tmpStr.c_str( ) + tmpStr.Size( ) );
+	//textMan->appendText( bufferHandle, tmpStr.c_str( ), tmpStr.c_str( ) + tmpStr.Size( ) );
 
 
 	//// Background + strike-through.
-	textMan->setStyle( bufferHandle, STYLE_BACKGROUND | STYLE_STRIKE_THROUGH | STYLE_UNDERLINE | STYLE_OVERLINE );
-	textMan->appendText( bufferHandle, L"dog\n" );
-
-	textMan->setPenPosition( bufferHandle, 0, 0 );
-	textMan->appendText( bufferHandle, L"." );
-	textMan->setPenPosition( bufferHandle, 50, 50 );
-	textMan->appendText( bufferHandle, L"." );
-	textMan->setPenPosition( bufferHandle, 500, 500 );
-	textMan->appendText( bufferHandle, L"." );
+	//textMan->setStyle( bufferHandle, STYLE_BACKGROUND | STYLE_STRIKE_THROUGH | STYLE_UNDERLINE | STYLE_OVERLINE );
+	//textMan->appendText( bufferHandle, L"dog\n" );
+	//
+	//textMan->setPenPosition( bufferHandle, 0, 0 );
+	//textMan->appendText( bufferHandle, L"." );
+	//textMan->setPenPosition( bufferHandle, 50, 50 );
+	//textMan->appendText( bufferHandle, L"." );
+	//textMan->setPenPosition( bufferHandle, 500, 500 );
+	//textMan->appendText( bufferHandle, L"." );
 	ImGui_Implbgfx_NewFrame( );
 	ImGui_ImplSDL2_NewFrame( context->window );
 	common->Frame();
@@ -183,9 +183,45 @@ void main_loop( void *data ) {
 #endif
 }
 
+// code that tells windows we're High DPI aware so it doesn't scale our windows
+// taken from Yamagi Quake II
+typedef enum D3_PROCESS_DPI_AWARENESS {
+	D3_PROCESS_DPI_UNAWARE = 0,
+	D3_PROCESS_SYSTEM_DPI_AWARE = 1,
+	D3_PROCESS_PER_MONITOR_DPI_AWARE = 2
+} YQ2_PROCESS_DPI_AWARENESS;
+
+static void setHighDPIMode( void ) {
+	/* For Vista, Win7 and Win8 */
+	BOOL( WINAPI * SetProcessDPIAware )( void ) = NULL;
+
+	/* Win8.1 and later */
+	HRESULT( WINAPI * SetProcessDpiAwareness )( D3_PROCESS_DPI_AWARENESS dpiAwareness ) = NULL;
+
+	HINSTANCE userDLL = LoadLibrary( "USER32.DLL" );
+
+	if ( userDLL ) 	{
+		SetProcessDPIAware = ( BOOL( WINAPI * )( void ) ) GetProcAddress( userDLL, "SetProcessDPIAware" );
+	}
+
+	HINSTANCE shcoreDLL = LoadLibrary( "SHCORE.DLL" );
+
+	if ( shcoreDLL ) 	{
+		SetProcessDpiAwareness = ( HRESULT( WINAPI * )( YQ2_PROCESS_DPI_AWARENESS ) )
+			GetProcAddress( shcoreDLL, "SetProcessDpiAwareness" );
+	}
+
+	if ( SetProcessDpiAwareness ) {
+		SetProcessDpiAwareness( D3_PROCESS_PER_MONITOR_DPI_AWARE );
+	} 	else if ( SetProcessDPIAware ) {
+		SetProcessDPIAware( );
+	}
+}
 
 int main( int argc, char **argv )
 {
+	setHighDPIMode();
+
 	static bgfxContext_t context;
 
 	idLib::common = common;
@@ -249,13 +285,17 @@ int main( int argc, char **argv )
 	const int width = WINDOW_WIDTH;
 	const int height = WINDOW_HEIGHT;
 
-	Uint32 flags = SDL_WINDOW_SHOWN;
+	Uint32 flags = SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI;
 	
 	if (in_grabMouse.GetBool())
 		flags |= SDL_WINDOW_MOUSE_GRABBED;
 
-	SDL_Window *window = SDL_CreateWindow(argv[0], SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width,
-		height,flags );
+	SDL_Window *window = SDL_CreateWindow(
+		argv[0],
+		SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
+		width, height,
+		flags);
+
 
 	if ( window == nullptr ) {
 		common->FatalError("Window could not be created. SDL_Error: %s\n", SDL_GetError( ) );
@@ -660,7 +700,7 @@ The cvar system must already be setup
 */
 void Sys_Init( void ) {
 
-	CoInitialize( NULL );
+	//CoInitialize( NULL );
 
 	// make sure the timer is high precision, otherwise
 	// NT gets 18ms resolution

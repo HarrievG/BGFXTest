@@ -25,45 +25,6 @@ function(add_globbed_headers SRCLIST PATHPREFIX)
 	set(${SRCLIST} ${tmp_hdrs} ${${SRCLIST}} PARENT_SCOPE)
 endfunction()
 
-set(src_quicJS
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libregexp.c
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libunicode.c
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/qjs.c
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-libc.c
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs.c
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/Win32Console.c
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/Win32Time.cpp
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/cutils.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/cutils.c
-#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libregexp-opcode.h
-#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libregexp.h
-#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libunicode-table.h  
-#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/libunicode.h
-#${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/list.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-atom.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-defs.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-libc.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs-opcode.h
-${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/quickjs.h
-##${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/Win32Console.h
-##${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/windows_dirent.h
-##${CMAKE_CURRENT_SOURCE_DIR}/src/quickJS/windows_getopt.h
-)
-#
-               add_library( qjs-engine ${src_quicJS} )
-    target_compile_options( qjs-engine PRIVATE
-                                -MMD -MF
-                                #-Wno-sign-compare 
-                                #-Wno-missing-field-initializers 
-                                #-Wundef -Wuninitialized 
-                                #-Wundef -Wuninitialized -Wwrite-strings -Wchar-subscripts
-                          )
-target_compile_definitions( qjs-engine PUBLIC 
-                                       #CONFIG_BIGNUM=y
-                                       CONFIG_VERSION="2020-11-08"
-                                       _GNU_SOURCE
-                           )
-
 set(src_idSWF
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Bitstream.cpp
@@ -257,7 +218,6 @@ target_link_libraries(
   idFramework
   ${ZLIB_LIBRARY}
   freetype
-  qjs-engine
 )
 
 target_compile_options(

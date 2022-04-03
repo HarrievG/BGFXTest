@@ -157,7 +157,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 
 	isActive = false;
 	inhibitControl = false;
-	useInhibtControl = true;
+	useInhibtControl = false;
 
 	crop = false;
 	blackbars = false;

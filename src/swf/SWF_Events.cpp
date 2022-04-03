@@ -113,7 +113,8 @@ idSWFScriptObject * idSWF::HitTest( idSWFSpriteInstance * spriteInstance, const 
 		} else if ( entry->type == SWF_DICT_EDITTEXT ||  entry->type == SWF_DICT_TEXT) {
 			idSWFScriptObject * editObject = NULL;
 
-			if ( display.textInstance->scriptObject.HasProperty( "onRelease" ) || display.textInstance->scriptObject.HasProperty( "onPress" ) ) {
+			if ( display.textInstance && 
+				(display.textInstance->scriptObject.HasProperty( "onRelease" ) || display.textInstance->scriptObject.HasProperty( "onPress" )) ) {
 				// if the edit box itself can be clicked, then we want to return it when it's clicked on
 				editObject = &display.textInstance->scriptObject;
 			} else if ( parentObject != NULL ) {
