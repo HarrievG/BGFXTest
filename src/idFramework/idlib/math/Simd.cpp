@@ -2796,83 +2796,83 @@ TestDeriveTangents
 ============
 */
 void TestDeriveTangents( void ) {
-	int i, j;
-	TIME_TYPE start, end, bestClocksGeneric, bestClocksSIMD;
-	ALIGN16( idDrawVert drawVerts1[COUNT] );
-	ALIGN16( idDrawVert drawVerts2[COUNT] );
-	ALIGN16( idPlane planes1[COUNT] );
-	ALIGN16( idPlane planes2[COUNT] );
-	ALIGN16( int indexes[COUNT*3] );
-	const char *result;
+	//int i, j;
+	//TIME_TYPE start, end, bestClocksGeneric, bestClocksSIMD;
+	//ALIGN16( idDrawVert drawVerts1[COUNT] );
+	//ALIGN16( idDrawVert drawVerts2[COUNT] );
+	//ALIGN16( idPlane planes1[COUNT] );
+	//ALIGN16( idPlane planes2[COUNT] );
+	//ALIGN16( int indexes[COUNT*3] );
+	//const char *result;
 
-	idRandom srnd( RANDOM_SEED );
+	//idRandom srnd( RANDOM_SEED );
 
-	for ( i = 0; i < COUNT; i++ ) {
-		for ( j = 0; j < 3; j++ ) {
-			drawVerts1[i].xyz[j] = srnd.CRandomFloat() * 10.0f;
-		}
-		for ( j = 0; j < 2; j++ ) {
-			drawVerts1[i].st[j] = srnd.CRandomFloat();
-		}
-		drawVerts2[i] = drawVerts1[i];
-	}
+	//for ( i = 0; i < COUNT; i++ ) {
+	//	for ( j = 0; j < 3; j++ ) {
+	//		drawVerts1[i].xyz[j] = srnd.CRandomFloat() * 10.0f;
+	//	}
+	//	for ( j = 0; j < 2; j++ ) {
+	//		drawVerts1[i].st[j] = srnd.CRandomFloat();
+	//	}
+	//	drawVerts2[i] = drawVerts1[i];
+	//}
 
-	for ( i = 0; i < COUNT; i++ ) {
-		indexes[i*3+0] = ( i + 0 ) % COUNT;
-		indexes[i*3+1] = ( i + 1 ) % COUNT;
-		indexes[i*3+2] = ( i + 2 ) % COUNT;
-	}
+	//for ( i = 0; i < COUNT; i++ ) {
+	//	indexes[i*3+0] = ( i + 0 ) % COUNT;
+	//	indexes[i*3+1] = ( i + 1 ) % COUNT;
+	//	indexes[i*3+2] = ( i + 2 ) % COUNT;
+	//}
 
-	bestClocksGeneric = 0;
-	for ( i = 0; i < NUMTESTS; i++ ) {
-		StartRecordTime( start );
-		p_generic->DeriveTangents( planes1, drawVerts1, COUNT, indexes, COUNT*3 );
-		StopRecordTime( end );
-		GetBest( start, end, bestClocksGeneric );
-	}
-	PrintClocks( "generic->DeriveTangents()", COUNT, bestClocksGeneric );
+	//bestClocksGeneric = 0;
+	//for ( i = 0; i < NUMTESTS; i++ ) {
+	//	StartRecordTime( start );
+	//	p_generic->DeriveTangents( planes1, drawVerts1, COUNT, indexes, COUNT*3 );
+	//	StopRecordTime( end );
+	//	GetBest( start, end, bestClocksGeneric );
+	//}
+	//PrintClocks( "generic->DeriveTangents()", COUNT, bestClocksGeneric );
 
-	bestClocksSIMD = 0;
-	for ( i = 0; i < NUMTESTS; i++ ) {
-		StartRecordTime( start );
-		p_simd->DeriveTangents( planes2, drawVerts2, COUNT, indexes, COUNT*3 );
-		StopRecordTime( end );
-		GetBest( start, end, bestClocksSIMD );
-	}
+	//bestClocksSIMD = 0;
+	//for ( i = 0; i < NUMTESTS; i++ ) {
+	//	StartRecordTime( start );
+	//	p_simd->DeriveTangents( planes2, drawVerts2, COUNT, indexes, COUNT*3 );
+	//	StopRecordTime( end );
+	//	GetBest( start, end, bestClocksSIMD );
+	//}
 
-	for ( i = 0; i < COUNT; i++ ) {
-		idVec3 v1, v2;
+	//for ( i = 0; i < COUNT; i++ ) {
+	//	idVec3 v1, v2;
 
-		v1 = drawVerts1[i].normal;
-		v1.Normalize();
-		v2 = drawVerts2[i].normal;
-		v2.Normalize();
-		if ( !v1.Compare( v2, 1e-1f ) ) {
-			idLib::common->Printf("DeriveTangents: broken at normal %i\n -- expecting %s got %s", i, v1.ToString(), v2.ToString());
-			break;
-		}
-		v1 = drawVerts1[i].tangents[0];
-		v1.Normalize();
-		v2 = drawVerts2[i].tangents[0];
-		v2.Normalize();
-		if ( !v1.Compare( v2, 1e-1f ) ) {
-			idLib::common->Printf("DeriveTangents: broken at tangent0 %i -- expecting %s got %s\n", i, v1.ToString(), v2.ToString() );
-			break;
-		}
-		v1 = drawVerts1[i].tangents[1];
-		v1.Normalize();
-		v2 = drawVerts2[i].tangents[1];
-		v2.Normalize();
-		if ( !v1.Compare( v2, 1e-1f ) ) {
-			idLib::common->Printf("DeriveTangents: broken at tangent1 %i -- expecting %s got %s\n", i, v1.ToString(), v2.ToString() );
-			break;
-		}
-		if ( !planes1[i].Compare( planes2[i], 1e-1f, 1e-1f ) ) {
-			break;
-		}
-	}
-	result = ( i >= COUNT ) ? "ok" :  S_COLOR_RED "X";
-	PrintClocks( va( "   simd->DeriveTangents() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
+	//	v1 = drawVerts1[i].normal;
+	//	v1.Normalize();
+	//	v2 = drawVerts2[i].normal;
+	//	v2.Normalize();
+	//	if ( !v1.Compare( v2, 1e-1f ) ) {
+	//		idLib::common->Printf("DeriveTangents: broken at normal %i\n -- expecting %s got %s", i, v1.ToString(), v2.ToString());
+	//		break;
+	//	}
+	//	v1 = drawVerts1[i].tangents[0];
+	//	v1.Normalize();
+	//	v2 = drawVerts2[i].tangents[0];
+	//	v2.Normalize();
+	//	if ( !v1.Compare( v2, 1e-1f ) ) {
+	//		idLib::common->Printf("DeriveTangents: broken at tangent0 %i -- expecting %s got %s\n", i, v1.ToString(), v2.ToString() );
+	//		break;
+	//	}
+	//	v1 = drawVerts1[i].tangents[1];
+	//	v1.Normalize();
+	//	v2 = drawVerts2[i].tangents[1];
+	//	v2.Normalize();
+	//	if ( !v1.Compare( v2, 1e-1f ) ) {
+	//		idLib::common->Printf("DeriveTangents: broken at tangent1 %i -- expecting %s got %s\n", i, v1.ToString(), v2.ToString() );
+	//		break;
+	//	}
+	//	if ( !planes1[i].Compare( planes2[i], 1e-1f, 1e-1f ) ) {
+	//		break;
+	//	}
+	//}
+	//result = ( i >= COUNT ) ? "ok" :  S_COLOR_RED "X";
+	//PrintClocks( va( "   simd->DeriveTangents() %s", result ), COUNT, bestClocksSIMD, bestClocksGeneric );
 }
 
 /*
@@ -2966,11 +2966,13 @@ void TestNormalizeTangents( void ) {
 
 	idRandom srnd( RANDOM_SEED );
 
+	idVec3 temp;
 	for ( i = 0; i < COUNT; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
 			drawVerts1[i].normal[j] = srnd.CRandomFloat() * 10.0f;
-			drawVerts1[i].tangents[0][j] = srnd.CRandomFloat() * 10.0f;
-			drawVerts1[i].tangents[1][j] = srnd.CRandomFloat() * 10.0f;
+			temp = drawVerts1[i].GetTangent( );
+			temp[j] = srnd.CRandomFloat( ) * 10.0f;
+			drawVerts1[i].SetTangent( temp );
 		}
 		drawVerts2[i] = drawVerts1[i];
 	}
@@ -2993,15 +2995,15 @@ void TestNormalizeTangents( void ) {
 	}
 
 	for ( i = 0; i < COUNT; i++ ) {
-		if ( !drawVerts1[i].normal.Compare( drawVerts2[i].normal, 1e-2f ) ) {
+		if ( !drawVerts1[i].GetNormal().Compare( drawVerts2[i].GetNormal(), 1e-2f ) ) {
 			break;
 		}
-		if ( !drawVerts1[i].tangents[0].Compare( drawVerts2[i].tangents[0], 1e-2f ) ) {
+		if ( !drawVerts1[i].GetTangent().Compare( drawVerts2[i].GetTangent(), 1e-2f ) ) {
 			break;
 		}
-		if ( !drawVerts1[i].tangents[1].Compare( drawVerts2[i].tangents[1], 1e-2f ) ) {
-			break;
-		}
+		//if ( !drawVerts1[i].GetTangent()[1].Compare( drawVerts2[i].GetTangent()[1], 1e-2f ) ) {
+		//	break;
+		//}
 
 		// since we're doing a lot of unaligned work, added this check to
 		// make sure xyz wasn't getting overwritten
@@ -3030,12 +3032,14 @@ void TestGetTextureSpaceLightVectors( void ) {
 
 	idRandom srnd( RANDOM_SEED );
 
+	idVec3 temp;
 	for ( i = 0; i < COUNT; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
-			drawVerts[i].xyz[j] = srnd.CRandomFloat() * 100.0f;
-			drawVerts[i].normal[j] = srnd.CRandomFloat();
-			drawVerts[i].tangents[0][j] = srnd.CRandomFloat();
-			drawVerts[i].tangents[1][j] = srnd.CRandomFloat();
+			drawVerts[i].xyz[j] = srnd.CRandomFloat( ) * 100.0f;
+			drawVerts[i].normal[j] = srnd.CRandomFloat( );
+			temp = drawVerts[i].GetTangent( );
+			temp[j] = srnd.CRandomFloat( );
+			drawVerts[i].SetTangent( temp );
 		}
 	}
 
@@ -3092,12 +3096,14 @@ void TestGetSpecularTextureCoords( void ) {
 
 	idRandom srnd( RANDOM_SEED );
 
+	idVec3 temp; 
 	for ( i = 0; i < COUNT; i++ ) {
 		for ( j = 0; j < 3; j++ ) {
 			drawVerts[i].xyz[j] = srnd.CRandomFloat() * 100.0f;
 			drawVerts[i].normal[j] = srnd.CRandomFloat();
-			drawVerts[i].tangents[0][j] = srnd.CRandomFloat();
-			drawVerts[i].tangents[1][j] = srnd.CRandomFloat();
+			temp = drawVerts[i].GetTangent();
+			temp[j] = srnd.CRandomFloat();
+			drawVerts[i].SetTangent(temp);
 		}
 	}
 

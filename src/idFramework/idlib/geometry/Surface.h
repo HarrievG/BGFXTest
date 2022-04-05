@@ -226,11 +226,10 @@ idSurface::RotateSelf
 =================
 */
 ID_INLINE void idSurface::RotateSelf( const idMat3 &rotation ) {
-	for ( int i = 0; i < verts.Num(); i++ ) {
+	for ( int i = 0; i < verts.Num( ); i++ ) {
 		verts[i].xyz *= rotation;
-		verts[i].normal *= rotation;
-		verts[i].tangents[0] *= rotation;
-		verts[i].tangents[1] *= rotation;
+		verts[i].SetNormal( verts[i].GetNormal( ) * rotation );
+		verts[i].SetTangent( verts[i].GetTangent( ) * rotation );
 	}
 }
 

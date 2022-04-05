@@ -1,14 +1,12 @@
 // shaderc command line:
-// bin\shadercRelease.exe -f shaders\vs_forward.sc -o shaders\vs_forward.bin --platform windows --type vertex --verbose -i ./ -p vs_5_0 --debug -O 0
+// bin\shadercRelease.exe -f shaders\vs_swf.sc -o shaders\vs_swf.bin --platform windows --type vertex --verbose -i ./ -p vs_5_0 --debug -O 0
 
 
 struct Output
 {
 float4 gl_Position : SV_POSITION;
-float3 v_normal : NORMAL;
-float4 v_tangent : TANGENT;
-float2 v_texcoord : TEXCOORD0;
-float3 v_worldpos : POSITION1;
+float4 v_color : COLOR0;
+float4 v_texcoord3 : TEXCOORD3;
 };
 float intBitsToFloat(int _x) { return asfloat(_x); }
 float2 intBitsToFloat(uint2 _x) { return asfloat(_x); }
@@ -296,7 +294,7 @@ static float4x4 u_proj;
 static float4x4 u_invProj;
 static float4x4 u_viewProj;
 static float4x4 u_invViewProj;
-uniform float4x4 u_model[32];
+static float4x4 u_model[32];
 static float4x4 u_modelView;
 uniform float4x4 u_modelViewProj;
 static float4 u_alphaRef4;
@@ -634,13 +632,10 @@ float3 reinhard2(float3 _x, float _whiteSqr)
 {
 return (_x * (1.0 + _x/_whiteSqr) ) / (1.0 + _x);
 }
-uniform float4x4 u_normalMatrix;
-Output main( float3 a_normal : NORMAL , float3 a_position : POSITION , float4 a_tangent : TANGENT , float2 a_texcoord0 : TEXCOORD0) { Output _varying_; _varying_.v_normal; _varying_.v_tangent; _varying_.v_texcoord; _varying_.v_worldpos;
+Output main( float4 a_color0 : COLOR0 , float3 a_position : POSITION , float4 a_texcoord3 : TEXCOORD3) { Output _varying_; _varying_.v_color; _varying_.v_texcoord3;
 {
-_varying_.v_worldpos = mul(u_model[0], float4(a_position, 1.0)).xyz;
-_varying_.v_normal = mul(u_normalMatrix, a_normal);
-_varying_.v_tangent = mul(u_model[0],a_tangent.xyz);
-_varying_.v_texcoord = a_texcoord0;
-_varying_.gl_Position = mul(u_modelViewProj, float4(a_position, 1.0));
+_varying_.gl_Position = mul(u_modelViewProj, float4(a_position.xy, 0.0, 1.0) );
+_varying_.v_texcoord3 = a_texcoord3;
+_varying_.v_color = a_color0;
 } return _varying_;
 }

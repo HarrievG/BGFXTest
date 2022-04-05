@@ -39,6 +39,7 @@ set(src_idSWF
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ParmList.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ParmList.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_PlaceObject.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Render.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Render.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptFunction.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_ScriptFunction.h

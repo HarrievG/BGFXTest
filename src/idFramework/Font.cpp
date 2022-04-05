@@ -397,7 +397,7 @@ bool idFont::RenderFont()
 	 {
 		const uint32_t W = 3;
 
-		// Create filler rectangle , its called a tofu character ;P
+		// Create tofu character ;P
 		uint8_t buffer[W * W * 4];
 		bx::memSet( buffer, 255, W * W * 4 );
 

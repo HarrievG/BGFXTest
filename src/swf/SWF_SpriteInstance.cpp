@@ -219,10 +219,13 @@ swfDisplayEntry_t * idSWFSpriteInstance::AddDisplayEntry( int depth, int charact
 
 			display.spriteInstance->Init( dictEntry->sprite, this, depth );
 			display.spriteInstance->RunTo( 1 );
-		} else if ( dictEntry->type == SWF_DICT_EDITTEXT ) {
+		} else if ( dictEntry->type == SWF_DICT_EDITTEXT) {
 			display.textInstance = sprite->swf->textInstanceAllocator.Alloc();			
 			display.textInstance->Init( dictEntry->edittext, sprite->GetSWF() );
 			//display.textInstance->scriptObject.Set( "onPress", "a" );
+		} else if ( dictEntry->type == SWF_DICT_TEXT ) {
+			display.textInstance = sprite->swf->textInstanceAllocator.Alloc( );
+			display.textInstance->Init( dictEntry->text, sprite->GetSWF( ) );
 		}
 	}
 	return &display;

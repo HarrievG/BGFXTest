@@ -83,6 +83,7 @@ If you have questions concerning this license or the applicable additional terms
 #define ID_GAME_API
 #endif
 #define ALIGN16( x )				__declspec(align(16)) x
+#define ALIGNTYPE16					__declspec(align(16))
 #define PACKED
 #define ID_INLINE					__forceinline
 // DG: alternative to forced inlining of ID_INLINE for functions that do alloca()

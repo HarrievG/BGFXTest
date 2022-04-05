@@ -26,10 +26,13 @@ If you have questions concerning this license or the applicable additional terms
 ===========================================================================
 */
 #include "swf.h"
+#include "SWF_Render.h"
+#include "../idFramework/idlib/geometry/DrawVert.h"
 //#include "../renderer/tr_local.h"
 #include "../idFramework/idlib/Lib.h"
 #include "../bgfx-stubs/Font/text_buffer_manager.h"
 #include <SDL_mouse.h>
+#include "../bgfx-stubs/bgfxRender.h"
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
 idCVar swf_stopat( "swf_stopat", "0", CVAR_FLOAT, "stop at a specific frame" );
@@ -46,6 +49,35 @@ extern idCVar in_useJoystick;
 
 #define STENCIL_DECR -1
 #define STENCIL_INCR -2
+
+swfRenderer * idSWF::Renderer = nullptr;
+
+void idSWF::CreateRenderer( ) 
+{
+	if ( !Renderer )
+		Renderer = new swfRenderer();
+}
+
+swfRenderer::swfRenderer() {
+
+	bgfx::ShaderHandle vsh = bgfxCreateShader( "shaders/vs_swf.bin", "SWFvs" );
+	bgfx::ShaderHandle fsh = bgfxCreateShader( "shaders/fs_swf.bin", "SWFfs" );
+	
+	m_vertexLayout
+		.begin( )
+		.add( bgfx::Attrib::Position, 3, bgfx::AttribType::Float )
+		.add( bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Int16, true )
+		.add( bgfx::Attrib::TexCoord1, 4, bgfx::AttribType::Uint8, true )
+		.add( bgfx::Attrib::TexCoord2, 4, bgfx::AttribType::Uint8, true )
+		.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true )
+		.add( bgfx::Attrib::Color1, 4, bgfx::AttribType::Uint8, true )
+		.end( );
+	
+	//s_texColor = bgfx::createUniform( "s_texColor", bgfx::UniformType::Sampler );
+	//u_dropShadowColor = bgfx::createUniform( "u_dropShadowColor", bgfx::UniformType::Vec4 );
+	//u_params = bgfx::createUniform( "u_params", bgfx::UniformType::Vec4 );
+}
+
 /*
 ========================
 idSWF::Render
@@ -152,8 +184,6 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 	// restore the GL State
 	//gui->SetGLState( 0 );
 }
-
-
 
 /*
 ========================
@@ -332,7 +362,7 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 
 			RenderSprite( display.spriteInstance, renderState2, time, isSplitscreen );
 		} else if ( entry->type == SWF_DICT_SHAPE ) {
-			//RenderShape( gui, entry->shape, renderState2 );
+			RenderShape( entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_MORPH ) {
 			//RenderMorphShape( gui, entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
@@ -343,7 +373,15 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,textPos.x,textPos.y);
 			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
  			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
-		} else {
+		} else if ( entry->type == SWF_DICT_TEXT ) {
+			textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
+			//RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
+			auto & text = display.textInstance->text;
+			idVec2 textPos = renderState2.matrix.Transform(vec2_one)-vec2_one;
+			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,textPos.x,textPos.y);
+			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
+			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
+		}else {
 			//idLib::Warning( "%s: Tried to render an unrenderable character %d", filename.c_str(), entry->type );
 		}
 	}
@@ -532,13 +570,14 @@ void idSWF::RenderMorphShape( idRenderSystem * gui, const idSWFShape * shape, co
 		}
 	}
 }
+#endif
 
 /*
 ========================
 idSWF::RenderShape
 ========================
 */
-void idSWF::RenderShape( idRenderSystem * gui, const idSWFShape * shape, const swfRenderState_t & renderState ) {
+void idSWF::RenderShape(const idSWFShape * shape, const swfRenderState_t & renderState ) {
 	if ( shape == NULL ) {
 		idLib::Warning( "%s: RenderShape: shape == NULL", filename.c_str() );
 		return;
@@ -556,8 +595,8 @@ void idSWF::RenderShape( idRenderSystem * gui, const idSWFShape * shape, const s
 
 		idVec2 size( 1.0f, 1.0f );
 
-		if ( renderState.material != NULL ) {
-			material = renderState.material;
+		if ( 0) {//renderState.material != NULL ) {
+			//material = renderState.material;
 			invMatrix.xx = invMatrix.yy = ( 1.0f / 20.0f );
 		} else if ( fill.style.type == 0 ) {
 			material = guiSolid;
@@ -566,7 +605,7 @@ void idSWF::RenderShape( idRenderSystem * gui, const idSWFShape * shape, const s
 			// everything in a single image atlas
 			idSWFDictionaryEntry * entry = &dictionary[ fill.style.bitmapID ];
 			material = atlasMaterial;
-			idVec2i	atlasSize( material->GetImageWidth(), material->GetImageHeight() );
+			idVec2i	atlasSize(0,0);// material->GetImageWidth(), material->GetImageHeight() );
 			for ( int i = 0 ; i < 2 ; i++ ) {
 				size[i] = entry->imageSize[i];
 				atlasScale[i] = (float)size[i] / atlasSize[i];
@@ -590,8 +629,8 @@ void idSWF::RenderShape( idRenderSystem * gui, const idSWFShape * shape, const s
 			continue;
 		}
 
-		uint32 packedColorM = LittleLong( PackColor( color.mul ) );
-		uint32 packedColorA = LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
+		uint32 packedColorM = LittleInt( PackColor( color.mul ) );
+		uint32 packedColorA = LittleInt( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 
 		const swfRect_t & bounds = shape->startBounds;
 		if ( renderState.materialWidth > 0 ) {
@@ -602,7 +641,7 @@ void idSWF::RenderShape( idRenderSystem * gui, const idSWFShape * shape, const s
 		}
 		idVec2 oneOverSize( 1.0f / size.x, 1.0f / size.y );
 
-		gui->SetGLState( GLStateForRenderState( renderState ) );
+		//gui->SetGLState( GLStateForRenderState( renderState ) );
 
 		//idDrawVert * verts = gui->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );	
 		idDrawVert * verts = NULL;
@@ -664,10 +703,10 @@ void idSWF::RenderShape( idRenderSystem * gui, const idSWFShape * shape, const s
 		if ( ( color.mul.w + color.add.w ) <= ALPHA_EPSILON ) {
 			continue;
 		}
-		uint32 packedColorM = LittleLong( PackColor( color.mul ) );
-		uint32 packedColorA = LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
+		uint32 packedColorM = LittleInt( PackColor( color.mul ) );
+		uint32 packedColorA = LittleInt( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 
-		gui->SetGLState( GLStateForRenderState( renderState ) | GLS_POLYMODE_LINE );
+		//gui->SetGLState( GLStateForRenderState( renderState ) | GLS_POLYMODE_LINE );
 
 		//idDrawVert * verts = gui->AllocTris( line.startVerts.Num(), line.indices.Ptr(), line.indices.Num(), white, renderState.stereoDepth );	
 		idDrawVert * verts = NULL;
@@ -691,7 +730,7 @@ void idSWF::RenderShape( idRenderSystem * gui, const idSWFShape * shape, const s
 		}
 	}
 }
-
+#if 0
 /*
 ========================
 idSWF::DrawEditCursor

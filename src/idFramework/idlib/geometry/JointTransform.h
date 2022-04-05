@@ -86,6 +86,10 @@ public:
 	const float *	ToFloatPtr( void ) const;
 	float *			ToFloatPtr( void );
 
+
+	static void		Mul( idJointMat &result, const idJointMat &mat, const float s );
+	static void		Mad( idJointMat &result, const idJointMat &mat, const float s );
+
 private:
 	float			mat[3*4];
 };
@@ -245,4 +249,44 @@ ID_INLINE float *idJointMat::ToFloatPtr( void ) {
 	return mat;
 }
 
+
+/*
+========================
+idJointMat::Mul
+========================
+*/
+ID_INLINE void idJointMat::Mul( idJointMat &result, const idJointMat &mat, const float s ) {
+	result.mat[0 * 4 + 0] = s * mat.mat[0 * 4 + 0];
+	result.mat[0 * 4 + 1] = s * mat.mat[0 * 4 + 1];
+	result.mat[0 * 4 + 2] = s * mat.mat[0 * 4 + 2];
+	result.mat[0 * 4 + 3] = s * mat.mat[0 * 4 + 3];
+	result.mat[1 * 4 + 0] = s * mat.mat[1 * 4 + 0];
+	result.mat[1 * 4 + 1] = s * mat.mat[1 * 4 + 1];
+	result.mat[1 * 4 + 2] = s * mat.mat[1 * 4 + 2];
+	result.mat[1 * 4 + 3] = s * mat.mat[1 * 4 + 3];
+	result.mat[2 * 4 + 0] = s * mat.mat[2 * 4 + 0];
+	result.mat[2 * 4 + 1] = s * mat.mat[2 * 4 + 1];
+	result.mat[2 * 4 + 2] = s * mat.mat[2 * 4 + 2];
+	result.mat[2 * 4 + 3] = s * mat.mat[2 * 4 + 3];
+}
+
+/*
+========================
+idJointMat::Mad
+========================
+*/
+ID_INLINE void idJointMat::Mad( idJointMat &result, const idJointMat &mat, const float s ) {
+	result.mat[0 * 4 + 0] += s * mat.mat[0 * 4 + 0];
+	result.mat[0 * 4 + 1] += s * mat.mat[0 * 4 + 1];
+	result.mat[0 * 4 + 2] += s * mat.mat[0 * 4 + 2];
+	result.mat[0 * 4 + 3] += s * mat.mat[0 * 4 + 3];
+	result.mat[1 * 4 + 0] += s * mat.mat[1 * 4 + 0];
+	result.mat[1 * 4 + 1] += s * mat.mat[1 * 4 + 1];
+	result.mat[1 * 4 + 2] += s * mat.mat[1 * 4 + 2];
+	result.mat[1 * 4 + 3] += s * mat.mat[1 * 4 + 3];
+	result.mat[2 * 4 + 0] += s * mat.mat[2 * 4 + 0];
+	result.mat[2 * 4 + 1] += s * mat.mat[2 * 4 + 1];
+	result.mat[2 * 4 + 2] += s * mat.mat[2 * 4 + 2];
+	result.mat[2 * 4 + 3] += s * mat.mat[2 * 4 + 3];
+}
 #endif /* !__JOINTTRANSFORM_H__ */

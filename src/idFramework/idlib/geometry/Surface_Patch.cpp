@@ -293,7 +293,7 @@ void idSurface_Patch::GenerateNormals( void ) {
 		if ( i == width * height ) {
 			// all are coplanar
 			for ( i = 0; i < width * height; i++ ) {
-				verts[i].normal = norm;
+				verts[i].SetNormal( norm );
 			}
 			return;
 		}
@@ -378,8 +378,8 @@ void idSurface_Patch::GenerateNormals( void ) {
 				//idLib::common->Printf("bad normal\n");
 				count = 1;
 			}
-			verts[j * width + i].normal = sum;
-			verts[j * width + i].normal.Normalize();
+			sum.Normalize( );
+			verts[j * width + i].SetNormal( sum );
 		}
 	}
 }
@@ -539,8 +539,11 @@ void idSurface_Patch::SubdivideExplicit( int horzSubdivisions, int vertSubdivisi
 
 	// normalize all the lerped normals
 	if ( genNormals ) {
+		idVec3 tempNormal;
 		for ( i = 0; i < width * height; i++ ) {
-			verts[i].normal.Normalize();
+			tempNormal = verts[i].GetNormal( );
+			tempNormal.Normalize( );
+			verts[i].SetNormal( tempNormal );
 		}
 	}
 
@@ -679,11 +682,13 @@ void idSurface_Patch::Subdivide( float maxHorizontalError, float maxVerticalErro
 	RemoveLinearColumnsRows();
 
 	Collapse();
-
+	idVec3 tempNormal;
 	// normalize all the lerped normals
 	if ( genNormals ) {
 		for ( i = 0; i < width * height; i++ ) {
-			verts[i].normal.Normalize();
+			tempNormal = verts[i].GetNormal( );
+			tempNormal.Normalize( );
+			verts[i].SetNormal( tempNormal );
 		}
 	}
 

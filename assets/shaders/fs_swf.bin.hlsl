@@ -1,15 +1,6 @@
 // shaderc command line:
-// bin\shadercRelease.exe -f shaders\vs_forward.sc -o shaders\vs_forward.bin --platform windows --type vertex --verbose -i ./ -p vs_5_0 --debug -O 0
+// bin\shadercRelease.exe -f shaders\fs_swf.sc -o shaders\fs_swf.bin --platform windows --type fragment --verbose -i ./ -p ps_5_0 --debug -O 0
 
-
-struct Output
-{
-float4 gl_Position : SV_POSITION;
-float3 v_normal : NORMAL;
-float4 v_tangent : TANGENT;
-float2 v_texcoord : TEXCOORD0;
-float3 v_worldpos : POSITION1;
-};
 float intBitsToFloat(int _x) { return asfloat(_x); }
 float2 intBitsToFloat(uint2 _x) { return asfloat(_x); }
 float3 intBitsToFloat(uint3 _x) { return asfloat(_x); }
@@ -288,18 +279,18 @@ float3x3 mtxFromCols(float3 _0, float3 _1, float3 _2)
 {
 return transpose(float3x3(_0, _1, _2) );
 }
-static float4 u_viewRect;
-static float4 u_viewTexel;
-static float4x4 u_view;
-static float4x4 u_invView;
-static float4x4 u_proj;
-static float4x4 u_invProj;
-static float4x4 u_viewProj;
-static float4x4 u_invViewProj;
+uniform float4 u_viewRect;
+uniform float4 u_viewTexel;
+uniform float4x4 u_view;
+uniform float4x4 u_invView;
+uniform float4x4 u_proj;
+uniform float4x4 u_invProj;
+uniform float4x4 u_viewProj;
+uniform float4x4 u_invViewProj;
 uniform float4x4 u_model[32];
-static float4x4 u_modelView;
+uniform float4x4 u_modelView;
 uniform float4x4 u_modelViewProj;
-static float4 u_alphaRef4;
+uniform float4 u_alphaRef4;
 float4 encodeRE8(float _r)
 {
 float exponent = ceil(log2(_r) );
@@ -634,13 +625,14 @@ float3 reinhard2(float3 _x, float _whiteSqr)
 {
 return (_x * (1.0 + _x/_whiteSqr) ) / (1.0 + _x);
 }
-uniform float4x4 u_normalMatrix;
-Output main( float3 a_normal : NORMAL , float3 a_position : POSITION , float4 a_tangent : TANGENT , float2 a_texcoord0 : TEXCOORD0) { Output _varying_; _varying_.v_normal; _varying_.v_tangent; _varying_.v_texcoord; _varying_.v_worldpos;
+uniform SamplerState s_texColorSampler : register(s[0]); uniform TextureCube s_texColorTexture : register(t[0]); static BgfxSamplerCube s_texColor = { s_texColorSampler, s_texColorTexture };
+void main( float4 gl_FragCoord : SV_POSITION , float4 v_color : COLOR0 , float4 v_texcoord3 : TEXCOORD3 , out float4 bgfx_FragData0 : SV_TARGET0 )
 {
-_varying_.v_worldpos = mul(u_model[0], float4(a_position, 1.0)).xyz;
-_varying_.v_normal = mul(u_normalMatrix, a_normal);
-_varying_.v_tangent = mul(u_model[0],a_tangent.xyz);
-_varying_.v_texcoord = a_texcoord0;
-_varying_.gl_Position = mul(u_modelViewProj, float4(a_position, 1.0));
-} return _varying_;
+float4 bgfx_VoidFrag = vec4_splat(0.0);
+float4 color = bgfxTextureCube(s_texColor, v_texcoord3.xyz);
+int index = int(v_texcoord3.w*4.0 + 0.5);
+float alpha = index < 1 ? color.z :
+index < 2 ? color.y :
+index < 3 ? color.x : color.w;
+bgfx_FragData0 = float4(v_color.xyz, v_color.a * alpha);
 }

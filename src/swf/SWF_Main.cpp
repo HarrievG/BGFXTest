@@ -117,6 +117,7 @@ idSWF::idSWF
 */
 idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferManager * textMan) {
 
+	CreateRenderer();
 	atlasMaterial = NULL;
 	textBufferManager = textMan;
 	swfScale = 1.0f;

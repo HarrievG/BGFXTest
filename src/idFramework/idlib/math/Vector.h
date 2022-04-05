@@ -106,6 +106,8 @@ public:
 
 	friend idVec2	operator*( const float a, const idVec2 b );
 
+	idVec2			Scale( const idVec2 &a ) const;
+
 	bool			Compare( const idVec2 &a ) const;							// exact compare, no epsilon
 	bool			Compare( const idVec2 &a, const float epsilon ) const;		// compare with epsilon
 	bool			operator==(	const idVec2 &a ) const;						// exact compare, no epsilon
@@ -323,6 +325,10 @@ ID_INLINE idVec2 &idVec2::operator*=( const float a ) {
 	y *= a;
 
 	return *this;
+}
+
+ID_INLINE idVec2 idVec2::Scale( const idVec2 &a ) const {
+	return idVec2( x * a.x, y * a.y );
 }
 
 ID_INLINE int idVec2::GetDimension( void ) const {
@@ -845,6 +851,7 @@ public:
 	float			w;
 
 					idVec4( void );
+					explicit idVec4( const float x ) { Set( x, x, x, x ); }
 					explicit idVec4( const float x, const float y, const float z, const float w );
 
 	void			Set( const float x, const float y, const float z, const float w );

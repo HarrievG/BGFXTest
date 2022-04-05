@@ -31,7 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #pragma warning( disable: 4189 ) // local variable is initialized but not referenced
 
-idCVar swf_FontBitmaps( "swf_FontBitmaps", "1", CVAR_BOOL, "use bitmap fonts instead of vector fonts" );
+idCVar swf_FontBitmaps( "swf_FontBitmaps", "0", CVAR_BOOL, "use bitmap fonts instead of vector fonts" );
 /*
 ========================
 idSWFShapeParser::ParseShape

@@ -166,8 +166,8 @@ void idSurface_SweptSpline::Tessellate( const int splineSubdivisions, const int 
 		splinePos = sweptSpline->GetCurrentValue( t );
 		splineD1 = sweptSpline->GetCurrentFirstDerivative( t );
 		verts[baseOffset+i].xyz = splinePos.ToVec3();
-		verts[baseOffset+i].st[0] = splinePos.w;
-		verts[baseOffset+i].tangents[0] = splineD1.ToVec3();
+		verts[baseOffset+i].SetTexCoordS(splinePos.w);
+		verts[baseOffset+i].SetTangent( splineD1.ToVec3());
 	}
 
 	// sweep the spline
@@ -183,15 +183,16 @@ void idSurface_SweptSpline::Tessellate( const int splineSubdivisions, const int 
 		GetFrame( splineMat, splineD1.ToVec3(), splineMat );
 
 		offset = i * sweptSplineSubdivisions;
+		idVec3 tempNormal;
 		for ( j = 0; j < sweptSplineSubdivisions; j++ ) {
 			idDrawVert *v = &verts[offset+j];
 			v->xyz = splinePos.ToVec3() + verts[baseOffset+j].xyz * splineMat;
-			v->st[0] = verts[baseOffset+j].st[0];
-			v->st[1] = splinePos.w;
-			v->tangents[0] = verts[baseOffset+j].tangents[0] * splineMat;
-			v->tangents[1] = splineD1.ToVec3();
-			v->normal = v->tangents[1].Cross( v->tangents[0] );
-			v->normal.Normalize();
+			v->SetTexCoord( verts[baseOffset + j].GetTexCoord( ).x, splinePos.w );
+			v->SetTangent( verts[baseOffset + j].GetTangent( ) * splineMat );
+			v->SetBiTangent( splineD1.ToVec3( ) );
+			tempNormal = v->GetBiTangent( ).Cross( v->GetTangent( ) );
+			tempNormal.Normalize( );
+			v->SetNormal( tempNormal );
 			v->color[0] = v->color[1] = v->color[2] = v->color[3] = 0;
 		}
 	}

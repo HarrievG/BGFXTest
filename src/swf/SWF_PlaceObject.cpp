@@ -72,6 +72,10 @@ void idSWFSpriteInstance::PlaceObject2( idSWFBitStream & bitstream ) {
 		characterID = bitstream.ReadU16();
 	}
 
+	if ( ( flags & PlaceFlagCacheAsBitmap ) != 0 ) {
+		idLib::Warning( "PlaceObject2: PlaceFlagCacheAsBitmap %i", characterID );
+	}
+
 	idSWFDictionaryEntry * dictEntry = sprite->swf->FindDictionaryEntry( characterID );
 
 	swfDisplayEntry_t * display = NULL;

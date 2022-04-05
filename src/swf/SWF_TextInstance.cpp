@@ -73,6 +73,77 @@ idSWFTextInstance::~idSWFTextInstance() {
 	subtitleTimingInfo.Clear();
 }
 
+void idSWFTextInstance::Init( idSWFText * _text, idSWF * _swf ) 
+{
+	editText = nullptr;
+	staticText = _text;
+	swf = _swf;
+
+	text = "staticText";//idLocalization::GetString( staticText->textRecords[0]. );
+
+	lengthCalculated = false;
+	//variable = editText->variable;
+	//color = editText->color;
+	visible = true;
+
+	selectionStart = -1;
+	selectionEnd = -1;
+
+	scroll = 0;
+	scrollTime = 0;
+	maxscroll = 0;
+	maxLines = 0;
+	linespacing = 0;
+	glyphScale = 1.0f;
+
+	shiftHeld = false;
+	tooltip = false;
+	renderMode = SWF_TEXT_RENDER_NORMAL;
+	generatingText = false;
+	triggerGenerate = false;
+	rndSpotsVisible = 0;
+	textSpotsVisible = 0;
+	startRndTime = 0;
+	charMultiplier = 0;
+	prevReplaceIndex = 0;
+	scrollUpdate = false;
+	ignoreColor = false;
+
+	isSubtitle = false;
+	subLength = 0;
+	subAlign = 0;
+	subUpdating = false;
+	subCharStartIndex = 0;
+	subNextStartIndex = 0;
+	subCharEndIndex = 0;
+	subDisplayTime = 0;
+	subStartTime = -1;
+	subSourceID = -1;
+	subNeedsSwitch = false;
+	subForceKill = false;
+	subKillTimeDelay = 0;
+	subSwitchTime = 0;
+	subLastWordIndex = 0;
+	subPrevLastWordIndex = 0;
+	subInitialLine = true;
+
+	textLength = 0;
+
+	inputTextStartChar = 0;
+
+	renderDelay = swf_textRndLetterDelay.GetInteger( );
+	needsSoundUpdate = false;
+	useDropShadow = false;
+	useStroke = false;
+	strokeStrength = 1.0f;
+	strokeWeight = swf_textStrokeSize.GetFloat( );
+
+	scriptObject.SetPrototype( &textInstanceScriptObjectPrototype );
+	scriptObject.SetText( this );
+	scriptObject.SetNoAutoDelete( true );
+	textBufferHandle = swf->textBufferManager->createTextBuffer( FONT_TYPE_ALPHA, BufferType::Static );
+}
+
 /*
 ========================
 idSWFTextInstance::Init
