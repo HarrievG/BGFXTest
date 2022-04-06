@@ -68,7 +68,7 @@ public:
 	// final output
 	// used for tonemapping
 	bgfx::FrameBufferHandle frameBuffer = BGFX_INVALID_HANDLE;
-
+	static bgfx::FrameBufferHandle createFrameBuffer(bool hdr = true, bool depth = true);
 protected:
 	struct PosVertex
 	{
@@ -92,7 +92,7 @@ protected:
 	void blitToScreen(bgfx::ViewId view = MAX_VIEW);
 
 	static bgfx::TextureFormat::Enum findDepthFormat(unsigned long long textureFlags, bool stencil = false);
-	static bgfx::FrameBufferHandle createFrameBuffer(bool hdr = true, bool depth = true);
+
 
 	idStrList variables;
 

@@ -33,6 +33,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../bgfx-stubs/Font/text_buffer_manager.h"
 #include <SDL_mouse.h>
 #include "../bgfx-stubs/bgfxRender.h"
+#include "../bgfx-stubs/bgfxRenderer.h"
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
 idCVar swf_stopat( "swf_stopat", "0", CVAR_FLOAT, "stop at a specific frame" );
@@ -58,24 +59,151 @@ void idSWF::CreateRenderer( )
 		Renderer = new swfRenderer();
 }
 
+void swfRenderer::Flush()
+{
+	if ( !idxCount )
+		return;
+
+	if ( !bgfx::isValid( frameBuffer ) ) 	{
+		frameBuffer = Renderer::createFrameBuffer( false, false );
+		bgfx::setName( frameBuffer, "SWF framebuffer" );
+	}
+
+	bgfx::TransientVertexBuffer tvb;
+	bgfx::TransientIndexBuffer tib;
+
+	uint32_t numVertices = ( uint32_t ) vtxCount;
+	uint32_t numIndices = ( uint32_t ) idxCount;
+
+	if ( ( numVertices != bgfx::getAvailTransientVertexBuffer(
+		numVertices, m_vertexLayout ) ) ||
+		( numIndices != bgfx::getAvailTransientIndexBuffer( numIndices ) ) ) {
+		common->Warning("No space in transient buffers");
+		// not enough space in transient buffer, quit drawing the rest...
+		return;
+	}
+
+	bgfx::allocTransientVertexBuffer( &tvb, numVertices, m_vertexLayout );
+	bgfx::allocTransientIndexBuffer( &tib, numIndices );
+
+	idDrawVert *verts = ( idDrawVert * ) tvb.data;
+	memcpy(
+		verts, vtxData,
+		numVertices * sizeof( idDrawVert ) );
+
+	ImDrawIdx *indices = ( ImDrawIdx * ) tib.data;
+	memcpy(
+		indices, idxData,
+		numIndices * sizeof( ImDrawIdx ) );
+
+
+	// Setup render state: alpha-blending enabled, no face culling,
+	// no depth testing, scissor enabled
+	uint64_t state =
+		BGFX_STATE_WRITE_RGB | 
+		BGFX_STATE_BLEND_FUNC(
+			BGFX_STATE_BLEND_SRC_ALPHA, BGFX_STATE_BLEND_INV_SRC_ALPHA );
+
+	static const bgfx::Caps *caps = bgfx::getCaps( );
+
+	// Setup viewport, orthographic projection matrix
+	float ortho[16];
+	bx::mtxOrtho(
+		ortho, 0.0f, 1920.f, 1080.f, 0.0f, 0.0f, 100.0f,
+		0.0f, caps->homogeneousDepth );
+
+	bgfx::setViewName( swfView, "SWF" );
+	frameBuffer.idx=0;
+	bgfx::setViewTransform( swfView, NULL, ortho );
+	bgfx::setViewRect( swfView, 0, 0, ( uint16_t ) 1920, ( uint16_t ) 1080 );
+	bgfx::setViewClear( swfView, BGFX_CLEAR_NONE );
+	bgfx::setViewFrameBuffer( swfView, frameBuffer );
+	bgfx::setState( state );
+
+	bgfx::setVertexBuffer( 0, &tvb, 0, vtxCount );
+	bgfx::setIndexBuffer( &tib, 0, idxCount );
+	bgfx::submit( swfView, program );
+
+	//common->Warning("SWF Flush ( %i %i )", vtxCount,idxCount);
+
+	vtxCount = 0;
+	idxCount = 0;
+
+}
+
+// if writing to write-combined memory, always write indexes as pairs for 32 bit writes
+ID_INLINE void WriteIndexPair( triIndex_t *dest, const triIndex_t a, const triIndex_t b ) {
+	*( unsigned * ) dest = ( unsigned ) a | ( ( unsigned ) b << 16 );
+}
+
+idDrawVert * swfRenderer::AllocTris( int vertCount, const triIndex_t * tempIndexes, int indexCount)
+{
+	if ( vtxData == nullptr ) 
+		vtxData = ( idDrawVert * ) Mem_ClearedAlloc( sizeof( idDrawVert ) * MAX_VERTS );
+	if ( idxData == nullptr )
+		idxData = ( triIndex_t * ) Mem_ClearedAlloc( sizeof( triIndex_t ) * MAX_INDEXES );
+	
+	uint vtxDataSize = 0;
+
+	if ( vertCount + vtxCount >= MAX_VERTS )
+	{
+		common->Warning("Max Vertex count reached for swf");
+		return nullptr;
+	}
+
+	int startVert = vtxCount;
+	int startIndex = idxCount;
+
+
+	vtxCount += vertCount;
+	idxCount += indexCount;
+
+	if ( ( startIndex & 1 ) || ( indexCount & 1 ) ) {
+		// slow for write combined memory!
+		// this should be very rare, since quads are always an even index count
+		for ( int i = 0; i < indexCount; i++ ) {
+			idxData[startIndex + i] = startVert + tempIndexes[i];
+		}
+	} else {
+		for ( int i = 0; i < indexCount; i += 2 ) {
+			WriteIndexPair( idxData + startIndex + i, startVert + tempIndexes[i], startVert + tempIndexes[i + 1] );
+		}
+	}
+
+	return vtxData + startVert;
+
+}
+
+void swfRenderer::CreateDeviceObjects() {
+
+}
 swfRenderer::swfRenderer() {
+	swfView = 49;
+	vtxCount = 0;
+	vtxData = nullptr;
+	idxCount = 0; 
+	idxData = nullptr;
+	frameBuffer = BGFX_INVALID_HANDLE;
 
 	bgfx::ShaderHandle vsh = bgfxCreateShader( "shaders/vs_swf.bin", "SWFvs" );
 	bgfx::ShaderHandle fsh = bgfxCreateShader( "shaders/fs_swf.bin", "SWFfs" );
-	
+	program = bgfx::createProgram( vsh, fsh, true );
+	//float3;short2;ubyte4;ubyte4;ubyte4;ubyte4;
 	m_vertexLayout
 		.begin( )
 		.add( bgfx::Attrib::Position, 3, bgfx::AttribType::Float )
-		.add( bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Int16, true )
+		.add( bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Half, true )
 		.add( bgfx::Attrib::TexCoord1, 4, bgfx::AttribType::Uint8, true )
 		.add( bgfx::Attrib::TexCoord2, 4, bgfx::AttribType::Uint8, true )
 		.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true )
 		.add( bgfx::Attrib::Color1, 4, bgfx::AttribType::Uint8, true )
 		.end( );
 	
-	//s_texColor = bgfx::createUniform( "s_texColor", bgfx::UniformType::Sampler );
-	//u_dropShadowColor = bgfx::createUniform( "u_dropShadowColor", bgfx::UniformType::Vec4 );
-	//u_params = bgfx::createUniform( "u_params", bgfx::UniformType::Vec4 );
+	s_texColor = bgfx::createUniform( "s_texColor", bgfx::UniformType::Sampler );
+	u_dropShadowColor = bgfx::createUniform( "u_dropShadowColor", bgfx::UniformType::Vec4 );
+	u_params = bgfx::createUniform( "u_params", bgfx::UniformType::Vec4 );
+
+	//frameBuffer = Renderer::createFrameBuffer( false,false );
 }
 
 /*
@@ -180,7 +308,7 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 			//DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_hand );
 		}
 	}
-
+	Renderer->Flush();
 	// restore the GL State
 	//gui->SetGLState( 0 );
 }
@@ -366,7 +494,7 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 		} else if ( entry->type == SWF_DICT_MORPH ) {
 			//RenderMorphShape( gui, entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
-			textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
+			//textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
 			//RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
 			auto & text = display.textInstance->GetEditText()->initialText;
 			idVec2 textPos = renderState2.matrix.Transform(vec2_one)-vec2_one;
@@ -374,13 +502,13 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
  			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
 		} else if ( entry->type == SWF_DICT_TEXT ) {
-			textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
+			//textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
 			//RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
-			auto & text = display.textInstance->text;
-			idVec2 textPos = renderState2.matrix.Transform(vec2_one)-vec2_one;
-			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,textPos.x,textPos.y);
-			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
-			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
+			//auto & text = display.textInstance->text;
+			//idVec2 textPos = renderState2.matrix.Transform(vec2_one)-vec2_one;
+			//textBufferManager->setPenPosition(display.textInstance->textBufferHandle,textPos.x,textPos.y);
+			//textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
+			//textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
 		}else {
 			//idLib::Warning( "%s: Tried to render an unrenderable character %d", filename.c_str(), entry->type );
 		}
@@ -544,7 +672,7 @@ void idSWF::RenderMorphShape( idRenderSystem * gui, const idSWFShape * shape, co
 
 		gui->SetGLState( GLStateForRenderState( renderState ) );
 
-		//idDrawVert * verts = gui->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );	
+		idDrawVert * verts = Renderer->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num());// material, renderState.stereoDepth );	
 		if ( verts == NULL ) {
 			continue;
 		}
@@ -643,8 +771,7 @@ void idSWF::RenderShape(const idSWFShape * shape, const swfRenderState_t & rende
 
 		//gui->SetGLState( GLStateForRenderState( renderState ) );
 
-		//idDrawVert * verts = gui->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num(), material, renderState.stereoDepth );	
-		idDrawVert * verts = NULL;
+		idDrawVert *verts = Renderer->AllocTris( fill.startVerts.Num( ), fill.indices.Ptr( ), fill.indices.Num( )) ;
 		if ( verts == NULL ) {
 			continue;
 		}
@@ -708,8 +835,7 @@ void idSWF::RenderShape(const idSWFShape * shape, const swfRenderState_t & rende
 
 		//gui->SetGLState( GLStateForRenderState( renderState ) | GLS_POLYMODE_LINE );
 
-		//idDrawVert * verts = gui->AllocTris( line.startVerts.Num(), line.indices.Ptr(), line.indices.Num(), white, renderState.stereoDepth );	
-		idDrawVert * verts = NULL;
+		idDrawVert * verts = Renderer->AllocTris( line.startVerts.Num(), line.indices.Ptr(), line.indices.Num());//, white, renderState.stereoDepth );	
 		if ( verts == NULL ) {
 			continue;
 		}

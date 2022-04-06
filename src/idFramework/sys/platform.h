@@ -204,6 +204,7 @@ If you have questions concerning this license or the applicable additional terms
 
 #define ID_TIME_T time_t
 
+typedef unsigned short			triIndex_t;
 
 typedef unsigned char			byte;		// 8 bits
 typedef unsigned short			word;		// 16 bits
