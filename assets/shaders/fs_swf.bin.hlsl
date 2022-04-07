@@ -625,14 +625,9 @@ float3 reinhard2(float3 _x, float _whiteSqr)
 {
 return (_x * (1.0 + _x/_whiteSqr) ) / (1.0 + _x);
 }
-uniform SamplerState s_texColorSampler : register(s[0]); uniform TextureCube s_texColorTexture : register(t[0]); static BgfxSamplerCube s_texColor = { s_texColorSampler, s_texColorTexture };
-void main( float4 gl_FragCoord : SV_POSITION , float4 v_color : COLOR0 , float4 v_texcoord3 : TEXCOORD3 , out float4 bgfx_FragData0 : SV_TARGET0 )
+void main( float4 gl_FragCoord : SV_POSITION , float4 v_color : COLOR0 , out float4 bgfx_FragData0 : SV_TARGET0 )
 {
 float4 bgfx_VoidFrag = vec4_splat(0.0);
-float4 color = bgfxTextureCube(s_texColor, v_texcoord3.xyz);
-int index = int(v_texcoord3.w*4.0 + 0.5);
-float alpha = index < 1 ? color.z :
-index < 2 ? color.y :
-index < 3 ? color.x : color.w;
-bgfx_FragData0 = float4(v_color.xyz, v_color.a * alpha);
+float4 unpackedColor = v_color * ( 1.0f / 255.0f );
+bgfx_FragData0 = v_color;
 }

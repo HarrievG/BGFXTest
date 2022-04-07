@@ -6,7 +6,6 @@ struct Output
 {
 float4 gl_Position : SV_POSITION;
 float4 v_color : COLOR0;
-float4 v_texcoord3 : TEXCOORD3;
 };
 float intBitsToFloat(int _x) { return asfloat(_x); }
 float2 intBitsToFloat(uint2 _x) { return asfloat(_x); }
@@ -632,10 +631,9 @@ float3 reinhard2(float3 _x, float _whiteSqr)
 {
 return (_x * (1.0 + _x/_whiteSqr) ) / (1.0 + _x);
 }
-Output main( float4 a_color0 : COLOR0 , float3 a_position : POSITION , float4 a_texcoord3 : TEXCOORD3) { Output _varying_; _varying_.v_color; _varying_.v_texcoord3;
+Output main( float4 a_color0 : COLOR0 , float4 a_color1 : COLOR1 , float3 a_position : POSITION , float2 a_texcoord0 : TEXCOORD0 , float4 a_texcoord1 : TEXCOORD1 , float4 a_texcoord2 : TEXCOORD2) { Output _varying_; _varying_.v_color;
 {
 _varying_.gl_Position = mul(u_modelViewProj, float4(a_position.xy, 0.0, 1.0) );
-_varying_.v_texcoord3 = a_texcoord3;
 _varying_.v_color = a_color0;
 } return _varying_;
 }
