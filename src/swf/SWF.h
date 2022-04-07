@@ -378,6 +378,7 @@ private:
 	//void			DrawEditCursor( idRenderSystem * gui, float x, float y, float w, float h, const swfMatrix_t & matrix );
 	//void			DrawLine( idRenderSystem * gui, const idVec2 & p1, const idVec2 & p2, float width, const swfMatrix_t & matrix );
 	void			RenderEditText( idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
+	void			RenderStaticText( idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
 	//uint64			GLStateForRenderState( const swfRenderState_t & renderState );
 	//void			FindTooltipIcons( idStr * text );
 

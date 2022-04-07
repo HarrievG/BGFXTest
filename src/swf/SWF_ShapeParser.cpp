@@ -287,17 +287,17 @@ void idSWFShapeParser::ParseShapes( idSWFBitStream & bitstream1, idSWFBitStream 
 				}
 			}
 
-			if ( lineStyle != 0 ) {
+			if ( (lineStyle != 0 || baseLineStyle != 0) && (baseLineStyle + lineStyle) < lineDraws.Num()) {
 				lineDraws[ baseLineStyle + lineStyle - 1 ].edges.Append( morphEdge );
 			}
 			if ( swap ) {
 				SwapValues( morphEdge.start.v0, morphEdge.start.v1 );
 				SwapValues( morphEdge.end.v0, morphEdge.end.v1 );
 			}
-			if ( fillStyle1 != 0 ) {
+			if ( fillStyle1 != 0 || baseFillStyle != 0 ) {
 				fillDraws[ baseFillStyle + fillStyle1 - 1 ].edges.Append( morphEdge );
 			}
-			if ( fillStyle0 != 0 ) {
+			if ( fillStyle0 != 0 || baseFillStyle != 0 ) {
 				// for fill style 0, we need to reverse the winding
 				swfSPMorphEdge_t swapped = morphEdge;
 				SwapValues( swapped.start.v0, swapped.start.v1 );

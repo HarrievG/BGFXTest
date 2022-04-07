@@ -71,12 +71,12 @@ void idSWFSpriteInstance::PlaceObject2( idSWFBitStream & bitstream ) {
 	if ( ( flags & PlaceFlagHasCharacter ) != 0 ) {
 		characterID = bitstream.ReadU16();
 	}
+	
 
 	if ( ( flags & PlaceFlagCacheAsBitmap ) != 0 ) {
-		idLib::Warning( "PlaceObject2: PlaceFlagCacheAsBitmap %i", characterID );
+		//idLib::Warning( "PlaceObject2: PlaceFlagCacheAsBitmap %i", characterID );
 	}
 
-	idSWFDictionaryEntry * dictEntry = sprite->swf->FindDictionaryEntry( characterID );
 
 	swfDisplayEntry_t * display = NULL;
 
@@ -94,7 +94,7 @@ void idSWFSpriteInstance::PlaceObject2( idSWFBitStream & bitstream ) {
 				idLib::Warning( "PlaceObject2: Trying to change the character of a sprite after it's been created" );
 				return;
 			}
-			
+			idSWFDictionaryEntry * dictEntry = sprite->swf->FindDictionaryEntry( characterID );
 			if ( dictEntry != NULL ) {
 				if ( dictEntry->type == SWF_DICT_SPRITE || dictEntry->type == SWF_DICT_EDITTEXT ) {
 					idLib::Warning( "PlaceObject2: Trying to change the character of a shape to a sprite" );

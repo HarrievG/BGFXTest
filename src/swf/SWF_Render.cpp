@@ -154,7 +154,6 @@ idDrawVert * swfRenderer::AllocTris( int vertCount, const triIndex_t * tempIndex
 	int startVert = vtxCount;
 	int startIndex = idxCount;
 
-
 	vtxCount += vertCount;
 	idxCount += indexCount;
 
@@ -264,7 +263,7 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 
 	renderBorder = renderState.matrix.tx / scale;
 
-	scaleToVirtual.Set(( float ) 1024 / sysWidth, ( float ) 768 / sysHeight );
+	scaleToVirtual.Set(1,1);//( float ) 640 / sysWidth, ( float ) 480 / sysHeight );
 
 	RenderSprite( mainspriteInstance, renderState, time, isSplitscreen );
 
@@ -363,7 +362,7 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 
 		renderState2.matrix = display.matrix.Multiply( renderState.matrix );
 		renderState2.cxf = display.cxf.Multiply( renderState.cxf );
-		renderState2.ratio = display.ratio;
+		renderState2.ratio = 1;//display.ratio;
 		if ( display.blendMode != 0 ) {
 			renderState2.blendMode = display.blendMode;
 		} else {
@@ -377,7 +376,7 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 			renderState2.materialHeight = spriteInstance->materialHeight;
 		} else {
 			//renderState2.material = renderState.material;
-			//renderState2.materialWidth = renderState.materialWidth;
+			renderState2.materialWidth = renderState.materialWidth;
 			renderState2.materialHeight = renderState.materialHeight;
 		}
 
@@ -492,10 +491,11 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 		} else if ( entry->type == SWF_DICT_SHAPE ) {
 			RenderShape( entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_MORPH ) {
+			common->Warning("Missing Morph");
 			//RenderMorphShape( gui, entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
 			//textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
-			//RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
+			RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
 			auto & text = display.textInstance->GetEditText()->initialText;
 			idVec2 textPos = renderState2.matrix.Transform(vec2_one)-vec2_one;
 			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,textPos.x,textPos.y);
@@ -503,7 +503,7 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
  			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
 		} else if ( entry->type == SWF_DICT_TEXT ) {
 			//textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
-			//RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
+			RenderStaticText( display.textInstance, renderState2, time, isSplitscreen );
 			//auto & text = display.textInstance->text;
 			//idVec2 textPos = renderState2.matrix.Transform(vec2_one)-vec2_one;
 			//textBufferManager->setPenPosition(display.textInstance->textBufferHandle,textPos.x,textPos.y);
@@ -722,10 +722,10 @@ void idSWF::RenderShape(const idSWFShape * shape, const swfRenderState_t & rende
 		bool	useAtlas = false;
 
 		idVec2 size( 1.0f, 1.0f );
-
+		invMatrix.xx = invMatrix.yy = ( 1.0f / 20.0f );
 		if ( 0) {//renderState.material != NULL ) {
 			//material = renderState.material;
-			invMatrix.xx = invMatrix.yy = ( 1.0f / 20.0f );
+			
 		} else if ( fill.style.type == 0 ) {
 			material = guiSolid;
 			color.mul = fill.style.startColor.ToVec4();
@@ -733,7 +733,7 @@ void idSWF::RenderShape(const idSWFShape * shape, const swfRenderState_t & rende
 			// everything in a single image atlas
 			idSWFDictionaryEntry * entry = &dictionary[ fill.style.bitmapID ];
 			material = atlasMaterial;
-			idVec2i	atlasSize(0,0);// material->GetImageWidth(), material->GetImageHeight() );
+			idVec2i	atlasSize(1,1);// material->GetImageWidth(), material->GetImageHeight() );
 			for ( int i = 0 ; i < 2 ; i++ ) {
 				size[i] = entry->imageSize[i];
 				atlasScale[i] = (float)size[i] / atlasSize[i];
@@ -795,6 +795,7 @@ void idSWF::RenderShape(const idSWFShape * shape, const swfRenderState_t & rende
 			if ( fill.style.type != 0 ) {
 				idVec2 st;
 				// all the swf vertexes have an implicit scale of 1/20 for some reason...
+				//see void idSWFBitStream::ReadRect( swfRect_t & rect ) these are twips!!
 				st.x = ( ( xy.x - bounds.tl.x ) * oneOverSize.x ) * 20.0f;
 				st.y = ( ( xy.y - bounds.tl.y ) * oneOverSize.y ) * 20.0f;
 				st = invMatrix.Transform( st );
@@ -869,13 +870,75 @@ void idSWF::DrawEditCursor( idRenderSystem * gui, float x, float y, float w, flo
 	idVec2 bl = matrix.Transform( idVec2( x, y + h ) );
 	DrawStretchPic( idVec4( topl.x, topl.y, 0.0f, 0.0f ), idVec4( topr.x, topr.y, 1.0f, 0.0f ), idVec4( br.x, br.y, 1.0f, 1.0f ), idVec4( bl.x, bl.y, 0.0f, 1.0f ), white );
 }
+#endif
+/*
+========================
+idSWF::RenderStaticText
+========================
+*/
+void idSWF::RenderStaticText( idSWFTextInstance *textInstance, const swfRenderState_t &renderState, int time, bool isSplitscreen ) {
+	if ( textInstance == NULL ) {
+		idLib::Warning( "%s: RenderEditText: textInstance == NULL", filename.c_str( ) );
+		return;
+	}
+	if ( textInstance->staticText == NULL ) {
+		idLib::Warning( "%s: RenderEditText: textInstance->staticText == NULL", filename.c_str( ) );
+		return;
+	}
+	//RenderEditText(textInstance,renderState,time,isSplitscreen );
+
+	idVec2 xScaleVec = renderState.matrix.Scale( idVec2( 1.0f, 0.0f ) );
+	idVec2 yScaleVec = renderState.matrix.Scale( idVec2( 0.0f, 1.0f ) );
+
+	float xScale = xScaleVec.Length( );
+	float yScale = yScaleVec.Length( );
+
+	idSWFText * text = textInstance->staticText;
+	for (auto & textRecord : text->textRecords )
+	{
+		auto * entry = GetDictionaryEntry(textRecord.fontID);
+		auto * font = entry->font;
+		float postTransformHeight = SWFTWIP( textRecord.textHeight ) * yScale;
+
+		float glyphScale = postTransformHeight / 48.0f;
+		float imageScale = postTransformHeight / 24.0f;
+		textInstance->glyphScale = glyphScale;
+		//renderState.matrix.
+		for (int i=textRecord.firstGlyph; i <textRecord.numGlyphs; i++ )
+		{
+			auto & glyphEntry = text->glyphs[i];
+			idSWFFontGlyph & glyph =  font->glyphs[glyphEntry.index];
+			idDrawVert *verts = Renderer->AllocTris( glyph.verts.Num( ), glyph.indices.Ptr( ), glyph.indices.Num( ) );
+
+			ALIGNTYPE16 idDrawVert tempVerts[4];
+			for ( int j = 0; j < glyph.verts.Num( ); j++ ) {
+				const idVec2 &xy = glyph.verts[j];
+
+				idDrawVert &vert = tempVerts[j & 3];
+
+				vert.Clear( );
+				vert.xyz.ToVec2( ) = renderState.matrix.Transform( xy ).Scale( scaleToVirtual * textInstance->glyphScale );
+				vert.xyz.z = 0.0f;
+				vert.SetNativeOrderColor( LittleInt( PackColor(textRecord.color.ToVec4()) ));
+				//vert.SetNativeOrderColor2( packedColorA );
+
+				// write four verts at a time to video memory
+				if ( ( j & 3 ) == 3 ) {
+					WriteDrawVerts16( &verts[j & ~3], tempVerts, 4 );
+				}
+			}
+			// write any remaining verts to video memory
+			WriteDrawVerts16( &verts[glyph.verts.Num( ) & ~3], tempVerts, glyph.verts.Num( ) & 3 );
+		}
+
+	}
+}
 
 /*
 ========================
 idSWF::RenderEditText
 ========================
 */
-#endif
 void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen ) {
 	if ( textInstance == NULL ) {
 		idLib::Warning( "%s: RenderEditText: textInstance == NULL", filename.c_str() );
@@ -1027,13 +1090,6 @@ void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderSta
 		yPos = glyph.height / 2.0f;
 		//DrawEditCursor( gui, bounds.tl.x, yPos, 1.0f, linespacing, matrix );
 	}
-
-	idVec2 topl = matrix.Transform( idVec2( bounds.tl.x, fontInfo->GetLineHeight(glyphScale) ) );
-	//idVec2 bl = matrix.Transform( idVec2( bounds.tl.x, fontInfo->GetLineHeight ) );
-
-	//textBufferManager->setPenPosition(textInstance->textBufferHandle, topl.x,topl.y);
-	//textBufferManager->appendText( textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
-	//textBufferManager->submitTextBuffer(textInstance->textBufferHandle,50);
 
 	if ( textInstance->IsSubtitle() ) {
 		if ( text.IsEmpty() && textInstance->subtitleText.IsEmpty() ) {
