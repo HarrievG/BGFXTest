@@ -162,7 +162,8 @@ void idSWF::DefineTextX( idSWFBitStream & bitstream, bool rgba ) {
 			break;
 		}
 		idSWFTextRecord & textRecord = text->textRecords.Alloc();
-
+		//make fontID -> textRecord map.
+		// fontheight in twips is height of biggest char.
 		if ( flags & BIT( 3 ) ) {
 			textRecord.fontID = bitstream.ReadU16();
 		}
@@ -181,6 +182,9 @@ void idSWF::DefineTextX( idSWFBitStream & bitstream, bool rgba ) {
 		}
 		if ( flags & BIT( 3 ) ) {
 			textRecord.textHeight = bitstream.ReadU16();
+
+			if (maxFontHeight < textRecord.textHeight )
+				maxFontHeight = textRecord.textHeight;
 		}
 		textRecord.firstGlyph = text->glyphs.Num();
 		textRecord.numGlyphs = bitstream.ReadU8();

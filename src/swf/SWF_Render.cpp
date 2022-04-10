@@ -34,6 +34,7 @@ If you have questions concerning this license or the applicable additional terms
 #include <SDL_mouse.h>
 #include "../bgfx-stubs/bgfxRender.h"
 #include "../bgfx-stubs/bgfxRenderer.h"
+#include "math.h"
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
 idCVar swf_stopat( "swf_stopat", "0", CVAR_FLOAT, "stop at a specific frame" );
@@ -491,8 +492,8 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 		} else if ( entry->type == SWF_DICT_SHAPE ) {
 			RenderShape( entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_MORPH ) {
-			common->Warning("Missing Morph");
-			//RenderMorphShape( gui, entry->shape, renderState2 );
+			//common->Warning("Missing Morph");
+			RenderMorphShape( entry->shape, renderState2 );
 		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
 			//textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
 			RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
@@ -608,13 +609,13 @@ uint64 idSWF::GLStateForRenderState( const swfRenderState_t & renderState ) {
 			return extraGLState | ( GLS_SRCBLEND_ONE | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 	}
 }
-
+#endif
 /*
 ========================
 idSWF::RenderMorphShape
 ========================
 */
-void idSWF::RenderMorphShape( idRenderSystem * gui, const idSWFShape * shape, const swfRenderState_t & renderState ) {
+void idSWF::RenderMorphShape( const idSWFShape * shape, const swfRenderState_t & renderState ) {
 	if ( shape == NULL ) {
 		idLib::Warning( "%s: RenderMorphShape: shape == NULL", filename.c_str() );
 		return;
@@ -631,7 +632,8 @@ void idSWF::RenderMorphShape( idRenderSystem * gui, const idSWFShape * shape, co
 			material = guiSolid;
 			idVec4 startColor = fill.style.startColor.ToVec4();
 			idVec4 endColor = fill.style.endColor.ToVec4();
-			color.mul = Lerp( startColor, endColor, renderState.ratio );
+			color.mul = startColor;
+			color.mul.Lerp(startColor, endColor, renderState.ratio );
 		} else if ( fill.style.type == 4 && fill.style.bitmapID != 65535 ) {
 			material = dictionary[ fill.style.bitmapID ].material;
 		} else {
@@ -645,13 +647,13 @@ void idSWF::RenderMorphShape( idRenderSystem * gui, const idSWFShape * shape, co
 		if ( ( color.mul.w + color.add.w ) <= ALPHA_EPSILON ) {
 			continue;
 		}
-		uint32 packedColorM = LittleLong( PackColor( color.mul ) );
-		uint32 packedColorA = LittleLong( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
+		uint32 packedColorM = LittleInt( PackColor( color.mul ) );
+		uint32 packedColorA = LittleInt( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 
 		swfRect_t bounds;
-		bounds.tl = Lerp( shape->startBounds.tl, shape->endBounds.tl, renderState.ratio );
-		bounds.br = Lerp( shape->startBounds.br, shape->endBounds.br, renderState.ratio );
-		idVec2 size( material->GetImageWidth(), material->GetImageHeight() );
+		bounds.tl = idMath::Lerp( shape->startBounds.tl, shape->endBounds.tl, renderState.ratio );
+		bounds.br = idMath::Lerp( shape->startBounds.br, shape->endBounds.br, renderState.ratio );
+		idVec2 size( 1,1);//material->GetImageWidth(), material->GetImageHeight() );
 		if ( renderState.materialWidth > 0 ) {
 			size.x = renderState.materialWidth;
 		}
@@ -661,16 +663,17 @@ void idSWF::RenderMorphShape( idRenderSystem * gui, const idSWFShape * shape, co
 		idVec2 oneOverSize( 1.0f / size.x, 1.0f / size.y );
 
 		swfMatrix_t styleMatrix;
-		styleMatrix.xx = Lerp( fill.style.startMatrix.xx, fill.style.endMatrix.xx, renderState.ratio );
-		styleMatrix.yy = Lerp( fill.style.startMatrix.yy, fill.style.endMatrix.yy, renderState.ratio );
-		styleMatrix.xy = Lerp( fill.style.startMatrix.xy, fill.style.endMatrix.xy, renderState.ratio );
-		styleMatrix.yx = Lerp( fill.style.startMatrix.yx, fill.style.endMatrix.yx, renderState.ratio );
-		styleMatrix.tx = Lerp( fill.style.startMatrix.tx, fill.style.endMatrix.tx, renderState.ratio );
-		styleMatrix.ty = Lerp( fill.style.startMatrix.ty, fill.style.endMatrix.ty, renderState.ratio );
+		//styleMatrix = idMath::Lerp( fill.style.startMatrix, fill.style.endMatrix, renderState.ratio );
+		styleMatrix.xx = idMath::Lerp( fill.style.startMatrix.xx, fill.style.endMatrix.xx, renderState.ratio );
+		styleMatrix.yy = idMath::Lerp( fill.style.startMatrix.yy, fill.style.endMatrix.yy, renderState.ratio );
+		styleMatrix.xy = idMath::Lerp( fill.style.startMatrix.xy, fill.style.endMatrix.xy, renderState.ratio );
+		styleMatrix.yx = idMath::Lerp( fill.style.startMatrix.yx, fill.style.endMatrix.yx, renderState.ratio );
+		styleMatrix.tx = idMath::Lerp( fill.style.startMatrix.tx, fill.style.endMatrix.tx, renderState.ratio );
+		styleMatrix.ty = idMath::Lerp( fill.style.startMatrix.ty, fill.style.endMatrix.ty, renderState.ratio );
 
 		swfMatrix_t invMatrix = styleMatrix.Inverse();
 
-		gui->SetGLState( GLStateForRenderState( renderState ) );
+		//gui->SetGLState( GLStateForRenderState( renderState ) );
 
 		idDrawVert * verts = Renderer->AllocTris( fill.startVerts.Num(), fill.indices.Ptr(), fill.indices.Num());// material, renderState.stereoDepth );	
 		if ( verts == NULL ) {
@@ -678,7 +681,7 @@ void idSWF::RenderMorphShape( idRenderSystem * gui, const idSWFShape * shape, co
 		}
 
 		for ( int j = 0; j < fill.startVerts.Num(); j++ ) {
-			idVec2 xy = Lerp( fill.startVerts[j], fill.endVerts[j], renderState.ratio );
+			idVec2 xy = idMath::Lerp( fill.startVerts[j], fill.endVerts[j], renderState.ratio );
 
 			idVec2 st;
 			st.x = ( ( xy.x - bounds.tl.x ) * oneOverSize.x ) * 20.0f;
@@ -698,7 +701,7 @@ void idSWF::RenderMorphShape( idRenderSystem * gui, const idSWFShape * shape, co
 		}
 	}
 }
-#endif
+
 
 /*
 ========================
@@ -835,6 +838,8 @@ void idSWF::RenderShape(const idSWFShape * shape, const swfRenderState_t & rende
 		uint32 packedColorA = LittleInt( PackColor( ( color.add * 0.5f ) + idVec4( 0.5f ) ) ); // Compress from -1..1 to 0..1
 
 		//gui->SetGLState( GLStateForRenderState( renderState ) | GLS_POLYMODE_LINE );
+		if (line.startVerts.Num() == 0)
+			continue;
 
 		idDrawVert * verts = Renderer->AllocTris( line.startVerts.Num(), line.indices.Ptr(), line.indices.Num());//, white, renderState.stereoDepth );	
 		if ( verts == NULL ) {
@@ -886,24 +891,31 @@ void idSWF::RenderStaticText( idSWFTextInstance *textInstance, const swfRenderSt
 		return;
 	}
 	//RenderEditText(textInstance,renderState,time,isSplitscreen );
-
-	idVec2 xScaleVec = renderState.matrix.Scale( idVec2( 1.0f, 0.0f ) );
-	idVec2 yScaleVec = renderState.matrix.Scale( idVec2( 0.0f, 1.0f ) );
-
-	float xScale = xScaleVec.Length( );
-	float yScale = yScaleVec.Length( );
-
+	float invHeight = 1.0f / SWFTWIP( maxFontHeight );
 	idSWFText * text = textInstance->staticText;
 	for (auto & textRecord : text->textRecords )
 	{
 		auto * entry = GetDictionaryEntry(textRecord.fontID);
 		auto * font = entry->font;
-		float postTransformHeight = SWFTWIP( textRecord.textHeight ) * yScale;
+		
+		idVec2 xScaleVec = renderState.matrix.Scale( idVec2( 1.0f, 0.0f ) );
+		idVec2 yScaleVec = renderState.matrix.Scale( idVec2( 0.0f, 1.0f ) );
 
-		float glyphScale = postTransformHeight / 48.0f;
-		float imageScale = postTransformHeight / 24.0f;
-		textInstance->glyphScale = glyphScale;
-		//renderState.matrix.
+		float xScale = xScaleVec.Length( );
+		float yScale = yScaleVec.Length( );
+
+		if ( isSplitscreen ) {
+			yScale *= 0.5f;
+		}
+
+		float postTransformHeight = SWFTWIP( textRecord.textHeight ) * yScale;
+		swfMatrix_t matrix = renderState.matrix;
+		float glyphScale = invHeight * postTransformHeight;
+		matrix.xx *= glyphScale;
+		matrix.xy *= glyphScale;
+		matrix.yy *= glyphScale;
+		matrix.yx *= glyphScale;
+
 		for (int i=textRecord.firstGlyph; i <textRecord.numGlyphs; i++ )
 		{
 			auto & glyphEntry = text->glyphs[i];
@@ -913,11 +925,11 @@ void idSWF::RenderStaticText( idSWFTextInstance *textInstance, const swfRenderSt
 			ALIGNTYPE16 idDrawVert tempVerts[4];
 			for ( int j = 0; j < glyph.verts.Num( ); j++ ) {
 				const idVec2 &xy = glyph.verts[j];
-
+				
+				idVec2 pos = idVec2( SWFTWIP( xy.x )  , SWFTWIP( xy.y ));
 				idDrawVert &vert = tempVerts[j & 3];
-
 				vert.Clear( );
-				vert.xyz.ToVec2( ) = renderState.matrix.Transform( xy ).Scale( scaleToVirtual * textInstance->glyphScale );
+				vert.xyz.ToVec2( ) = matrix.Transform( pos ).Scale( scaleToVirtual ) + idVec2( SWFTWIP( textRecord.xOffset)  , SWFTWIP( textRecord.yOffset)) - vec2_one;
 				vert.xyz.z = 0.0f;
 				vert.SetNativeOrderColor( LittleInt( PackColor(textRecord.color.ToVec4()) ));
 				//vert.SetNativeOrderColor2( packedColorA );

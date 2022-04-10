@@ -74,6 +74,7 @@ void main_loop( void *data ) {
 		//swfTest = new idSWF("clicktest_simlpe.swf",0,textMan);
 		swfTest = new idSWF("pig.swf",0,textMan);
 		//swfTest = new idSWF("test_ext.swf",0,textMan);
+		//swfTest = new idSWF("line.swf",0,textMan);
 		eventLoop->RegisterCallback( []( const sysEvent_t &event )
 			-> auto {
 			swfTest->HandleEvent(&event);

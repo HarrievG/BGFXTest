@@ -211,7 +211,7 @@ private:
 	static int		mouseX;		// mouse x coord for all flash files
 	static int		mouseY;		// mouse y coord for all flash files
 	static bool		isMouseInClientArea;
-
+	static uint16	maxFontHeight;
 	idSWFScriptObject *	mouseObject;
 	idSWFScriptObject * hoverObject;
 
@@ -374,7 +374,7 @@ private:
 	void			RenderSprite(idSWFSpriteInstance * sprite, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );
 	//void			RenderMask( idRenderSystem * gui, const swfDisplayEntry_t * mask, const swfRenderState_t & renderState, const int stencilMode );
 	void			RenderShape(const idSWFShape * shape, const swfRenderState_t & renderState );
-	//void			RenderMorphShape( idRenderSystem * gui, const idSWFShape* shape, const swfRenderState_t & renderState );
+	void			RenderMorphShape( const idSWFShape* shape, const swfRenderState_t & renderState );
 	//void			DrawEditCursor( idRenderSystem * gui, float x, float y, float w, float h, const swfMatrix_t & matrix );
 	//void			DrawLine( idRenderSystem * gui, const idVec2 & p1, const idVec2 & p2, float width, const swfMatrix_t & matrix );
 	void			RenderEditText( idSWFTextInstance * textInstance, const swfRenderState_t & renderState, int time, bool isSplitscreen = false );

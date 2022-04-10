@@ -647,7 +647,14 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject
 			const auto &cp = abcFile->constant_pool;
 			const auto &mn = cp.multinameInfos[bitstream.ReadU8( )];
 			const auto &n = cp.utf8Strings[mn.nameIndex];
-			assert(stack.A().IsObject() );
+
+			if (!stack.A().IsObject())
+			{
+				common->Warning("cant find property %s",n.c_str());
+				stack.Pop(1);
+				stack.Alloc().SetUndefined();
+				continue;
+			}
 			auto * obj = stack.A().GetObject();
 			stack.Pop(1);
 

@@ -41,6 +41,7 @@ extern idCVar swf_abc_verbose;
 int idSWF::mouseX = -1;
 int idSWF::mouseY = -1;
 bool idSWF::isMouseInClientArea = false;
+uint16 idSWF::maxFontHeight = 0;
 
 extern idCVar in_useJoystick;
 
@@ -59,6 +60,7 @@ void idSWF::CreateAbcObjects( idSWFScriptObject *globals )
 
 		idSWFScriptObject * tmp = idSWFScriptObject::Alloc();
 		idStr& className = abcFile.constant_pool.utf8Strings[instanceInfo.name->nameIndex];
+		idStr fullClassName = *abcFile.constant_pool.namespaceNames[instanceInfo.name->index] + "." + abcFile.constant_pool.utf8Strings[instanceInfo.name->nameIndex];
 		idStr& superName = abcFile.constant_pool.utf8Strings[instanceInfo.super_name->nameIndex];
 
 		//lookup prototype
@@ -76,6 +78,7 @@ void idSWF::CreateAbcObjects( idSWFScriptObject *globals )
 		tmp->Set( "__constructor__", idSWFScriptVar( constr ) );
 		constr->SetAbcFile(&abcFile);
 		globals->Set(className,tmp);
+		globals->Set(fullClassName,tmp);
 		idx++;
 	}
 	idx = 0;
@@ -239,7 +242,9 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 		if ( !symbol.tag ) {
 			mainspriteInstance->name = symbol.name;
 			auto *super = globals->Get( symbol.name ).GetObject( );
-			mainspriteInstance->scriptObject->DeepCopy( super->Get( "[" + symbol.name + "]" ).GetObject( ) );
+			int nameIdx = abcFile.scripts[abcFile.scripts.Num() -1].traits[0].name->nameIndex;
+			idStr & name = abcFile.constant_pool.utf8Strings[nameIdx];
+			mainspriteInstance->scriptObject->DeepCopy( super->Get( "[" + name + "]" ).GetObject( ) );
 			mainspriteInstance->scriptObject->SetPrototype( super );
 		}
 	}
