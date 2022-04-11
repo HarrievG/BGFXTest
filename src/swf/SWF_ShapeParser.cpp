@@ -930,8 +930,14 @@ void idSWFShapeParser::ReadFillStyle( idSWFBitStream & bitstream ) {
 			uint8 reserved = bitstream.ReadU( 5 );
 			bool noClose = bitstream.ReadBool();
 			uint8 endCapStyle = bitstream.ReadU( 2 );
+			lineStyle.endCapStyle = swfLineStyle_t::capStyle(endCapStyle);
+			lineStyle.startCapStyle = swfLineStyle_t::capStyle(startCapStyle);
+
+			if ( noClose )
+				common->Warning("noClose was set but Ignored.");
 			if ( joinStyle == 2 ) {
 				uint16 miterLimitFactor = bitstream.ReadU16();
+				common->Warning("miterLimitFactor factor ; (%i) Ignored.",miterLimitFactor);
 			}
 			if ( hasFillFlag ) {
 				// FIXME: read fill style

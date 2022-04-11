@@ -1,7 +1,7 @@
 #include <bgfx/bgfx.h>
 #include "idFramework/Common.h"
 
-idCVar bgfx_verbose( "bgfx_verbose", "1",  CVAR_RENDERER | CVAR_INTEGER, "0 = no output, 1 = message and warnings only, 2 = warnings only, 3 = messages, warnings and location, ",0,3, idCmdSystem::ArgCompletion_Integer<0, 3> );
+idCVar bgfx_verbose( "bgfx_verbose", "0",  CVAR_RENDERER | CVAR_INTEGER, "0 = no output, 1 = message and warnings only, 2 = warnings only, 3 = messages, warnings and location, ",0,3, idCmdSystem::ArgCompletion_Integer<0, 3> );
 idCVar bgfx_nonFatal( "bgfx_nonFatal", "0",  CVAR_RENDERER | CVAR_INTEGER, "1 = turn into debug warning and keep running, 0 = throw fatal error, ",0,2, idCmdSystem::ArgCompletion_Integer<0, 3> );
 //https://github.com/bkaradzic/bgfx/blob/master/examples/07-callback/callback.cpp
 namespace bgfx {

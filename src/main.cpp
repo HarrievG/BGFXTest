@@ -36,7 +36,7 @@ idCVar com_showImguiDemo( "ImGui demo", "0", CVAR_BOOL | CVAR_SYSTEM, "draw imgu
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
-idCVar r_useRenderThread( "r_useRenderThread", "1", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "Multithreaded renderering" );
+idCVar r_useRenderThread( "r_useRenderThread", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "Multithreaded renderering" );
 idCVar r_fullscreen( "r_fullscreen", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_BOOL, "Fullscreen" );
 
 Win32Vars_t	win32;
@@ -174,7 +174,14 @@ void main_loop( void *data ) {
 		ImGui::UpdatePlatformWindows( );
 		ImGui::RenderPlatformWindowsDefault( );
 	}
-	bgfx::frame( );
+
+	static bool renderThreadStarted = false;
+	if ( r_useRenderThread.GetBool( ) && !renderThreadStarted)
+	{
+		renderThreadStarted = true;
+		bgfxStartRenderThread( );
+	}else
+		bgfx::frame( );
 
 
 #if BX_PLATFORM_EMSCRIPTEN
@@ -314,11 +321,6 @@ int main( int argc, char **argv )
 	}
 
 #endif // !BX_PLATFORM_EMSCRIPTEN
-
-	if ( !r_useRenderThread.GetBool( ) )
-		bgfx::renderFrame( );
-	else
-		bgfxStartRenderThread( );
 
 	bgfx::PlatformData pd{};
 #if BX_PLATFORM_WINDOWS

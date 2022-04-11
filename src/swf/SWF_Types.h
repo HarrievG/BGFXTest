@@ -76,7 +76,11 @@ struct swfLineStyle_t {
 	uint16 endWidth;
 	swfColorRGBA_t startColor;
 	swfColorRGBA_t endColor;
+	uint8 startCapStyle;
+	uint8 endCapStyle;
+	enum capStyle { round = 0,none,square };
 };
+
 struct swfGradientRecord_t {
 	swfGradientRecord_t();
 	uint8 startRatio;
