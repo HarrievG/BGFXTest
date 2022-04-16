@@ -61,6 +61,8 @@ set(src_idSWF
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Types.h
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Zlib.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Interpreter.cpp
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_EventDispatcher.h
+	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_EventDispatcher.cpp
 )
 
 set(src_idFramework

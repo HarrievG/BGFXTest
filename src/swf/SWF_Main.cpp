@@ -31,6 +31,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "../idFramework/FileSystem.h"
 #include "SWF_ScriptObject.h"
 #include "SWF_SpriteInstance.h"
+#include "SWF_EventDispatcher.h"
 
 #pragma warning(disable: 4355) // 'this' : used in base member initializer list
 
@@ -60,6 +61,7 @@ void idSWF::CreateAbcObjects( idSWFScriptObject *globals )
 
 		idSWFScriptObject * tmp = idSWFScriptObject::Alloc();
 		idStr& className = abcFile.constant_pool.utf8Strings[instanceInfo.name->nameIndex];
+		//if these are namespace sets, concat all?
 		idStr fullClassName = *abcFile.constant_pool.namespaceNames[instanceInfo.name->index] + "." + abcFile.constant_pool.utf8Strings[instanceInfo.name->nameIndex];
 		idStr& superName = abcFile.constant_pool.utf8Strings[instanceInfo.super_name->nameIndex];
 
@@ -216,17 +218,22 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	globals = idSWFScriptObject::Alloc( );
 	globals->Set( "_global", globals );
 
+	auto *accessibilityPropertiesObj = idSWFScriptObject::Alloc( );
+	//accessibilityPropertiesObj->Set( "accessibilityProperties", idSWFScriptObject::Alloc( ) );
+	
 	auto *dispatcherObj = idSWFScriptObject::Alloc( );
 	dispatcherObj->SetPrototype( &eventDispatcherScriptObjectPrototype );
 
 	extern idSWFScriptObject_SpriteInstancePrototype spriteInstanceScriptObjectPrototype;
 	auto *movieclipObj = idSWFScriptObject::Alloc( );
 	movieclipObj->SetPrototype( &spriteInstanceScriptObjectPrototype );
+	spriteInstanceScriptObjectPrototype.SetPrototype( &eventDispatcherScriptObjectPrototype );
 
 	globals->Set( "Object", &scriptFunction_Object );
-	globals->Set( "EventDispatcher", dispatcherObj );
+	globals->Set( "EventDispatcher", dispatcherObj );	
 	globals->Set( "DisplayObject", idSWFScriptObject::Alloc( ) );
 	globals->Set( "InteractiveObject", idSWFScriptObject::Alloc( ) );
+	globals->Set( "AccessibilityProperties", accessibilityPropertiesObj );
 	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ) );
 	globals->Set( "Sprite", idSWFScriptObject::Alloc( ) );
 	globals->Set( "DisplayObjectContainer", idSWFScriptObject::Alloc( ) );
@@ -246,6 +253,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 			idStr & name = abcFile.constant_pool.utf8Strings[nameIdx];
 			mainspriteInstance->scriptObject->DeepCopy( super->Get( "[" + name + "]" ).GetObject( ) );
 			mainspriteInstance->scriptObject->SetPrototype( super );
+			mainspriteInstance->scriptObject->Set( "root", mainspriteInstance->scriptObject );
 		}
 	}
 	mainspriteInstance->Init( mainsprite, NULL, 0 );
@@ -266,6 +274,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	globals->Set( "getLocalString", scriptFunction_getLocalString.Bind( this ) );
 	globals->Set( "swapPS3Buttons", scriptFunction_swapPS3Buttons.Bind( this ) );
 	globals->Set( "_root", mainspriteInstance->scriptObject );
+	globals->Set( "root", mainspriteInstance->scriptObject );
 	globals->Set( "strReplace", scriptFunction_strReplace.Bind( this ) );
 	globals->Set( "getCVarInteger", scriptFunction_getCVarInteger.Bind( this ) );
 	globals->Set( "setCVarInteger", scriptFunction_setCVarInteger.Bind( this ) );

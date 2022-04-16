@@ -86,6 +86,7 @@ void idSWFSpriteInstance::Init( idSWFSprite * _sprite, idSWFSpriteInstance * _pa
 	{
 		scriptObject = idSWFScriptObject::Alloc( );
 		scriptObject->SetPrototype( &spriteInstanceScriptObjectPrototype );
+
 	}
 	scriptObject->SetSprite( this );
 
@@ -213,15 +214,25 @@ swfDisplayEntry_t * idSWFSpriteInstance::AddDisplayEntry( int depth, int charact
 				display.spriteInstance->scriptObject->DeepCopy(
 					super->Get( "[" + *dictEntry->name + "]" )
 					.GetObject( ) );
-				//display.spriteInstance->scriptObject->Set("OnPress","a"); 
 				display.spriteInstance->scriptObject->SetPrototype( super );
 			}
 
 			display.spriteInstance->Init( dictEntry->sprite, this, depth );
 			display.spriteInstance->RunTo( 1 );
 		} else if ( dictEntry->type == SWF_DICT_EDITTEXT) {
-			display.textInstance = sprite->swf->textInstanceAllocator.Alloc();			
+			display.textInstance = sprite->swf->textInstanceAllocator.Alloc();
 			display.textInstance->Init( dictEntry->edittext, sprite->GetSWF() );
+
+			if ( dictEntry->scriptClass.IsValid( ) ) {
+				auto *super = dictEntry->scriptClass.GetObject( );
+				display.textInstance->scriptObject.DeepCopy(
+					super->Get( "[" + *dictEntry->name + "]" )
+					.GetObject( ) );
+				super->SetPrototype(display.spriteInstance->scriptObject->GetPrototype() );
+				display.spriteInstance->scriptObject->SetPrototype( super );
+			}
+
+			
 			//display.textInstance->scriptObject.Set( "onPress", "a" );
 		} else if ( dictEntry->type == SWF_DICT_TEXT ) {
 			display.textInstance = sprite->swf->textInstanceAllocator.Alloc( );
@@ -239,8 +250,10 @@ idSWFSpriteInstance::RemoveDisplayEntry
 void idSWFSpriteInstance::RemoveDisplayEntry( int depth ) {
 	swfDisplayEntry_t * entry = FindDisplayEntry( depth );
 	if ( entry != NULL ) {
-		sprite->swf->spriteInstanceAllocator.Free( entry->spriteInstance );
-		sprite->swf->textInstanceAllocator.Free( entry->textInstance );
+		if ( entry->spriteInstance  )
+			sprite->swf->spriteInstanceAllocator.Free( entry->spriteInstance );
+		if (entry->textInstance )
+			sprite->swf->textInstanceAllocator.Free( entry->textInstance );
 		displayList.RemoveIndex( displayList.IndexOf( entry ) );
 	}
 }
@@ -323,12 +336,6 @@ bool idSWFSpriteInstance::RunActions() {
 		return false;
 	}
 
-	if ( firstRun && scriptObject->HasProperty( "onLoad" ) ) {
-		firstRun = false;
-		idSWFScriptVar onLoad = scriptObject->Get( "onLoad" );
-		onLoad.GetFunction()->Call( scriptObject, idSWFParmList() );
-	}
-
 	if ( onEnterFrame.IsFunction() ) {
 		onEnterFrame.GetFunction()->Call( scriptObject, idSWFParmList() );
 	}
@@ -352,12 +359,21 @@ bool idSWFSpriteInstance::RunActions() {
 
 	if ( !constructed ) {
 		if ( scriptObject->HasProperty( "__constructor__" ) ) {
-			common->DWarning( "Calling constructor for %s%\n", name.c_str( ) );
+			common->DPrintf( "Calling constructor for %s%\n", name.c_str( ) );
 			idSWFScriptVar instanceInit = scriptObject->Get( "__constructor__" );
-			((idSWFScriptFunction_Script *) instanceInit.GetFunction( ))->SetScope(*actionScript->GetScope());
+			( ( idSWFScriptFunction_Script * ) instanceInit.GetFunction( ) )->SetScope( *actionScript->GetScope( ) );
 			instanceInit.GetFunction( )->Call( scriptObject, idSWFParmList( ) );
 			constructed = true;
 		}
+	}
+
+	if ( firstRun && scriptObject->HasProperty( "onLoad" ) ) {
+		firstRun = false;
+		idSWFScriptVar onLoad = scriptObject->Get( "onLoad" );
+		idSWFScriptFunction_Script *func = ( idSWFScriptFunction_Script * ) onLoad.GetFunction( );
+		if ( !func->GetScope()->Num() ) // this should not be the case. fix this.
+			func->SetScope( *actionScript->GetScope( ) );
+		onLoad.GetFunction( )->Call( scriptObject, idSWFParmList( ) );
 	}
 
 	return true;
@@ -406,7 +422,6 @@ void idSWFSpriteInstance::Stop() {
 	isPlaying = false;
 }
 
-//yea, keeping using those pcH's ..
 void idSWF::Pause( ) { mainspriteInstance->Stop( ); paused = true; }
 void idSWF::Resume( ) { mainspriteInstance->Play( ); paused = false; }
 /*
@@ -929,6 +944,7 @@ idSWFScriptObject_SpriteInstancePrototype
 #define SWF_SPRITE_NATIVE_VAR_SET( x ) SetNative( #x, &swfScriptVar_##x );
 
 idSWFScriptObject_SpriteInstancePrototype::idSWFScriptObject_SpriteInstancePrototype() {
+	SWF_SPRITE_FUNCTION_SET( addFrameScript );
 	SWF_SPRITE_FUNCTION_SET( duplicateMovieClip );
 	SWF_SPRITE_FUNCTION_SET( gotoAndPlay );
 	SWF_SPRITE_FUNCTION_SET( gotoAndStop );
@@ -986,6 +1002,14 @@ SWF_SPRITE_NATIVE_VAR_DEFINE_SET( _width ) { }
 
 SWF_SPRITE_NATIVE_VAR_DEFINE_GET( _height ) { return 0.0f; }
 SWF_SPRITE_NATIVE_VAR_DEFINE_SET( _height ) { }
+
+
+SWF_SPRITE_FUNCTION_DEFINE( addFrameScript ) {
+	SWF_SPRITE_PTHIS_FUNC( "addFrameScript" );
+	common->Printf("AddFrame script");
+	return idSWFScriptVar();
+}
+
 
 SWF_SPRITE_FUNCTION_DEFINE( duplicateMovieClip ) {
 	SWF_SPRITE_PTHIS_FUNC( "duplicateMovieClip" );
@@ -1429,32 +1453,3 @@ SWF_SPRITE_NATIVE_VAR_DEFINE_SET( onEnterFrame ) {
 }
 
 
-
-/*
-========================
-idSWFScriptObject_EventDispatcherPrototype
-========================
-*/
-#define SWF_EVENTDISPATCHER_FUNCTION_DEFINE( x ) idSWFScriptVar idSWFScriptObject_EventDispatcherPrototype::idSWFScriptFunction_##x::Call( idSWFScriptObject * thisObject, const idSWFParmList & parms )
-#define SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_GET( x ) idSWFScriptVar idSWFScriptObject_EventDispatcherPrototype::idSWFScriptNativeVar_##x::Get( class idSWFScriptObject * object )
-#define SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_SET( x ) void  idSWFScriptObject_SpriteInstancePrototype::idSWFScriptNativeVar_##x::Set( class idSWFScriptObject * object, const idSWFScriptVar & value )
-
-#define SWF_EVENTDISPATCHER_PTHIS_FUNC( x ) idSWFScriptObject * pThis = thisObject ? thisObject : NULL; if ( !verify( pThis != NULL ) ) { idLib::Warning( "SWF: tried to call " x " on NULL object" ); return idSWFScriptVar(); }
-#define SWF_EVENTDISPATCHER_PTHIS_GET( x ) idSWFScriptObject * pThis = object ? object : NULL; if ( pThis == NULL ) { return idSWFScriptVar(); }
-#define SWF_EVENTDISPATCHER_PTHIS_SET( x ) idSWFScriptObject * pThis = object ? object : NULL; if ( pThis == NULL ) { return; }
-
-#define SWF_EVENTDISPATCHER_FUNCTION_SET( x ) scriptFunction_##x.AddRef(); Set( #x, &scriptFunction_##x );
-#define SWF_EVENTDISPATCHER_NATIVE_VAR_SET( x ) SetNative( #x, &swfScriptVar_##x );
-
-
-idSWFScriptObject_EventDispatcherPrototype::idSWFScriptObject_EventDispatcherPrototype()
-{
-	SWF_EVENTDISPATCHER_FUNCTION_SET( addEventListener );
-}
-
-SWF_EVENTDISPATCHER_FUNCTION_DEFINE( addEventListener ) 
-{
-	SWF_EVENTDISPATCHER_PTHIS_FUNC( "addEventListener" );
-	//add listener
-	return idSWFScriptVar( );
-}

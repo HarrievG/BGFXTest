@@ -429,10 +429,31 @@ idSWFScriptObject::swfNamedVar_t * SWF_AbcFile::GetTrait( const swfTraits_info &
 	case swfTraits_info::Trait_Getter:
 	case swfTraits_info::Trait_Setter:
 	{
-		//newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_method ) );
-		//swfTrait_method &method = *( swfTrait_method * ) ( newTraitsData.data );
-		//method.disp_id = bitstream.ReadEncodedU32( );
-		//method.method = &methods[bitstream.ReadEncodedU32( )];
+		newVar->name = constant_pool.utf8Strings[trait.name->nameIndex];
+		swfTrait_method &method = *( ( swfTrait_method * ) ( trait.data ) );
+
+		idStrPtr name = method.method->name;
+		idStr owner;
+		//string method owner
+		//common->FatalError("This is wrong. now dont keep using the debug info but start resolving it properly!!!!");
+		//check frame scripts!
+		int slashPos = name->Find("/"); 
+		if (slashPos != -1)
+			owner = idStr(name->c_str(),0,slashPos);
+
+		slashPos = owner.Find( ":" );
+		if ( slashPos != -1 )
+			owner = idStr( owner.c_str( ), slashPos+1, owner.Length() );
+
+		if ( globals->HasProperty( owner.c_str() ) ) {
+			idSWFScriptFunction_Script *func = idSWFScriptFunction_Script::Alloc( );
+			func->SetAbcFile( this );
+			func->SetData( method.method );
+			newVar->value= idSWFScriptVar( func ) ;
+		} else
+			newVar->value.SetUndefined( );
+		break;
+			
 	}break;
 	case swfTraits_info::Trait_Class:
 	{
@@ -444,6 +465,7 @@ idSWFScriptObject::swfNamedVar_t * SWF_AbcFile::GetTrait( const swfTraits_info &
 	}break;
 	case swfTraits_info::Trait_Function:
 	{
+		int a  = 0;
 		//newTraitsData.data = Mem_ClearedAlloc( sizeof( swfTrait_function ) );
 		//swfTrait_function &func = *( swfTrait_function * ) ( newTraitsData.data );
 		//func.slot_id = bitstream.ReadEncodedU32( );
@@ -628,29 +650,33 @@ void idSWF::DoABC( idSWFBitStream & bitstream ) {
 	SWF_AbcFile::traceConstantPool(newAbcFile.constant_pool);
 
 	uint32 method_count = bitstream.ReadEncodedU32( ) ;
+	newAbcFile.methods.AssureSize(method_count);
 	trace("method_count %i \n", method_count );
 	for ( uint i = 0; i < method_count; i++ ) {
-		auto &newMethod = newAbcFile.methods.Alloc( );
+		auto &newMethod = newAbcFile.methods[i];
 		newAbcFile.ReadMethodInfo( bitstream, newMethod );
 	}
 
 	uint32 meta_count = bitstream.ReadEncodedU32( );
+	newAbcFile.metadatas.AssureSize(meta_count);
 	trace( "meta_count %i \n", meta_count );
 	for ( uint i = 0; i < meta_count; i++ ) {
-		auto &newMeta = newAbcFile.metadatas.Alloc( );
+		auto &newMeta = newAbcFile.metadatas[i];
 		newAbcFile.ReadMetaDataInfo( bitstream, newMeta );
 	}
 
 	newAbcFile.class_count = bitstream.ReadEncodedU32();
+	newAbcFile.instances.AssureSize(newAbcFile.class_count);
 	trace( "class_count %i (Instance) \n", newAbcFile.class_count );
 	for ( uint i = 0; i < newAbcFile.class_count ; i++ ) {
-		auto &newInstance = newAbcFile.instances.Alloc( );
+		auto &newInstance = newAbcFile.instances[i];
 		newAbcFile.ReadInstanceInfo( bitstream, newInstance );
 	}
 
 	trace( "class_count %i (Class) \n", newAbcFile.class_count );
+	newAbcFile.classes.AssureSize(newAbcFile.class_count);
 	for ( uint i = 0; i < newAbcFile.class_count ; i++ ) {
-		auto &newClass = newAbcFile.classes.Alloc( );
+		auto &newClass = newAbcFile.classes[i];
 		newAbcFile.ReadClassInfo( bitstream, newClass );
 	}
 
@@ -662,10 +688,11 @@ void idSWF::DoABC( idSWFBitStream & bitstream ) {
 	}
 
 	uint32 methBody_count = bitstream.ReadEncodedU32( );
+	newAbcFile.method_bodies.AssureSize(methBody_count);
 	trace( "methBody_count %i \n", methBody_count );
 	for ( uint i = 0; i < methBody_count; i++ ) {
 
-		auto &newMethBody = newAbcFile.method_bodies.Alloc( );
+		auto &newMethBody = newAbcFile.method_bodies[i];
 		newAbcFile.ReadMethodBodyInfo( bitstream, newMethBody );
 	}
 

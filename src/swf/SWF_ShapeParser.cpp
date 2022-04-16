@@ -28,10 +28,73 @@ If you have questions concerning this license or the applicable additional terms
 #pragma hdrstop
 #include "swf.h"
 #include "float.h"
+#include "SWF_ShapeParser.h"
 
 #pragma warning( disable: 4189 ) // local variable is initialized but not referenced
 
 idCVar swf_FontBitmaps( "swf_FontBitmaps", "0", CVAR_BOOL, "use bitmap fonts instead of vector fonts" );
+
+
+void idSWFShapeParser::MakeCap( idSWFShapeParser::swfSPDrawLine_t& spld, idSWFShapeDrawLine &ld,swfSPMorphEdge_t & edge,bool end)
+{
+
+	//figure out what the orientation of the cap is. 
+
+	idVec2 up = ( verts[edge.start.v0] - verts[edge.start.v1] );
+	idVec2 down = ( verts[edge.end.v1] - verts[edge.end.v0] );
+	idVec2 cross = idVec2( down.y, -down.x );
+	idVec2 crossUp = idVec2( up.y, -up.x );
+	
+	uint8 vertIndex;
+	if (end )
+		vertIndex = edge.start.v1;
+	else
+	{
+		vertIndex = edge.start.v0;
+		cross = crossUp;
+	}
+
+	int capCenterIdx = ld.startVerts.AddUnique( verts[vertIndex] );
+	int pointCnt;
+	float x, z;
+	swfMatrix_t matrix;
+	float s, c;
+	idVec2 xup(1.0f, 0.0f );
+	float angle = idMath::ATan( xup.y - cross.y, xup.x - cross.x ) + idMath::PI;
+
+	idMath::SinCos( angle, s, c );
+	float scale = ( float ) ld.style.startWidth / 40;
+	matrix.xx = c * scale;
+	matrix.yx = s * scale;
+	matrix.xy = -s * scale;
+	matrix.yy = c * scale;
+	int A, B;
+	for ( float w = 0.0; w <= 180 ; w += 10 ) {
+
+		if ( !w )
+			idMath::SinCos( DEG2RAD( w ), z, x );
+		else
+			idMath::SinCos( DEG2RAD( w ), z, x );
+
+		ld.indices.Append( capCenterIdx );
+		A = ld.startVerts.AddUnique( matrix.Transform( idVec2( x, z ) ) + ld.startVerts[capCenterIdx] );
+
+		if ( w > 10 ) {
+			ld.indices.Append( B );
+			ld.indices.Append( A );
+			ld.indices.Append( capCenterIdx );
+			
+		}else if (w + 10 <= 180)
+			w+=10;
+
+		ld.indices.Append( A );
+
+
+		idMath::SinCos( DEG2RAD( w ), z, x );
+		B = ld.startVerts.AddUnique( matrix.Transform( idVec2( x , z ) ) + ld.startVerts[capCenterIdx] );
+		ld.indices.Append( B );
+	}
+}
 /*
 ========================
 idSWFShapeParser::ParseShape
@@ -56,9 +119,11 @@ void idSWFShapeParser::Parse( idSWFBitStream & bitstream, idSWFShape & shape, in
 	ParseShapes( bitstream, NULL, false );
 	TriangulateSoup( shape );
 
+	//generate triangle mesh
 	shape.lineDraws.SetNum( lineDraws.Num() );
 	int last = 0;
 	for ( int i = 0; i < lineDraws.Num(); i++ ) {
+
 		idSWFShapeDrawLine & ld = shape.lineDraws[i];
 		swfSPDrawLine_t & spld = lineDraws[i];
 		ld.style = spld.style;
@@ -66,7 +131,16 @@ void idSWFShapeParser::Parse( idSWFBitStream & bitstream, idSWFShape & shape, in
 		float endWidth = ld.style.endWidth;
 		ld.indices.SetNum( spld.edges.Num() * 3 );
 		ld.indices.SetNum( 0 );
+
+
+
+
+		//edge list
 		for ( int e = 0; e < spld.edges.Num(); e++ ) {
+			//startcap
+			if ( ld.style.startCapStyle == 0 && ld.style.startWidth > 60 && spld.edges.Num( ) )
+				MakeCap( spld, ld, spld.edges[e], false );
+			//joint.
 			idVec2 up =  ( verts[ spld.edges[e].start.v0 ] - verts[ spld.edges[e].start.v1 ] );
 			idVec2 down =  ( verts[ spld.edges[e].start.v1 ] - verts[ spld.edges[e].start.v0 ] );
 			idVec2 cross = idVec2(down.y,-down.x);
@@ -146,7 +220,12 @@ void idSWFShapeParser::Parse( idSWFBitStream & bitstream, idSWFShape & shape, in
 			ld.indices.Append( last );
 			ld.indices.Append( ld.startVerts.AddUnique( verts[spld.edges[e].start.v1] + offSetB) );				
 			last = ld.indices.Num()-1;
+
+			//endcap
+			if ( ld.style.endCapStyle == 0 && ld.style.startWidth > 60 )
+				MakeCap( spld, ld, spld.edges[e], true);
 		}
+
 	}
 }
 

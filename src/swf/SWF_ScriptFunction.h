@@ -177,7 +177,6 @@ private:
 	void popscope( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
 	void getlocal0( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
 	void newclass( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
-	void constructsuper( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
 	void callpropvoid( SWF_AbcFile *file, idSWFStack &stack, idSWFBitStream &bitstream );
 	//////////////////////////////////////////////////////////////////////////
 

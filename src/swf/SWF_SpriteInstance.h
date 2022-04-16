@@ -208,28 +208,6 @@ This is the prototype object that all the sprite instance script objects referen
 ================================================
 */
 
-class idSWFScriptObject_EventDispatcherPrototype : public idSWFScriptObject {
-public:
-	idSWFScriptObject_EventDispatcherPrototype();
-#define SWF_EVENTDISPATCHER_FUNCTION_DECLARE( x ) \
-	class idSWFScriptFunction_##x : public idSWFScriptFunction { \
-	public: \
-		void			AddRef() {} \
-		void			Release() {} \
-		idSWFScriptVar Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ); \
-	} scriptFunction_##x
-
-	SWF_EVENTDISPATCHER_FUNCTION_DECLARE( addEventListener );
-	//SWF_EVENTDISPATHCER_FUNCTION_DECLARE( removeEventListener );
-	//SWF_EVENTDISPATHCER_FUNCTION_DECLARE( dispatchEvent );
-	//SWF_EVENTDISPATHCER_FUNCTION_DECLARE( dispatchQueue );
-
-	//object.addEventListener = _fEventDispatcher.addEventListener;
-	//object.removeEventListener = _fEventDispatcher.removeEventListener;
-	//object.dispatchEvent = _fEventDispatcher.dispatchEvent;
-	//object.dispatchQueue = _fEventDispatcher.dispatchQueue;
-};
-
 class idSWFScriptObject_SpriteInstancePrototype : public idSWFScriptObject {
 public:
 	idSWFScriptObject_SpriteInstancePrototype();
@@ -242,6 +220,7 @@ public:
 		idSWFScriptVar Call( idSWFScriptObject * thisObject, const idSWFParmList & parms ); \
 	} scriptFunction_##x
 
+	SWF_SPRITE_FUNCTION_DECLARE( addFrameScript );
 	SWF_SPRITE_FUNCTION_DECLARE( duplicateMovieClip );
 	SWF_SPRITE_FUNCTION_DECLARE( gotoAndPlay );
 	SWF_SPRITE_FUNCTION_DECLARE( gotoAndStop );
