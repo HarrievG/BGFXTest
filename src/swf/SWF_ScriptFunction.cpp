@@ -127,24 +127,12 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject * thisObject,
 	idSWFStack stack;
 
 	stack.SetNum( parms.Num() + 1 );
-	for ( int i = 0; i < parms.Num(); i++ ) {
+	for ( int i = 0; i < parms.Num(); i++ )
+	{
 		stack[ parms.Num() - i - 1 ] = parms[i];
+		registers[ i + 1 ] = parms[i];
+	}
 
-		// Unfortunately at this point we don't have the function name anymore, so our warning messages aren't very detailed
-		if ( i < parameters.Num() ) {
-			if ( parameters[i].reg > 0 && parameters[i].reg < registers.Num() ) {
-				registers[ parameters[i].reg ] = parms[i];
-			}
-			locals->Set( parameters[i].name, parms[i] );
-		}
-	}
-	// Set any additional parameters to undefined
-	for ( int i = parms.Num(); i < parameters.Num(); i++ ) {
-		if ( parameters[i].reg > 0 && parameters[i].reg < registers.Num() ) {
-			registers[ parameters[i].reg ].SetUndefined();
-		}
-		locals->Set( parameters[i].name, idSWFScriptVar() );
-	}
 	stack.A().SetInteger( parms.Num() );
 
 	int preloadReg = 1;
@@ -232,7 +220,9 @@ idSWFScriptVar idSWFScriptFunction_Script::Call( idSWFScriptObject * thisObject,
 		//dont forget to set params
 		idSWFBitStream abcStream( methodInfo->body->code.Ptr( ), methodInfo->body->codeLength, false );
 		retVal = RunAbc( thisObject, stack, abcStream );
-		thisObject->Release( ); // register ref
+		locals->Release( );
+		locals = NULL;
+		return retVal;
 	}else
 		retVal = Run( thisObject, stack, bitstream );
 

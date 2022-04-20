@@ -236,12 +236,29 @@ float idFont::GetLineHeight( float scale ) const {
 	if ( alias != NULL ) {
 		return alias->GetLineHeight( scale );
 	}
-	if ( fontInfo != NULL ) {
+	if ( fontInfos.Num() >= fontInfoIndex ) {
 		return scale * fontInfos[fontInfoIndex].maxHeight;
 	}
 
 	return 0.0f;
 }
+
+
+/*
+==============================
+idFont::GetDecender
+==============================
+*/
+float idFont::GetDecender( float scale ) const {
+	if ( alias != NULL ) {
+		return alias->GetDecender( scale );
+	}
+	if ( fontInfos.Num( ) >= fontInfoIndex ) {
+		return scale * fontInfos[fontInfoIndex].descender;
+	}
+	return 0.0f;
+}
+
 
 /*
 ==============================
@@ -252,7 +269,7 @@ float idFont::GetAscender( float scale ) const {
 	if ( alias != NULL ) {
 		return alias->GetAscender( scale );
 	}
-	if ( fontInfo != NULL ) {
+	if ( fontInfos.Num() >= fontInfoIndex ) {
 		return scale *  fontInfos[fontInfoIndex].ascender;
 	}
 	return 0.0f;
@@ -282,7 +299,7 @@ float idFont::GetGlyphWidth( float scale, uint32 idx ) const {
 	if ( alias != NULL ) {
 		return alias->GetGlyphWidth( scale, idx );
 	}
-	if ( fontInfo != NULL ) {
+	if ( fontInfos.Num() >= fontInfoIndex ) {
 		int i = GetGlyphIndex( idx );
 		const int asterisk = 42;
 		if ( i == -1 && idx != asterisk ) {
@@ -305,7 +322,7 @@ void idFont::GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphI
 	if ( alias != NULL ) {
 		return alias->GetScaledGlyph( scale, idx, glyphInfo );
 	}
-	if ( fontInfo != NULL ) {
+	if ( glyphInfos.Num() ) {
 		int i = GetGlyphIndex( idx );
 		const int asterisk = 42;
 		if ( i == -1 && idx != asterisk ) {
@@ -314,16 +331,16 @@ void idFont::GetScaledGlyph( float scale, uint32 idx, scaledGlyphInfo_t & glyphI
 		if ( i >= 0 ) {
 			float invMaterialWidth = 1.0f / 1;//fontInfo->material->GetImageWidth();
 			float invMaterialHeight = 1.0f / 1;//fontInfo->material->GetImageHeight();
-			glyphInfo_t & gi = fontInfo->glyphData[i];
-			glyphInfo.xSkip = scale * gi.xSkip;
-			glyphInfo.top = scale * gi.top;
-			glyphInfo.left = scale * gi.left;
+			const GlyphInfo & gi = glyphInfos[i];
+			glyphInfo.xSkip = scale * gi.advance_x;
+			glyphInfo.top = scale * gi.offset_y;
+			glyphInfo.left = scale *  gi.offset_x;
 			glyphInfo.width = scale * gi.width;
 			glyphInfo.height = scale * gi.height;
-			glyphInfo.s1 = ( gi.s - 0.5f ) * invMaterialWidth;
-			glyphInfo.t1 = ( gi.t - 0.5f ) * invMaterialHeight;
-			glyphInfo.s2 = ( gi.s + gi.width + 0.5f ) * invMaterialWidth;
-			glyphInfo.t2 = ( gi.t + gi.height + 0.5f ) * invMaterialHeight;
+			//glyphInfo.s1 = ( gi.s - 0.5f ) * invMaterialWidth;
+			//glyphInfo.t1 = ( gi.t - 0.5f ) * invMaterialHeight;
+			//glyphInfo.s2 = ( gi.s + gi.width + 0.5f ) * invMaterialWidth;
+			//glyphInfo.t2 = ( gi.t + gi.height + 0.5f ) * invMaterialHeight;
 			//glyphInfo.material = fontInfo->material;
 			return;
 		}

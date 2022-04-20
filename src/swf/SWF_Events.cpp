@@ -31,6 +31,34 @@ If you have questions concerning this license or the applicable additional terms
 #include "swf.h"
 #include "../idFramework/KeyInput.h"
 
+
+idSWFScriptObject* GetMouseEventDispatcher( idSWFScriptObject *object ) {
+	idSWFScriptObject *dispatcher = nullptr;
+	if ( object->HasValidProperty( "__eventDispatcher__" ) ) {
+		dispatcher = object->Get( "__eventDispatcher__" ).GetObject( );
+		if ( dispatcher->HasValidProperty( "click" )
+			|| dispatcher->HasValidProperty( "contextMenu" )
+			|| dispatcher->HasValidProperty( "doubleClick" )
+			|| dispatcher->HasValidProperty( "middleClick" )
+			|| dispatcher->HasValidProperty( "middleMouseDown" )
+			|| dispatcher->HasValidProperty( "middleMouseUp" )
+			|| dispatcher->HasValidProperty( "mouseDown" )
+			|| dispatcher->HasValidProperty( "mouseMove" )
+			|| dispatcher->HasValidProperty( "mouseOut" )
+			|| dispatcher->HasValidProperty( "mouseOver" )
+			|| dispatcher->HasValidProperty( "mouseUp" )
+			|| dispatcher->HasValidProperty( "mouseWheel" )
+			|| dispatcher->HasValidProperty( "releaseOutside" )
+			|| dispatcher->HasValidProperty( "rightClick" )
+			|| dispatcher->HasValidProperty( "rightMouseDown" )
+			|| dispatcher->HasValidProperty( "rightMouseUp" )
+			|| dispatcher->HasValidProperty( "rollOut" )
+			|| dispatcher->HasValidProperty( "rollOver" ) )
+			return dispatcher;
+	}
+	return nullptr;
+}
+
 /*
 ===================
 idSWF::HitTest
@@ -48,14 +76,21 @@ idSWFScriptObject * idSWF::HitTest( idSWFSpriteInstance * spriteInstance, const 
 	if ( !spriteInstance->isVisible ) {
 		return NULL;
 	}
+	
+	idSWFScriptObject * dispatcher = GetMouseEventDispatcher( spriteInstance->scriptObject );
 
-	if ( spriteInstance->scriptObject->HasValidProperty( "onRelease" ) 
-		|| spriteInstance->scriptObject->HasValidProperty( "onPress" ) 
-		|| spriteInstance->scriptObject->HasValidProperty( "onRollOver" )
-		|| spriteInstance->scriptObject->HasValidProperty( "onRollOut" )
-		|| spriteInstance->scriptObject->HasValidProperty( "onDrag" ) 
-		) {
-		parentObject = spriteInstance->scriptObject;
+	if (dispatcher!=nullptr) {
+			parentObject = spriteInstance->scriptObject;
+	}else {
+		if ( spriteInstance->scriptObject->HasValidProperty( "onRelease" )
+			|| spriteInstance->scriptObject->HasValidProperty( "onPress" )
+			|| spriteInstance->scriptObject->HasValidProperty( "onRollOver" )
+			|| spriteInstance->scriptObject->HasValidProperty( "onRollOut" )
+			|| spriteInstance->scriptObject->HasValidProperty( "onDrag" )
+			|| spriteInstance->scriptObject->HasValidProperty( "onDrag" )
+			) {
+			parentObject = spriteInstance->scriptObject;
+		}
 	}
 
 	// rather than returning the first object we find, we actually want to return the last object we find
@@ -111,13 +146,21 @@ idSWFScriptObject * idSWF::HitTest( idSWFSpriteInstance * spriteInstance, const 
 		//} else if ( entry->type == SWF_DICT_TEXT ) {
 		//	// FIXME: this should be roughly the same as SWF_DICT_SHAPE -> no we force spritetext
 		} else if ( entry->type == SWF_DICT_EDITTEXT ||  entry->type == SWF_DICT_TEXT) {
+
 			idSWFScriptObject * editObject = NULL;
 
-			if ( display.textInstance && 
-				(display.textInstance->scriptObject.HasProperty( "onRelease" ) || display.textInstance->scriptObject.HasProperty( "onPress" )) ) {
+			idSWFScriptObject * textdispatcher = nullptr;
+			if ( display.textInstance )
+				dispatcher = GetMouseEventDispatcher( &display.textInstance->scriptObject );
+			if ( dispatcher!=nullptr )
+			{
+				editObject = &display.textInstance->scriptObject;
+			}else if ( display.textInstance &&
+				( display.textInstance->scriptObject.HasProperty( "onRelease" ) || display.textInstance->scriptObject.HasProperty( "onPress" ) ) ) {
 				// if the edit box itself can be clicked, then we want to return it when it's clicked on
 				editObject = &display.textInstance->scriptObject;
-			} else if ( parentObject != NULL ) {
+			}
+			else if ( !dispatcher && parentObject != NULL ) {
 				// otherwise, we want to return the parent object
 				editObject = parentObject;
 			}
@@ -134,7 +177,14 @@ idSWFScriptObject * idSWF::HitTest( idSWFSpriteInstance * spriteInstance, const 
 			const idSWFEditText * text = display.textInstance->GetEditText();
 			float textLength = display.textInstance->GetTextLength();
 
-			float lengthDiff = fabs( shape->bounds.br.x - shape->bounds.tl.x ) - textLength;
+			//if ( !textLength )
+				//continue;//THIS SHOULD NEVER HAPPEN, TEXT IS NOT EMPTY!
+
+			float lengthDiff = 0;
+			if (!entry->edittext)
+				lengthDiff = fabs( entry->text->bounds.br.x - entry->text->bounds.tl.x ) - textLength;
+			else 
+				lengthDiff = fabs( shape->bounds.br.x - shape->bounds.tl.x ) - textLength;
 			
 			idVec3 tl; 
 			idVec3 tr; 
@@ -145,28 +195,30 @@ idSWFScriptObject * idSWF::HitTest( idSWFSpriteInstance * spriteInstance, const 
 			float yOffset = spriteInstance->yOffset;
 
 			float topOffset = 0.0f;
-
-			if ( text->align == SWF_ET_ALIGN_LEFT ) {
-				tl.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x  + xOffset, shape->bounds.tl.y + topOffset + yOffset ) ); 
-				tr.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.br.x - lengthDiff + xOffset, shape->bounds.tl.y + topOffset + yOffset ) ); 
-				br.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.br.x - lengthDiff + xOffset, shape->bounds.br.y + topOffset + yOffset ) ); 
-				bl.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + xOffset, shape->bounds.br.y + topOffset + yOffset ) );									
-			} else if ( text->align == SWF_ET_ALIGN_RIGHT ) {
-				tl.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + lengthDiff + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
-				tr.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.br.x + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
-				br.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.br.x + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
-				bl.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + lengthDiff + xOffset, shape->bounds.br.y + topOffset + yOffset ) );				
-			} else if ( text->align == SWF_ET_ALIGN_CENTER ) {
-				float middle = ( ( shape->bounds.br.x + xOffset ) + ( shape->bounds.tl.x + xOffset ) ) / 2.0f;
-				tl.ToVec2() = renderState2.matrix.Transform( idVec2( middle - ( textLength / 2.0f ), shape->bounds.tl.y + topOffset + yOffset ) );
-				tr.ToVec2() = renderState2.matrix.Transform( idVec2( middle + ( textLength / 2.0f ), shape->bounds.tl.y + topOffset + yOffset ) );
-				br.ToVec2() = renderState2.matrix.Transform( idVec2( middle + ( textLength / 2.0f ), shape->bounds.br.y + topOffset + yOffset ) );
-				bl.ToVec2() = renderState2.matrix.Transform( idVec2( middle - ( textLength / 2.0f ), shape->bounds.br.y + topOffset + yOffset ) );				
-			} else {
-				tl.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
-				tr.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.br.x + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
-				br.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.br.x + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
-				bl.ToVec2() = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
+			if (text)
+			{
+				if ( text->align == SWF_ET_ALIGN_LEFT ) {
+					tl.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
+					tr.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.br.x - lengthDiff + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
+					br.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.br.x - lengthDiff + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
+					bl.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
+				} else if ( text->align == SWF_ET_ALIGN_RIGHT ) {
+					tl.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + lengthDiff + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
+					tr.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.br.x + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
+					br.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.br.x + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
+					bl.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + lengthDiff + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
+				} else if ( text->align == SWF_ET_ALIGN_CENTER ) {
+					float middle = ( ( shape->bounds.br.x + xOffset ) + ( shape->bounds.tl.x + xOffset ) ) / 2.0f;
+					tl.ToVec2( ) = renderState2.matrix.Transform( idVec2( middle - ( textLength / 2.0f ), shape->bounds.tl.y + topOffset + yOffset ) );
+					tr.ToVec2( ) = renderState2.matrix.Transform( idVec2( middle + ( textLength / 2.0f ), shape->bounds.tl.y + topOffset + yOffset ) );
+					br.ToVec2( ) = renderState2.matrix.Transform( idVec2( middle + ( textLength / 2.0f ), shape->bounds.br.y + topOffset + yOffset ) );
+					bl.ToVec2( ) = renderState2.matrix.Transform( idVec2( middle - ( textLength / 2.0f ), shape->bounds.br.y + topOffset + yOffset ) );
+				} else {
+					tl.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
+					tr.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.br.x + xOffset, shape->bounds.tl.y + topOffset + yOffset ) );
+					br.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.br.x + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
+					bl.ToVec2( ) = renderState2.matrix.Transform( idVec2( shape->bounds.tl.x + xOffset, shape->bounds.br.y + topOffset + yOffset ) );
+				}
 			}
 
 			tl.z = 1.0f;
@@ -225,7 +277,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 		if ( event->evValue == K_MOUSE1 ) {
 			mouseEnabled = true;
 			idSWFScriptVar var;
-			idSWFScriptVar ed;
+			idSWFScriptVar eventDispatcher =  mainspriteInstance->GetScriptObject()->Get( "__eventDispatcher__" );
 			if ( event->evValue2 ) {
 
 				idSWFScriptVar waitInput = globals->Get( "waitInput" );
@@ -240,20 +292,46 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 				}
 
 				idSWFScriptObject * hitObject = HitTest( mainspriteInstance, swfRenderState_t(), mouseX, mouseY, NULL );
+				
+
 				if ( hitObject != NULL ) {
 					mouseObject = hitObject;
 					mouseObject->AddRef();
-					ed = hitObject->Get( "EventDispatcher" );
+
+					eventDispatcher = hitObject->Get( "__eventDispatcher__" );
+
+					if (!eventDispatcher.IsUndefined() && !var.IsFunction())
+					{
+						var = eventDispatcher.GetObject( )->Get( "click" );
+						if ( !var.IsFunction( ) )
+							var = eventDispatcher.GetObject( )->Get( "mouseDown" );
+					}
+					if ( var.IsFunction( ) ) {
+						idSWFScriptVar eventArg;
+						auto *eventObj = globals->Get( "EventDispatcher" ).GetObject( )
+							->Get( "MouseEvent" ).GetObject( )
+							->Get( "[MouseEvent]" ).GetObject( );
+						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
+						eventArg.GetObject( )->DeepCopy( eventObj );
+						idSWFParmList parms;
+						parms.Append( eventArg );
+						if ( !( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Num( ) )
+							( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Append( globals );
+						var.GetFunction( )->Call( hitObject, parms );
+						parms.Clear( );
+						return false;
+					}
+
 					var = hitObject->Get( "onPress" );
-					if ( var.IsFunction() ) {
+					if ( var.IsFunction( ) ) {
 						idSWFParmList parms;
 						parms.Append( event->inputDevice );
-						var.GetFunction()->Call( hitObject, parms );
-						parms.Clear();
+						var.GetFunction( )->Call( hitObject, parms );
+						parms.Clear( );
 						return true;
 					}
 
-					idSWFScriptVar var = hitObject->Get( "onDrag" );
+					var = hitObject->Get( "onDrag" );
 					if ( var.IsFunction() ) {
 						idSWFParmList parms;
 						parms.Append( mouseX );
@@ -271,6 +349,46 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 
 			} else {
 				if ( mouseObject ) {
+					eventDispatcher = mouseObject->Get( "__eventDispatcher__" );
+
+					if ( !eventDispatcher.IsUndefined( ) && !var.IsFunction( ) )
+						var = eventDispatcher.GetObject( )->Get( "mouseUp" );
+					
+					if ( var.IsFunction( ) ) {
+						idSWFScriptVar eventArg;
+						auto *eventObj = globals->Get( "EventDispatcher" ).GetObject( )
+							->Get( "MouseEvent" ).GetObject( )
+							->Get( "[MouseEvent]" ).GetObject( );
+						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
+						eventArg.GetObject( )->DeepCopy( eventObj );
+						idSWFParmList parms;
+						parms.Append( eventArg );
+						if ( !( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Num( ) )
+							( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Append( globals );
+						var.GetFunction( )->Call( mouseObject, parms );
+						parms.Clear( );
+						mouseObject->Release( );
+						mouseObject = NULL;
+						return true;
+					}
+					if ( var.IsFunction( ) ) {
+						idSWFScriptVar eventArg;
+						auto *eventObj = globals->Get( "EventDispatcher" ).GetObject( )
+							->Get( "MouseEvent" ).GetObject( )
+							->Get( "[MouseEvent]" ).GetObject( );
+						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
+						eventArg.GetObject( )->DeepCopy( eventObj );
+						idSWFParmList parms;
+						parms.Append( eventArg );
+						if ( !( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Num( ) )
+							( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Append( globals );
+						var.GetFunction( )->Call( mouseObject, parms );
+						parms.Clear( );
+						mouseObject->Release( );
+						mouseObject = NULL;
+						return true;
+					}
+
 					var = mouseObject->Get( "onRelease" );
 					if ( var.IsFunction() ) {
 						idSWFParmList parms;
@@ -418,12 +536,35 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 			hasHitObject = false;
 		}
 
+		idSWFScriptVar eventDispatcher;
 		if ( hitObject != hoverObject ) {
+			
 			// First check to see if we should call onRollOut on our previous hoverObject
 			if ( hoverObject != NULL ) {
+				
 				idSWFScriptVar var = hoverObject->Get( "onRollOut" );
-				if ( var.IsFunction() ) {
-					var.GetFunction()->Call( hoverObject, idSWFParmList() );
+
+				eventDispatcher = hoverObject->Get( "__eventDispatcher__" );
+				if ( !eventDispatcher.IsUndefined( ) && !var.IsFunction( ) )
+				{
+					var = eventDispatcher.GetObject( )->Get( "mouseOut" );
+					if ( var.IsFunction( ) ) 					{
+						idSWFScriptVar eventArg;
+						auto *eventObj = globals->Get( "EventDispatcher" ).GetObject( )
+							->Get( "MouseEvent" ).GetObject( )
+							->Get( "[MouseEvent]" ).GetObject( );
+						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
+						eventArg.GetObject( )->DeepCopy( eventObj );
+						idSWFParmList parms;
+						parms.Append( eventArg );
+						if ( !( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Num( ) )
+							( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Append( globals );
+						var.GetFunction( )->Call( hoverObject, parms );
+						parms.Clear( );
+						retVal = true;
+					}
+				}else if ( var.IsFunction( ) ) {
+					var.GetFunction( )->Call( hoverObject, idSWFParmList( ) );
 					retVal = true;
 				}
 				hoverObject->Release();
@@ -434,8 +575,29 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 				hoverObject = hitObject;
 				hoverObject->AddRef();
 				idSWFScriptVar var = hitObject->Get( "onRollOver" );
-				if ( var.IsFunction() ) {
-					var.GetFunction()->Call( hitObject, idSWFParmList() );
+
+				eventDispatcher = hoverObject->Get( "__eventDispatcher__" );
+				if ( !eventDispatcher.IsUndefined( ) && !var.IsFunction( ) )
+				{
+					var = eventDispatcher.GetObject( )->Get( "mouseOver" );
+					if (var.IsFunction() )
+					{
+						idSWFScriptVar eventArg;
+						auto *eventObj = globals->Get( "EventDispatcher" ).GetObject( )
+							->Get( "MouseEvent" ).GetObject( )
+							->Get( "[MouseEvent]" ).GetObject( );
+						eventArg.SetObject( idSWFScriptObject::Alloc( ) );
+						eventArg.GetObject( )->DeepCopy( eventObj );
+						idSWFParmList parms;
+						parms.Append( eventArg );
+						if ( !( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Num( ) )
+							( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Append( globals );
+						var.GetFunction( )->Call( hoverObject, parms );
+						parms.Clear( );
+						retVal = true;
+					}
+				} else if ( var.IsFunction( ) ) {
+					var.GetFunction( )->Call( hitObject, idSWFParmList( ) );
 					retVal = true;
 				}
 			}
@@ -452,7 +614,7 @@ bool idSWF::HandleEvent( const sysEvent_t * event ) {
 			}
 		}
 		return retVal;
-	} else if ( event->evType == SE_MOUSE_LEAVE ) {
+	} else if ( event->evType == SE_MOUSE_LEAVE ) { // releasse outside
 		isMouseInClientArea = false;
 	} else if ( event->evType == SE_JOYSTICK ) {
 		idSWFParmList parms;

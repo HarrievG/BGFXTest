@@ -48,6 +48,7 @@ isPlaying( true ),
 isVisible( true ),
 childrenRunning( true ),
 currentFrame( 0 ),
+lastFrame( 0 ),
 itemIndex( 0 ),
 materialOverride( NULL ),
 materialWidth( 0 ),
@@ -145,6 +146,7 @@ void idSWFSpriteInstance::FreeDisplayList() {
 	}
 	displayList.SetNum( 0 );	// not calling Clear() so we don't continuously re-allocate memory
 	currentFrame = 0;
+	lastFrame = 0;
 }
 
 /*
@@ -202,12 +204,9 @@ swfDisplayEntry_t * idSWFSpriteInstance::AddDisplayEntry( int depth, int charact
 			dictEntry->resolved = true;//dictEntry->scriptClass != nullptr;
 		}
 
-
-
 		if ( dictEntry->type == SWF_DICT_SPRITE ) {
 			display.spriteInstance = sprite->swf->spriteInstanceAllocator.Alloc();
 			display.spriteInstance->abcFile = this->abcFile;
-			
 			if ( dictEntry->scriptClass.IsValid() ) {
 				display.spriteInstance->scriptObject = idSWFScriptObject::Alloc( );
 				auto *super = dictEntry->scriptClass.GetObject( );
@@ -226,8 +225,7 @@ swfDisplayEntry_t * idSWFSpriteInstance::AddDisplayEntry( int depth, int charact
 			if ( dictEntry->scriptClass.IsValid( ) ) {
 				auto *super = dictEntry->scriptClass.GetObject( );
 				display.textInstance->scriptObject.DeepCopy(
-					super->Get( "[" + *dictEntry->name + "]" )
-					.GetObject( ) );
+					super->Get( "[" + *dictEntry->name + "]" ).GetObject( ) );
 				super->SetPrototype(display.spriteInstance->scriptObject->GetPrototype() );
 				display.spriteInstance->scriptObject->SetPrototype( super );
 			}
@@ -357,7 +355,7 @@ bool idSWFSpriteInstance::RunActions() {
 		}
 	}
 
-	if ( !constructed ) {
+	if (!constructed ) {
 		if ( scriptObject->HasProperty( "__constructor__" ) ) {
 			common->DPrintf( "Calling constructor for %s%\n", name.c_str( ) );
 			idSWFScriptVar instanceInit = scriptObject->Get( "__constructor__" );
@@ -366,16 +364,51 @@ bool idSWFSpriteInstance::RunActions() {
 			constructed = true;
 		}
 	}
-
-	if ( firstRun && scriptObject->HasProperty( "onLoad" ) ) {
+	if ( firstRun && scriptObject->HasProperty( "__eventDispatcher__" ) ) {
 		firstRun = false;
-		idSWFScriptVar onLoad = scriptObject->Get( "onLoad" );
-		idSWFScriptFunction_Script *func = ( idSWFScriptFunction_Script * ) onLoad.GetFunction( );
-		if ( !func->GetScope()->Num() ) // this should not be the case. fix this.
-			func->SetScope( *actionScript->GetScope( ) );
-		onLoad.GetFunction( )->Call( scriptObject, idSWFParmList( ) );
+		idSWFScriptObject * eventDispatcher = scriptObject->Get( "__eventDispatcher__" ).GetObject();
+		idSWFScriptVar var = eventDispatcher->Get( "addedToStage" );
+		if ( var.IsFunction() )
+		{
+			
+			idSWFScriptObject *eventObj = sprite->swf->globals
+				->Get( "EventDispatcher" ).GetObject( )
+				->Get( "Event" ).GetObject( )
+				->Get( "[Event]" ).GetObject( );
+
+			idSWFScriptVar eventParm;
+			eventParm.SetObject( idSWFScriptObject::Alloc( ) );
+			eventParm.GetObject()->DeepCopy( eventObj );
+
+			idSWFScriptVar eventArg;
+			eventArg.SetObject( idSWFScriptObject::Alloc( ) );
+			eventArg.GetObject( )->Set("Event", eventParm);
+			
+			idSWFParmList parms;
+			parms.Append( eventArg );
+			if ( !( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Num( ) )
+				( ( idSWFScriptFunction_Script * ) var.GetFunction( ) )->GetScope( )->Append( sprite->swf->globals );
+			var.GetFunction( )->Call( scriptObject, parms );
+			parms.Clear( );
+		}
 	}
 
+	//do frame scripts.
+	if (currentFrame != lastFrame && isPlaying)
+	{
+		idStr frameId = idStr( "frame" ) + idStr( currentFrame );
+		idSWFScriptObject *obj = scriptObject;
+		if ( obj && obj->HasValidProperty( frameId.c_str( ) ) ) {
+			idSWFScriptVar frameFunc = obj->Get( frameId.c_str( ) );
+			if ( frameFunc.IsFunction( ) ) {
+				idSWFScriptFunction *funcPtr = frameFunc.GetFunction( );
+				if ( !( ( idSWFScriptFunction_Script * ) funcPtr )->GetScope( )->Num( ) )
+					( ( idSWFScriptFunction_Script * ) funcPtr )->SetScope( *actionScript->GetScope( ) );
+				funcPtr->Call( obj, idSWFParmList( ) );
+			}
+		}
+	}
+	firstRun = false;
 	return true;
 }
 
@@ -433,6 +466,7 @@ void idSWFSpriteInstance::RunTo( int targetFrame ) {
 	if ( targetFrame == currentFrame ) {
 		return; // otherwise we'll re-run the current frame
 	}
+
 	if ( targetFrame < currentFrame ) {
 		FreeDisplayList();
 	}
@@ -447,8 +481,9 @@ void idSWFSpriteInstance::RunTo( int targetFrame ) {
 	//actions.Clear();
 
 	uint32 firstActionCommand = sprite->frameOffsets[ targetFrame - 1 ];
-
+	int frameCount = 0;
 	for ( uint32 c = sprite->frameOffsets[ currentFrame ]; c < sprite->frameOffsets[ targetFrame ]; c++ ) {
+
 		idSWFSprite::swfSpriteCommand_t & command = sprite->commands[ c ];
 		if ( command.tag == Tag_DoAction && c < firstActionCommand ) {
 			// Skip DoAction up to the firstActionCommand
@@ -470,7 +505,10 @@ void idSWFSpriteInstance::RunTo( int targetFrame ) {
 		default:
 			common->Printf( "Run Sprite: Unhandled tag %s\n", idSWF::GetTagName( command.tag ) );
 		}
+
+		frameCount++;
 	}
+	lastFrame = currentFrame;
 	currentFrame = targetFrame;
 }
 
@@ -1006,7 +1044,7 @@ SWF_SPRITE_NATIVE_VAR_DEFINE_SET( _height ) { }
 
 SWF_SPRITE_FUNCTION_DEFINE( addFrameScript ) {
 	SWF_SPRITE_PTHIS_FUNC( "addFrameScript" );
-	common->Printf("AddFrame script");
+	common->Printf("Have to add AddFrame script\n");
 	return idSWFScriptVar();
 }
 

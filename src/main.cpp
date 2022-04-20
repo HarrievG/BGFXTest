@@ -82,8 +82,9 @@ void main_loop( void *data ) {
 			swfTest->HandleEvent(&event);
 		} );
 		swfTest->Activate(true);
+		
 	}
-
+		
 
 	swfTest->Render( Sys_Milliseconds() );
 	//static idStr tmpStr = "!123adadada123!";

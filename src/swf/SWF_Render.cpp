@@ -38,9 +38,9 @@ If you have questions concerning this license or the applicable additional terms
 
 idCVar swf_timescale( "swf_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
 idCVar swf_stopat( "swf_stopat", "0", CVAR_FLOAT, "stop at a specific frame" );
-
+idCVar swf_glyphScale( "swf_glyphScale", "57", CVAR_FLOAT, "scale test" );
 idCVar swf_titleSafe( "swf_titleSafe", "0.005", CVAR_FLOAT, "space between UI elements and screen edge", 0.0f, 0.075f );
-
+idCVar swf_fullLines( "swf_fullLines", "1", CVAR_BOOL, "render full lines instead of per char" );
 idCVar swf_forceAlpha( "swf_forceAlpha", "0", CVAR_FLOAT, "force an alpha value on all elements, useful to show invisible animating elements", 0.0f, 1.0f );
 
 extern idCVar swf_textStrokeSize;
@@ -54,6 +54,7 @@ extern idCVar in_useJoystick;
 
 swfRenderer * idSWF::Renderer = nullptr;
 
+uint16 idSWF::maxFontHeight = 0;
 void idSWF::CreateRenderer( ) 
 {
 	if ( !Renderer )
@@ -287,7 +288,7 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 		//gui->SetGLState( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 		//gui->SetColor( idVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
 		idVec2 mouse = renderState.matrix.Transform( idVec2( mouseX - 1, mouseY - 2 ) );
-		idSWFScriptObject * hitObject = HitTest( mainspriteInstance, swfRenderState_t(), mouseX, mouseY, NULL );
+		idSWFScriptObject * hitObject = HitTest( mainspriteInstance, renderState, mouseX, mouseY, NULL );
 		static bool isHand = false;
 		static bool isCursor = false;
 		if ( hitObject == NULL ) {
@@ -363,7 +364,7 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 
 		renderState2.matrix = display.matrix.Multiply( renderState.matrix );
 		renderState2.cxf = display.cxf.Multiply( renderState.cxf );
-		renderState2.ratio = 1;//display.ratio;
+		renderState2.ratio = 1920.0f/1080.0f;
 		if ( display.blendMode != 0 ) {
 			renderState2.blendMode = display.blendMode;
 		} else {
@@ -497,11 +498,18 @@ void idSWF::RenderSprite( idSWFSpriteInstance *spriteInstance, const swfRenderSt
 		} else if ( entry->type == SWF_DICT_EDITTEXT ) {
 			//textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
 			RenderEditText( display.textInstance, renderState2, time, isSplitscreen );
-			auto & text = display.textInstance->GetEditText()->initialText;
-			idVec2 textPos = renderState2.matrix.Transform(vec2_one)-vec2_one;
-			textBufferManager->setPenPosition(display.textInstance->textBufferHandle,textPos.x,textPos.y);
+			/*auto &text = display.textInstance->text;
+			idVec2 textPos = renderState2.matrix.Transform( display.textInstance->editText->bounds.tl );
+			uint32_t color = 0;
+			color += display.textInstance->color.r << 24;
+			color += display.textInstance->color.g << 16;
+			color += display.textInstance->color.b << 8;
+			color += display.textInstance->color.a;
+			textBufferManager->clearTextBuffer( display.textInstance->textBufferHandle );
+			textBufferManager->setTextColor( display.textInstance->textBufferHandle, color );
+			textBufferManager->setPenPosition( display.textInstance->textBufferHandle, textPos.x, textPos.y );
 			textBufferManager->appendText( display.textInstance->textBufferHandle, text.c_str( ), text.c_str( ) + text.Size( ) );
- 			textBufferManager->submitTextBuffer(display.textInstance->textBufferHandle,50);
+			textBufferManager->submitTextBuffer( display.textInstance->textBufferHandle, 50 );*/
 		} else if ( entry->type == SWF_DICT_TEXT ) {
 			//textBufferManager->clearTextBuffer(display.textInstance->textBufferHandle);
 			RenderStaticText( display.textInstance, renderState2, time, isSplitscreen );
@@ -964,7 +972,7 @@ void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderSta
 	const idSWFEditText * shape = textInstance->editText;
 
 	idStr text;
-
+	textBufferManager->clearTextBuffer( textInstance->textBufferHandle );
 	if ( textInstance->variable.IsEmpty() ) {
 		if ( textInstance->renderMode == SWF_TEXT_RENDER_PARAGRAPH ) {
 			if ( textInstance->NeedsGenerateRandomText() ) {
@@ -1056,7 +1064,7 @@ void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderSta
 
 	const idFont * fontInfo = swfFont->fontID;
 
-	float glyphScale = postTransformHeight / 48.0f;
+	float glyphScale = postTransformHeight / swf_glyphScale.GetFloat();
 	float imageScale = postTransformHeight / 24.0f;
 	textInstance->glyphScale = glyphScale;
 
@@ -1465,12 +1473,6 @@ void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderSta
 
 		y = bounds.tl.y + ( index * linespacing );
 
-		// all of the size calculation should go here.
-		// 1. there was a bug in it anyway
-		// 2. we dont draw single glyphs anymore, but the whole field.
-		//TODO
-		//	because of the above, images in text have to be reimplemented.
-		//	current approach :  break up textfield on each image position.
 		float biggestGlyphHeight = 0.0f;		
 		/*for ( int image = 0; image < tooltipIconList.Num(); ++image ) {
 			if ( tooltipIconList[image].startIndex >= startCharacter && tooltipIconList[image].endIndex < endCharacter ) {
@@ -1659,7 +1661,7 @@ void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderSta
 			float glyphW = glyph.width + 1.0f;	// +1 for bilinear half texel on each side
 			float glyphH = glyph.height + 1.0f;
 
-			float glyphY = baseLine - glyph.top;
+			float glyphY = baseLine - glyph.top - glyph.height ;
 			float glyphX = x + glyph.left;
 
 			idVec2 topl = matrix.Transform( idVec2( glyphX, glyphY ) );
@@ -1713,11 +1715,35 @@ void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderSta
 				//gui->SetColor( textColor );
 			}
 
+
+			
+			idVec2 textPos =  idVec2( topl.x, topl.y ); //display.textInstance->editText->bounds.tl );
+			uint32_t color = 0;
+
+
+			idStr chars =  idStr((char) character );;
+			if (swf_fullLines.GetBool() )
+				chars = text;
+
+			color += textInstance->color.r << 24;
+			color += textInstance->color.g << 16;
+			color += textInstance->color.b << 8;
+			color += textInstance->color.a;
+			textBufferManager->setTextColor( textInstance->textBufferHandle, color );
+			textBufferManager->setPenPosition( textInstance->textBufferHandle, textPos.x, textPos.y );
+			textBufferManager->appendText( textInstance->textBufferHandle, chars.c_str( ), chars.c_str( ) + chars.Size( ) );
+
+
 			//DrawStretchPic( idVec4( topl.x, topl.y, s1, t1 ), idVec4( topr.x, topr.y, s2, t1 ), idVec4( br.x, br.y, s2, t2 ), idVec4( bl.x, bl.y, s1, t2 ), glyph.material );
 			x += glyphSkip;
 			x += extraSpace;
 			if ( cursorPos == c ) {
 				//DrawEditCursor( gui, x - 1.0f, y, 1.0f, linespacing, matrix );
+			}
+			if (swf_fullLines.GetBool() )
+			{
+				i = lastChar;
+				t = textLines.Num();
 			}
 			c++;
 			overallIndex += i - overallLineIndex;
@@ -1726,6 +1752,7 @@ void idSWF::RenderEditText( idSWFTextInstance * textInstance, const swfRenderSta
 
 		index++;
 	}
+	textBufferManager->submitTextBuffer( textInstance->textBufferHandle, 50 );
 }
 
 #if 0

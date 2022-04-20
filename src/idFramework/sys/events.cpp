@@ -884,9 +884,9 @@ sysEvent_t Sys_GetEvent() {
 #endif
 
 		case SDL_MOUSEMOTION:
-			res.evType = SE_MOUSE;
-			res.evValue = ev.motion.xrel;
-			res.evValue2 = ev.motion.yrel;
+			res.evType = SE_MOUSE_ABSOLUTE;
+			res.evValue = ev.motion.x;
+			res.evValue2 = ev.motion.y;
 
 			mouse_polls.Append(mouse_poll_t(M_DELTAX, ev.motion.xrel));
 			mouse_polls.Append(mouse_poll_t(M_DELTAY, ev.motion.yrel));

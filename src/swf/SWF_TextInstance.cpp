@@ -35,6 +35,7 @@ If you have questions concerning this license or the applicable additional terms
 #include "SWF.h"
 #include "SWF_ScriptFunction.h"
 #include "../bgfx-stubs/Font/text_buffer_manager.h"
+#include "../idFramework/idlib/bv/Bounds.h"
 
 idSWFScriptObject_TextInstancePrototype textInstanceScriptObjectPrototype;
 
@@ -46,11 +47,10 @@ idCVar swf_textParagraphInc( "swf_textParagraphInc", "1.3", CVAR_FLOAT, "scroll 
 idCVar swf_subtitleExtraTime( "swf_subtitleExtraTime", "3500", CVAR_INTEGER, "time after subtitles vo is complete" );
 idCVar swf_subtitleEarlyTrans( "swf_subtitleEarlyTrans", "3500", CVAR_INTEGER, "early time out to switch the line" );
 idCVar swf_subtitleLengthGuess( "swf_subtitleLengthGuess", "10000", CVAR_INTEGER, "early time out to switch the line" );
-idCVar swf_textMaxInputLength( "swf_textMaxInputLength", "104", CVAR_INTEGER, "max number of characters that can go into the input line" );
-idCVar swf_textStrokeSize( "swf_textStrokeSize", "1.65f", CVAR_FLOAT, "size of font glyph stroke", 0.0f, 2.0f );
-idCVar swf_textStrokeSizeGlyphSpacer( "swf_textStrokeSizeGlyphSpacer", "1.5f", CVAR_FLOAT, "additional space for spacing glyphs using stroke" );
-
-
+idCVar swf_textMaxInputLength( "swf_textMaxInputLength", "250", CVAR_INTEGER, "max number of characters that can go into the input line" );
+idCVar swf_textStrokeSize( "swf_textStrokeSize", "1.65", CVAR_FLOAT, "size of font glyph stroke", 0.0f, 2.0f );
+idCVar swf_textStrokeSizeGlyphSpacer( "swf_textStrokeSizeGlyphSpacer", "1", CVAR_FLOAT, "additional space for spacing glyphs using stroke" );
+extern idCVar swf_glyphScale;
 /*
 ========================
 idSWFTextInstance::idSWFTextInstance
@@ -82,8 +82,11 @@ void idSWFTextInstance::Init( idSWFText * _text, idSWF * _swf )
 	text = "staticText";//idLocalization::GetString( staticText->textRecords[0]. );
 
 	lengthCalculated = false;
-	//variable = editText->variable;
-	//color = editText->color;
+	//if ( editText )
+	//{
+	//	variable = editText->variable;
+	//	color = editText->color;
+	//}
 	visible = true;
 
 	selectionStart = -1;
@@ -142,6 +145,7 @@ void idSWFTextInstance::Init( idSWFText * _text, idSWF * _swf )
 	scriptObject.SetText( this );
 	scriptObject.SetNoAutoDelete( true );
 	textBufferHandle = swf->textBufferManager->createTextBuffer( FONT_TYPE_ALPHA, BufferType::Static );
+
 }
 
 /*
@@ -215,7 +219,8 @@ void idSWFTextInstance::Init( idSWFEditText * _editText, idSWF * _swf ) {
 	scriptObject.SetPrototype( &textInstanceScriptObjectPrototype );
 	scriptObject.SetText( this );
 	scriptObject.SetNoAutoDelete( true );
-	textBufferHandle = swf->textBufferManager->createTextBuffer( FONT_TYPE_ALPHA , BufferType::Static );
+	textBufferHandle = swf->textBufferManager->createTextBuffer( FONT_TYPE_ALPHA , BufferType::Transient );
+
 }
 
 /*
@@ -247,29 +252,39 @@ float idSWFTextInstance::GetTextLength() {
 			txtLengthCheck = idLocalization::GetString( text );
 		}
 
-		const idSWFEditText * shape = editText;
-		idSWFDictionaryEntry * fontEntry = swf->FindDictionaryEntry( shape->fontID, SWF_DICT_FONT );
-		idSWFFont * swfFont = fontEntry->font;
-		float width = fabs( shape->bounds.br.x - shape->bounds.tl.x );
-		float postTrans = SWFTWIP( shape->fontHeight );
-		const idFont * fontInfo = swfFont->fontID;
-		float glyphScale = postTrans / 48.0f;
+		float pointSize =  swf_glyphScale.GetFloat();
 
-		int tlen = txtLengthCheck.Length();
-		int index = 0;
-		while ( index < tlen ) {
-			scaledGlyphInfo_t glyph;
-			fontInfo->GetScaledGlyph( glyphScale, txtLengthCheck.UTF8Char( index ), glyph );
+		if ( editText )
+		{
+			const idSWFEditText * shape  = editText;
+			idSWFDictionaryEntry * fontEntry = swf->FindDictionaryEntry( shape->fontID, SWF_DICT_FONT );
+			idSWFFont * swfFont = fontEntry->font;
+			float fontHeight = shape->fontHeight;
 
-			len += glyph.xSkip;
-			if ( useStroke ) {
-				len += ( swf_textStrokeSizeGlyphSpacer.GetFloat() * strokeWeight * glyphScale );
+
+			float width = fabs( shape->bounds.br.x - shape->bounds.tl.x );
+			float postTrans = SWFTWIP( fontHeight );
+			const idFont *fontInfo = swfFont->fontID;
+			float glyphScale = postTrans / pointSize;
+
+			int tlen = txtLengthCheck.Length( );
+			int index = 0;
+			while ( index < tlen ) {
+				scaledGlyphInfo_t glyph;
+				fontInfo->GetScaledGlyph( glyphScale, txtLengthCheck.UTF8Char( index ), glyph );
+
+				len += glyph.xSkip;
+				if ( useStroke ) {
+					len += ( swf_textStrokeSizeGlyphSpacer.GetFloat( ) * strokeWeight * glyphScale );
+				}
+
+				if ( !( shape->flags & SWF_ET_AUTOSIZE ) && len >= width ) {
+					len = width;
+					break;
+				}
 			}
-
-			if ( !( shape->flags & SWF_ET_AUTOSIZE ) && len >= width ) {
-				len = width;
-				break;
-			}
+		} else {
+			len = (staticText->matrix.Transform(staticText->bounds.br) - staticText->matrix.Transform(staticText->bounds.tl)).x;
 		}
 	}
 

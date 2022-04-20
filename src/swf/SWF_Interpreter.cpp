@@ -454,9 +454,27 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject
 				stack.Append( idSWFScriptString(mn.c_str()));
 				continue;
 			}
-			//ExecWordCode ( pushint );
-			//ExecWordCode ( pushuint );
-			//ExecWordCode ( pushdouble );
+			InlineWordCode( pushint ) 
+			{
+				const auto &cp = abcFile->constant_pool.integers;
+				const auto &val = cp[bitstream.ReadEncodedU32( )];
+				stack.Append( idSWFScriptVar( val ) );
+				continue;
+			}
+			InlineWordCode ( pushuint )
+			{
+				const auto &cp = abcFile->constant_pool.uIntegers;
+				const auto &val = cp[bitstream.ReadEncodedU32( )];
+				stack.Append( idSWFScriptVar( (int)val ) );
+				continue;
+			}
+			InlineWordCode ( pushdouble )
+			{
+				const auto &cp = abcFile->constant_pool.doubles;
+				const auto &val = cp[bitstream.ReadEncodedU32( )];
+				stack.Append( idSWFScriptVar( (float)val ) );
+				continue;
+			}
 			ExecWordCode ( pushscope );
 			//ExecWordCode ( pushnamespace );
 			//ExecWordCode ( hasnext2 );
@@ -665,7 +683,22 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject
 			//ExecWordCode ( coerce_u );
 			//ExecWordCode ( coerce_o );
 			//ExecWordCode ( negate );
-			//ExecWordCode ( increment );
+			InlineWordCode ( increment )
+			{
+				auto &val = stack.A( );
+				idSWFScriptVar result;
+				switch ( val.GetType( ) ) {
+				case idSWFScriptVar::SWF_VAR_FLOAT:
+					val.SetFloat( val.ToFloat() + 1.0f );
+					continue;
+				case idSWFScriptVar::SWF_VAR_INTEGER:
+					val.SetInteger(val.ToInteger() + 1);
+					continue;
+				default:
+					common->Warning( " Tried to increment incompatible type %s", val.TypeOf( ));
+				}
+				continue;
+			}
 			//ExecWordCode ( inclocal );
 			//ExecWordCode ( decrement );
 			//ExecWordCode ( declocal );
@@ -726,14 +759,14 @@ idSWFScriptVar idSWFScriptFunction_Script::RunAbc( idSWFScriptObject *thisObject
 			//ExecWordCode ( add_i );
 			//ExecWordCode ( subtract_i );
 			//ExecWordCode ( multiply_i );
-			ExecWordCode ( getlocal0 );
-			//ExecWordCode ( getlocal1 );
-			//ExecWordCode ( getlocal2 );
-			//ExecWordCode ( getlocal3 );
-			//ExecWordCode ( setlocal0 );
-			//ExecWordCode ( setlocal1 );
-			//ExecWordCode ( setlocal2 );
-			//ExecWordCode ( setlocal3 );
+			InlineWordCode ( getlocal0 ) { stack.Alloc() = registers[0]; continue;}
+			InlineWordCode ( getlocal1 ) { stack.Alloc() = registers[1]; continue;}
+			InlineWordCode ( getlocal2 ) { stack.Alloc() = registers[2]; continue;}
+			InlineWordCode ( getlocal3 ) { stack.Alloc() = registers[3]; continue;}
+			InlineWordCode ( setlocal0 ) { registers[0] = stack.A(); continue;}
+			InlineWordCode ( setlocal1 ) { registers[1] = stack.A(); continue;}
+			InlineWordCode ( setlocal2 ) { registers[2] = stack.A(); continue;}
+			InlineWordCode ( setlocal3 ) { registers[3] = stack.A(); continue;}
 			InlineWordCode ( debug )
 			{
 				uint8 type = bitstream.ReadU8();

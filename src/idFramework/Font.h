@@ -103,6 +103,7 @@ public:
 	void setName(const char * _name ) { name = _name; }
 	float GetLineHeight( float scale ) const;
 	float GetAscender( float scale ) const;
+	float GetDecender( float scale ) const;
 	float GetMaxCharWidth( float scale ) const;
 
 	float GetGlyphWidth( float scale, uint32 idx ) const;

@@ -37,12 +37,13 @@ If you have questions concerning this license or the applicable additional terms
 
 idCVar swf_loadBinary( "swf_loadBinary", "0", CVAR_INTEGER, "used to set whether to load binary swf from generated" );
 idCVar swf_printAbcObjects( "swf_printAbcObjects", "1", CVAR_INTEGER, "used to set whether to print all classes constructed form the DoAbc tag" );
+idCVar swf_RunOnConstruct( "swf_RunOnConstruct", "0", CVAR_INTEGER, "when set to 1 , swf is run during construction" );
+
 extern idCVar swf_abc_verbose;
 
 int idSWF::mouseX = -1;
 int idSWF::mouseY = -1;
 bool idSWF::isMouseInClientArea = false;
-uint16 idSWF::maxFontHeight = 0;
 
 extern idCVar in_useJoystick;
 
@@ -242,7 +243,7 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	CreateAbcObjects( globals );
 
 	mainspriteInstance = spriteInstanceAllocator.Alloc();
-	mainspriteInstance->abcFile = abcFile;
+	mainspriteInstance->abcFile = &abcFile;
 	mainspriteInstance->scriptObject = idSWFScriptObject::Alloc( );
 	//stage class.
 	for ( auto &symbol : symbolClasses.symbols ) {
@@ -305,9 +306,13 @@ idSWF::idSWF( const char * filename_, idSoundWorld * soundWorld_ , TextBufferMan
 	int debug = swf_debug.GetInteger();
 	swf_debug.SetInteger( 0 );
 
-	mainspriteInstance->Run();
-	mainspriteInstance->RunActions();
-	mainspriteInstance->RunTo( 0 );
+
+	if (swf_RunOnConstruct.GetBool())
+	{
+		mainspriteInstance->Run();
+		mainspriteInstance->RunActions();
+		mainspriteInstance->RunTo( 0 );
+	}
 
 	swf_debug.SetInteger( debug );
 
@@ -826,6 +831,7 @@ idSWFScriptVar idSWF::idSWFScriptFunction_shortcutKeys_clear::Call( idSWFScriptO
 //	pThis->crop = value.ToBool();
 //}
 idSWFScriptVar idSWF::idSWFScriptFunction_trace::Call( idSWFScriptObject *thisObject, const idSWFParmList &parms ) {
-	common->Printf("[%s] %s\n",thisObject->GetSprite()->name.c_str(),parms[0].ToString().c_str());
+	common->Printf("[%s] %s\n",thisObject->GetSprite() ? thisObject->GetSprite()->name.c_str(): "NONAME",
+		parms[0].ToString().c_str());
 	return idSWFScriptVar();
 }

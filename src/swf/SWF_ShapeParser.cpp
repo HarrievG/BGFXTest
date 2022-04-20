@@ -739,7 +739,7 @@ void idSWFShapeParser::TriangulateSoup( idSWFShape & shape ) {
 				int v1 = FindEarVert( loop );
 				if ( v1 == -1 ) {
 					idLib::Warning( "idSWFShapeParser: could not find an ear vert" );
-					break;
+					break;;
 				}
 				int num = loop.vindex1.Num();
 				int v2 = ( v1 + 1 ) % num;

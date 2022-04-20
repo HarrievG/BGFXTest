@@ -503,9 +503,9 @@ void SWF_AbcFile::ReadClassInfo( idSWFBitStream &bitstream, swfClass_info &newCl
 {
 	newClassData.cinit = &methods[bitstream.ReadEncodedU32()];
 	uint32 trait_count  = bitstream.ReadEncodedU32();
+	newClassData.traits.AssureSize(trait_count);
 	for ( uint i = 0; i < trait_count; i++ ) {
-		auto &newTrait = newClassData.traits.Alloc( );
-		ReadTraitsInfo( bitstream, newTrait );
+		ReadTraitsInfo( bitstream, newClassData.traits[i] );
 	}
 
 }
@@ -518,9 +518,9 @@ void SWF_AbcFile::ReadScriptInfo( idSWFBitStream &bitstream, swfScript_info &new
 	uint32 trait_count = bitstream.ReadEncodedU32( );
 	newScriptData.init = &methods[init];
 	trace("%s \n",newScriptData.init->name->c_str());
+	newScriptData.traits.AssureSize(trait_count);
 	for ( uint i = 0; i < trait_count; i++ ) {
-		auto &newTrait = newScriptData.traits.Alloc( );
-		ReadTraitsInfo( bitstream, newTrait );
+		ReadTraitsInfo( bitstream, newScriptData.traits[i] );
 	}
 }
 
@@ -681,9 +681,10 @@ void idSWF::DoABC( idSWFBitStream & bitstream ) {
 	}
 
 	uint32 script_count = bitstream.ReadEncodedU32( );
+	newAbcFile.scripts.AssureSize( script_count );
 	trace( "script_count %i \n", script_count );
 	for ( uint i = 0; i < script_count; i++ ) {
-		auto &newScript = newAbcFile.scripts.Alloc( );
+		auto &newScript = newAbcFile.scripts[i];
 		newAbcFile.ReadScriptInfo( bitstream, newScript );
 	}
 

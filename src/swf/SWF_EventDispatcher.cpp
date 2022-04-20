@@ -34,6 +34,7 @@ idSWFScriptObject_EventDispatcherPrototype::idSWFScriptObject_EventDispatcherPro
 	SWF_EVENTDISPATCHER_NATIVE_VAR_SET ( Event );
 	SWF_EVENTDISPATCHER_FUNCTION_SET( addEventListener );
 }
+
 SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_SET( MouseEvent ){}
 SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_SET( Event ){}
 
@@ -42,24 +43,29 @@ SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_GET( MouseEvent ) {
 	if (mouseEventObj == nullptr)
 	{
 		mouseEventObj = idSWFScriptObject::Alloc( );
-		mouseEventObj->Set( "CLICK", "MouseEvent.click" );
-		mouseEventObj->Set( "CONTEXT_MENU", "MouseEvent.contextMenu" );
-		mouseEventObj->Set( "DOUBLE_CLICK", "MouseEvent.doubleClick" );
-		mouseEventObj->Set( "MIDDLE_CLICK", "MouseEvent.middleClick" );
-		mouseEventObj->Set( "MIDDLE_MOUSE_DOWN", "MouseEvent.middleMouseDown" );
-		mouseEventObj->Set( "MIDDLE_MOUSE_UP", "MouseEvent.middleMouseUp" );
-		mouseEventObj->Set( "MOUSE_DOWN", "MouseEvent.mouseDown" );
-		mouseEventObj->Set( "MOUSE_MOVE", "MouseEvent.mouseMove" );
-		mouseEventObj->Set( "MOUSE_OUT", "MouseEvent.mouseOut" );
-		mouseEventObj->Set( "MOUSE_OVER", "MouseEvent.mouseOver" );
-		mouseEventObj->Set( "MOUSE_UP", "MouseEvent.mouseUp" );
-		mouseEventObj->Set( "MOUSE_WHEEL ", "MouseEvent.mouseWheel" );
-		mouseEventObj->Set( "RELEASE_OUTSIDE", "MouseEvent.releaseOutside" );
-		mouseEventObj->Set( "RIGHT_CLICK", "MouseEvent.rightClick" );
-		mouseEventObj->Set( "RIGHT_MOUSE_DOWN", "MouseEvent.rightMouseDown" );
-		mouseEventObj->Set( "RIGHT_MOUSE_UP", "MouseEvent.rightMouseUp" );
-		mouseEventObj->Set( "ROLL_OUT", "MouseEvent.rollOut" );
-		mouseEventObj->Set( "ROLL_OVER", "MouseEvent.rollOver" );
+		idSWFScriptObject *eventParms = idSWFScriptObject::Alloc( );
+
+		eventParms->Set( "type", "MouseEvent" );
+		mouseEventObj->Set( "[MouseEvent]", eventParms );
+		//constants
+		mouseEventObj->Set( "CLICK",				"click" );
+		mouseEventObj->Set( "CONTEXT_MENU",			"contextMenu" );
+		mouseEventObj->Set( "DOUBLE_CLICK",			"doubleClick" );
+		mouseEventObj->Set( "MIDDLE_CLICK",			"middleClick" );
+		mouseEventObj->Set( "MIDDLE_MOUSE_DOWN",	"middleMouseDown" );
+		mouseEventObj->Set( "MIDDLE_MOUSE_UP",		"middleMouseUp" );
+		mouseEventObj->Set( "MOUSE_DOWN",			"mouseDown" );
+		mouseEventObj->Set( "MOUSE_MOVE",			"mouseMove" );
+		mouseEventObj->Set( "MOUSE_OUT",			"mouseOut" );
+		mouseEventObj->Set( "MOUSE_OVER",			"mouseOver" );
+		mouseEventObj->Set( "MOUSE_UP",				"mouseUp" );
+		mouseEventObj->Set( "MOUSE_WHEEL ",			"mouseWheel" );
+		mouseEventObj->Set( "RELEASE_OUTSIDE",		"releaseOutside" );
+		mouseEventObj->Set( "RIGHT_CLICK",			"rightClick" );
+		mouseEventObj->Set( "RIGHT_MOUSE_DOWN",		"rightMouseDown" );
+		mouseEventObj->Set( "RIGHT_MOUSE_UP",		"rightMouseUp" );
+		mouseEventObj->Set( "ROLL_OUT",				"rollOut" );
+		mouseEventObj->Set( "ROLL_OVER",			"rollOver" );
 	}
 	return mouseEventObj;
 }
@@ -68,63 +74,69 @@ SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_GET( Event ) {
 	static idSWFScriptObject *eventObj = nullptr;
 	if ( eventObj == nullptr ) 	{
 		eventObj = idSWFScriptObject::Alloc( );
-		eventObj->Set( "ACTIVATE", "Event.activate" );
-		eventObj->Set( "ADDED", "Event.added" );
-		eventObj->Set( "ADDED_TO_STAGE", "Event.addedToStage" );
-		eventObj->Set( "BROWSER_ZOOM_CHANGE", "Event.browserZoomChange" );
-		eventObj->Set( "CANCEL", "Event.cancel" );
-		eventObj->Set( "CHANGE", "Event.change" );
-		eventObj->Set( "CHANNEL_MESSAGE", "Event.channelMessage" );
-		eventObj->Set( "CHANNEL_STATE", "Event.channelState" );
-		eventObj->Set( "CLEAR", "Event.clear" );
-		eventObj->Set( "CLOSE", "Event.close" );
-		eventObj->Set( "CLOSING", "Event.closing" );
-		eventObj->Set( "COMPLETE", "Event.complete" );
-		eventObj->Set( "CONNECT", "Event.connect" );
-		eventObj->Set( "CONTEXT3D_CREATE", "Event.context3DCreate" );
-		eventObj->Set( "COPY", "Event.copy" );
-		eventObj->Set( "CUT", "Event.cut" );
-		eventObj->Set( "DEACTIVATE", "Event.deactivate" );
-		eventObj->Set( "DISPLAYING", "Event.displaying" );
-		eventObj->Set( "ENTER_FRAME", "Event.enterFrame" );
-		eventObj->Set( "EXIT_FRAME", "Event.exitFrame" );
-		eventObj->Set( "EXITING", "Event.exiting" );
-		eventObj->Set( "FRAME_CONSTRUCTED", "Event.frameConstructed" );
-		eventObj->Set( "FRAME_LABEL", "Event.frameLabel" );
-		eventObj->Set( "FULLSCREEN", "Event.fullScreen" );
-		eventObj->Set( "HTML_BOUNDS_CHANGE", "Event.htmlBoundsChange" );
-		eventObj->Set( "HTML_DOM_INITIALIZE", "Event.htmlDOMInitialize" );
-		eventObj->Set( "HTML_RENDER", "Event.htmlRender" );
-		eventObj->Set( "ID3", "Event.id3" );
-		eventObj->Set( "INIT", "Event.init" );
-		eventObj->Set( "LOCATION_CHANGE", "Event.locationChange" );
-		eventObj->Set( "MOUSE_LEAVE", "Event.mouseLeave" );
-		eventObj->Set( "NETWORK_CHANGE", "Event.networkChange" );
-		eventObj->Set( "OPEN", "Event.open" );
-		eventObj->Set( "PASTE", "Event.paste" );
-		eventObj->Set( "PREPARING", "Event.preparing" );
-		eventObj->Set( "REMOVED", "Event.removed" );
-		eventObj->Set( "REMOVED_FROM_STAGE", "Event.removedFromStage" );
-		eventObj->Set( "RENDER", "Event.render" );
-		eventObj->Set( "RESIZE", "Event.resize" );
-		eventObj->Set( "SCROLL", "Event.scroll" );
-		eventObj->Set( "SELECT", "Event.select" );
-		eventObj->Set( "SELECT_ALL", "Event.selectAll" );
-		eventObj->Set( "SOUND_COMPLETE", "Event.soundComplete" );
-		eventObj->Set( "STANDARD_ERROR_CLOSE", "Event.standardErrorClose" );
-		eventObj->Set( "STANDARD_INPUT_CLOSE", "Event.standardInputClose" );
-		eventObj->Set( "STANDARD_OUTPUT_CLOSE", "Event.standardOutputClose" );
-		eventObj->Set( "SUSPEND", "Event.suspend" );
-		eventObj->Set( "TAB_CHILDREN_CHANGE", "Event.tabChildrenChange" );
-		eventObj->Set( "TAB_ENABLED_CHANGE", "Event.tabEnabledChange" );
-		eventObj->Set( "TAB_INDEX_CHANGE", "Event.tabIndexChange" );
-		eventObj->Set( "TEXT_INTERACTION_MODE_CHANGE", "Event.textInteractionModeChange" );
-		eventObj->Set( "TEXTURE_READY", "Event.textureReady" );
-		eventObj->Set( "UNLOAD", "Event.unload" );
-		eventObj->Set( "USER_IDLE", "Event.userIdle" );
-		eventObj->Set( "USER_PRESENT", "Event.userPresent" );
-		eventObj->Set( "VIDEO_FRAME", "Event.videoFrame" );
-		eventObj->Set( "WORKER_STATE", "Event.workerState" );
+		idSWFScriptObject *eventParms = idSWFScriptObject::Alloc( );
+
+		eventParms->Set( "type", "Event" );
+		eventObj->Set( "[Event]", eventParms );
+		
+		//constants
+		eventObj->Set( "ACTIVATE",						"activate" );
+		eventObj->Set( "ADDED", 						"added" );
+		eventObj->Set( "ADDED_TO_STAGE",				"addedToStage" );
+		eventObj->Set( "BROWSER_ZOOM_CHANGE",			"browserZoomChange" );
+		eventObj->Set( "CANCEL",						"cancel" );
+		eventObj->Set( "CHANGE",						"change" );
+		eventObj->Set( "CHANNEL_MESSAGE",				"channelMessage" );
+		eventObj->Set( "CHANNEL_STATE",					"channelState" );
+		eventObj->Set( "CLEAR",							"clear" );
+		eventObj->Set( "CLOSE",							"close" );
+		eventObj->Set( "CLOSING",						"closing" );
+		eventObj->Set( "COMPLETE",						"complete" );
+		eventObj->Set( "CONNECT",						"connect" );
+		eventObj->Set( "CONTEXT3D_CREATE",				"context3DCreate" );
+		eventObj->Set( "COPY",							"copy" );
+		eventObj->Set( "CUT",							"cut" );
+		eventObj->Set( "DEACTIVATE",					"deactivate" );
+		eventObj->Set( "DISPLAYING",					"displaying" );
+		eventObj->Set( "ENTER_FRAME",					"enterFrame" );
+		eventObj->Set( "EXIT_FRAME",					"exitFrame" );
+		eventObj->Set( "EXITING",						"exiting" );
+		eventObj->Set( "FRAME_CONSTRUCTED",				"frameConstructed" );
+		eventObj->Set( "FRAME_LABEL",					"frameLabel" );
+		eventObj->Set( "FULLSCREEN",					"fullScreen" );
+		eventObj->Set( "HTML_BOUNDS_CHANGE",			"htmlBoundsChange" );
+		eventObj->Set( "HTML_DOM_INITIALIZE",			"htmlDOMInitialize" );
+		eventObj->Set( "HTML_RENDER",					"htmlRender" );
+		eventObj->Set( "ID3",							"id3" );
+		eventObj->Set( "INIT",							"init" );
+		eventObj->Set( "LOCATION_CHANGE",				"locationChange" );
+		eventObj->Set( "MOUSE_LEAVE",					"mouseLeave" );
+		eventObj->Set( "NETWORK_CHANGE",				"networkChange" );
+		eventObj->Set( "OPEN",							"open" );
+		eventObj->Set( "PASTE",							"paste" );
+		eventObj->Set( "PREPARING",						"preparing" );
+		eventObj->Set( "REMOVED",						"removed" );
+		eventObj->Set( "REMOVED_FROM_STAGE",			"removedFromStage" );
+		eventObj->Set( "RENDER",						"render" );
+		eventObj->Set( "RESIZE",						"resize" );
+		eventObj->Set( "SCROLL",						"scroll" );
+		eventObj->Set( "SELECT",						"select" );
+		eventObj->Set( "SELECT_ALL",					"selectAll" );
+		eventObj->Set( "SOUND_COMPLETE",				"soundComplete" );
+		eventObj->Set( "STANDARD_ERROR_CLOSE",			"standardErrorClose" );
+		eventObj->Set( "STANDARD_INPUT_CLOSE",			"standardInputClose" );
+		eventObj->Set( "STANDARD_OUTPUT_CLOSE",			"standardOutputClose" );
+		eventObj->Set( "SUSPEND",						"suspend" );
+		eventObj->Set( "TAB_CHILDREN_CHANGE",			"tabChildrenChange" );
+		eventObj->Set( "TAB_ENABLED_CHANGE",			"tabEnabledChange" );
+		eventObj->Set( "TAB_INDEX_CHANGE",				"tabIndexChange" );
+		eventObj->Set( "TEXT_INTERACTION_MODE_CHANGE",	"textInteractionModeChange" );
+		eventObj->Set( "TEXTURE_READY",					"textureReady" );
+		eventObj->Set( "UNLOAD",						"unload" );
+		eventObj->Set( "USER_IDLE",						"userIdle" );
+		eventObj->Set( "USER_PRESENT",					"userPresent" );
+		eventObj->Set( "VIDEO_FRAME",					"videoFrame" );
+		eventObj->Set( "WORKER_STATE",					"workerState" );
 	}
 	return eventObj;
 }
@@ -132,8 +144,13 @@ SWF_EVENTDISPATCHER_NATIVE_VAR_DEFINE_GET( Event ) {
 SWF_EVENTDISPATCHER_FUNCTION_DEFINE( addEventListener ) 
 {
 	SWF_EVENTDISPATCHER_PTHIS_FUNC( "addEventListener" );
-	thisObject->Set("__"+parms[1].ToString()+"__",parms[0]);
-	common->DPrintf("[%s] AddEventListener(%s,%s)\n", thisObject->GetSprite()->name.c_str(),parms[1].ToString().c_str(),parms[0].ToString().c_str());
+	swfNamedVar_t * dispatcher = thisObject->GetVariable("__eventDispatcher__",true);
+	
+	if (dispatcher->value.IsUndefined() )
+		dispatcher->value.SetObject(idSWFScriptObject::Alloc());
+
+	dispatcher->value.GetObject()->Set(parms[1].ToString(),parms[0]);
+	common->DPrintf("{%s} AddEventListener(%s,%s)\n", thisObject->GetSprite()->name.c_str(),parms[1].ToString().c_str(),parms[0].ToString().c_str());
 	//add listener
 	return idSWFScriptVar( );
 }
