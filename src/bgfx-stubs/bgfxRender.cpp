@@ -6,6 +6,7 @@
 #include <ImGuizmo.h>
 #include "bgfxImage.h"
 #include "gltf-edit/gltfProperties.h"
+#include "bgfxRenderer.h"
 
 static PosColorVertex cube_vertices[] = {
 	{-1.0f, 1.0f, 1.0f, 0xff000000},	{1.0f, 1.0f, 1.0f, 0xff0000ff},
@@ -80,7 +81,7 @@ void bgfxCreatePbrContext(bgfxPbrContext_t & context )
 	idStr vsShaderName;sprintf(vsShaderName, "pbr_vsshader%i", sCount++);
 	idStr fsShaderName;sprintf(fsShaderName, "pbr_fsshader%i", sCount++);
 	//create shaders
-	bgfx::ShaderHandle vsh = bgfxCreateShader( "shaders/v_pbr.bin", vsShaderName.c_str());
+	bgfx::ShaderHandle vsh = bgfxCreateShader( "shaders/v_simple.bin", vsShaderName.c_str());
 	bgfx::ShaderHandle fsh = bgfxCreateShader( "shaders/f_pbr.bin", fsShaderName.c_str() );
 	context.pbrProgram = bgfx::createProgram( vsh, fsh, true );
 	//create Uniforms
@@ -405,7 +406,6 @@ void bgfxStartRenderThread( ) {
 		common->Printf( "background thread already running\n" );
 	}
 }
-
 
 void bgfxSetRenderMode( bgfx::ViewId viewId ,  bgfxContext_t *context, uint mode)
 {

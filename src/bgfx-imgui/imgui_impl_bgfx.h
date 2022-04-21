@@ -1,5 +1,6 @@
 // Derived from this Gist by Richard Gale:
 //     https://gist.github.com/RichardGale/6e2b74bc42b3005e08397236e4be0fd0
+#include "../idFramework/idlib/containers/List.h"
 
 // ImGui BGFX binding
 
@@ -13,8 +14,19 @@
 void ImGui_Implbgfx_Init(int view);
 void ImGui_Implbgfx_Shutdown();
 void ImGui_Implbgfx_NewFrame();
+void ImGui_Implbgfx_RenderDrawables();
 void ImGui_Implbgfx_RenderDrawLists(struct ImDrawData* draw_data);
 
 // Use if you want to reset your rendering device without losing ImGui state.
 void ImGui_Implbgfx_InvalidateDeviceObjects();
 bool ImGui_Implbgfx_CreateDeviceObjects();
+
+
+class imDrawable {
+public:
+	imDrawable( );
+	virtual ~imDrawable( ) { };
+	virtual bool imDraw( ) = 0;
+	virtual bool Show( bool visible ) = 0;
+	virtual bool isVisible( ) = 0;
+};

@@ -69,6 +69,7 @@ public:
 	// used for tonemapping
 	bgfx::FrameBufferHandle frameBuffer = BGFX_INVALID_HANDLE;
 	static bgfx::FrameBufferHandle createFrameBuffer(bool hdr = true, bool depth = true);
+
 protected:
 	struct PosVertex
 	{
@@ -93,32 +94,35 @@ protected:
 
 	static bgfx::TextureFormat::Enum findDepthFormat(unsigned long long textureFlags, bool stencil = false);
 
+	bgfx::VertexLayout	vertexLayout;
+	idStrList			variables;
+	gltfData *			data = nullptr;
+	uint16_t			width = 0;
+	uint16_t			height = 0;
+	PBRShader			pbr;	
+	LightShader			lights;
+	uint32_t			clearColor = 0;
+	float				time = 0.0f;
+	idMat4 viewMat	=	mat4_identity;
+	idMat4 projMat	=	mat4_identity;
+	idVec3 camPos	=	vec3_zero;
+	int	camId		=	0;
+	
+	idDrawVert *	vtxData;
+	int				vtxCount;
 
-	idStrList variables;
+	triIndex_t *	idxData;
+	int				idxCount;
 
-	gltfData* data = nullptr;
-
-	uint16_t width = 0;
-	uint16_t height = 0;
-
-	PBRShader pbr;	
-	LightShader lights;
-
-	uint32_t clearColor = 0;
-	float time = 0.0f;
-
-	// set by setViewProjection()
-	idMat4 viewMat	= mat4_identity;
-	idMat4 projMat	= mat4_identity;
-	idVec3 camPos	= vec3_zero;
-	int	camId		= 0;
 	bgfx::VertexBufferHandle blitTriangleBuffer = BGFX_INVALID_HANDLE;
-
 private:
+
 	bgfx::ProgramHandle blitProgram = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle blitSampler = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle camPosUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle normalMatrixUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle exposureVecUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle tonemappingModeVecUniform = BGFX_INVALID_HANDLE;
+
+
 };

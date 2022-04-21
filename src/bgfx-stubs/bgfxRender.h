@@ -210,14 +210,6 @@ public:
     virtual bool Render(bgfxContext_t * context) = 0;
 };
 
-class imDrawable 
-{
-public:
-    virtual ~imDrawable(){};
-    virtual bool imDraw( bgfxContext_t *context ) = 0;
-    virtual bool Show(bool visible) = 0;
-    virtual bool isVisible( ) = 0;
-};
 
 typedef void ( *bgfxCallback )( bgfxContext_t *context );
 void bgfxCreateSysCommands( bgfxContext_t *context );

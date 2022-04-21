@@ -1,6 +1,7 @@
 #pragma once
 
 #include "..\bgfxRenderer.h"
+#include "..\..\idFramework\idlib\geometry\DrawVert.h"
 
 class ForwardRenderer : public Renderer
 {
@@ -13,24 +14,19 @@ public:
     virtual void onRender(float dt) override;
     virtual void onShutdown() override;
 	void RenderSceneNode(uint64_t state, gltfNode *node, idMat4 trans, gltfData* data );
-	void RenderText(const char * text,idVec2 screenpos );
+
+	idDrawVert * AllocTris( int vertCount, const triIndex_t * tempIndexes, int indexCount);
 private:
+	static const int MAX_INDEXES = ( 20000 * 6 );
+	static const int MAX_VERTS = ( 20000 * 4 );
+
     bgfx::ProgramHandle program = BGFX_INVALID_HANDLE;
 	int					selectedCameraId =0;
-};
 
-class FontRenderer : public Renderer {
-public:
-	FontRenderer( gltfData * sceneData );
+	idDrawVert *vtxData;
+	int				vtxCount;
 
-	static bool supported( );
+	triIndex_t *idxData;
+	int				idxCount;
 
-	virtual void onInitialize( );
-	virtual void onRender( float dt ) override;
-	virtual void onShutdown( ) override;
-	void RenderSceneNode( uint64_t state, gltfNode *node, idMat4 trans, gltfData *data );
-	void RenderText( const char *text, idVec2 screenpos );
-private:
-	bgfx::ProgramHandle program = BGFX_INVALID_HANDLE;
-	int					selectedCameraId = 0;
 };

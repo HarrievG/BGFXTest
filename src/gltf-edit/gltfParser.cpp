@@ -1585,7 +1585,7 @@ void GLTF_Parser::CreateBgfxData( )
 			pbrVertex * vtxData = NULL;
 			uint vtxDataSize = 0;
 			bgfx::VertexLayout vtxLayout;
-			vtxLayout.begin( );
+
 			for ( auto & attrib : prim->attributes )
 			{
 				gltfAccessor * attrAcc = currentAsset->AccessorList( )[attrib->accessorIndex];

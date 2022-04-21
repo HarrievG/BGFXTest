@@ -42,6 +42,7 @@ idCVar swf_glyphScale( "swf_glyphScale", "57", CVAR_FLOAT, "scale test" );
 idCVar swf_titleSafe( "swf_titleSafe", "0.005", CVAR_FLOAT, "space between UI elements and screen edge", 0.0f, 0.075f );
 idCVar swf_fullLines( "swf_fullLines", "1", CVAR_BOOL, "render full lines instead of per char" );
 idCVar swf_forceAlpha( "swf_forceAlpha", "0", CVAR_FLOAT, "force an alpha value on all elements, useful to show invisible animating elements", 0.0f, 1.0f );
+idCVar swf_hasMouseControl( "swf_hasMouseControl", "1", CVAR_BOOL, "swf will control cursor state");
 
 extern idCVar swf_textStrokeSize;
 extern idCVar swf_textStrokeSizeGlyphSpacer;
@@ -203,8 +204,6 @@ swfRenderer::swfRenderer() {
 	s_texColor = bgfx::createUniform( "s_texColor", bgfx::UniformType::Sampler );
 	u_dropShadowColor = bgfx::createUniform( "u_dropShadowColor", bgfx::UniformType::Vec4 );
 	u_params = bgfx::createUniform( "u_params", bgfx::UniformType::Vec4 );
-
-	//frameBuffer = Renderer::createFrameBuffer( false,false );
 }
 
 /*
@@ -284,34 +283,25 @@ void idSWF::Render( int time, bool isSplitscreen ) {
 	//	}
 	//}
 
-	if ( isMouseInClientArea && ( mouseEnabled && useMouse ) && ( InhibitControl( ) || ( !InhibitControl( ) && !useInhibtControl ) ) ) {
+	if ( swf_hasMouseControl.GetBool() && isMouseInClientArea && ( mouseEnabled && useMouse ) && ( InhibitControl( ) || ( !InhibitControl( ) && !useInhibtControl ) ) ) {
 		//gui->SetGLState( GLS_SRCBLEND_SRC_ALPHA | GLS_DSTBLEND_ONE_MINUS_SRC_ALPHA );
 		//gui->SetColor( idVec4( 1.0f, 1.0f, 1.0f, 1.0f ) );
 		idVec2 mouse = renderState.matrix.Transform( idVec2( mouseX - 1, mouseY - 2 ) );
 		idSWFScriptObject * hitObject = HitTest( mainspriteInstance, renderState, mouseX, mouseY, NULL );
 		static bool isHand = false;
-		static bool isCursor = false;
 		if ( hitObject == NULL ) {
-			SDL_SetCursor(cursorArrow);
-			if (!isCursor){
-				SDL_SetCursor(cursorHand);
-				isCursor = true;
+			if (!isHand){
+				SDL_SetCursor(cursorArrow);
 				isHand = false;
 			}
 				//DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_arrow );
 		} else {
-			if (!isHand){
-				SDL_SetCursor(cursorHand);
-				isCursor = false;
-				isHand = true;
-			}
-			
+			isHand = true;
+			SDL_SetCursor(cursorHand);
 			//DrawStretchPic( mouse.x, mouse.y, 32.0f, 32.0f, 0, 0, 1, 1, guiCursor_hand );
 		}
 	}
 	Renderer->Flush();
-	// restore the GL State
-	//gui->SetGLState( 0 );
 }
 
 /*

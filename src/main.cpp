@@ -31,6 +31,7 @@
 //int idEventLoop::JournalLevel( void ) const { return 0; }
 
 idCVar com_editing( "edit", "0", CVAR_BOOL | CVAR_SYSTEM, "editor mode" );
+idCVar com_sceneName( "sceneName", "Materials_Scifi_02.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
 idCVar com_showImguiDemo( "ImGui demo", "0", CVAR_BOOL | CVAR_SYSTEM, "draw imgui demo window" );
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
@@ -38,6 +39,8 @@ idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOO
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
 idCVar r_useRenderThread( "r_useRenderThread", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "Multithreaded renderering" );
 idCVar r_fullscreen( "r_fullscreen", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_BOOL, "Fullscreen" );
+idCVar r_allowHighDPI( "r_allowHighDPI", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_BOOL, "windows sizes are corrected in respect to the users DPI settings" );
+
 
 Win32Vars_t	win32;
 
@@ -65,7 +68,7 @@ void main_loop( void *data ) {
 	
 	static TextBufferHandle bufferHandle;
 	static idSWF *swfTest;
-	if (!fnt)
+	if ( !fnt && !com_editing.GetBool( ) )
 	{
 		fnt = idFont::RegisterFont("NotoSans-Regular.ttf");
 		textMan = new TextBufferManager( fnt );
@@ -84,34 +87,7 @@ void main_loop( void *data ) {
 		swfTest->Activate(true);
 		
 	}
-		
 
-	swfTest->Render( Sys_Milliseconds() );
-	//static idStr tmpStr = "!123adadada123!";
-	//textMan->clearTextBuffer(bufferHandle);
-	//textMan->setPenPosition(bufferHandle,10,100);
-	//textMan->setTextColor(bufferHandle,0xFF0000FF);
-
-	// Setu-> style colors.
-	//textMan->setStyle( bufferHandle, STYLE_BACKGROUND );
-	//textMan->setBackgroundColor( bufferHandle, 0x00FF00FF );
-	//textMan->setUnderlineColor( bufferHandle, 0xff2222ff );
-	//textMan->setOverlineColor( bufferHandle, 0x2222ffff );
-	//textMan->setStrikeThroughColor( bufferHandle, 0x000000ff );
-
-	//textMan->appendText( bufferHandle, tmpStr.c_str( ), tmpStr.c_str( ) + tmpStr.Size( ) );
-
-
-	//// Background + strike-through.
-	//textMan->setStyle( bufferHandle, STYLE_BACKGROUND | STYLE_STRIKE_THROUGH | STYLE_UNDERLINE | STYLE_OVERLINE );
-	//textMan->appendText( bufferHandle, L"dog\n" );
-	//
-	//textMan->setPenPosition( bufferHandle, 0, 0 );
-	//textMan->appendText( bufferHandle, L"." );
-	//textMan->setPenPosition( bufferHandle, 50, 50 );
-	//textMan->appendText( bufferHandle, L"." );
-	//textMan->setPenPosition( bufferHandle, 500, 500 );
-	//textMan->appendText( bufferHandle, L"." );
 	ImGui_Implbgfx_NewFrame( );
 	ImGui_ImplSDL2_NewFrame( context->window );
 	common->Frame();
@@ -128,44 +104,46 @@ void main_loop( void *data ) {
 		imConsole->Draw( );
 	
 	if ( com_editing.GetBool() )
-		bgfxRender( context );
+		sceneEditor->Render( context );
 	else
+	{
+		swfTest->Render( Sys_Milliseconds() );
 		fwRender->render( com_frameTime );
 
+		const bgfx::Caps *caps = bgfx::getCaps( );
+		{
+			int txtView = 50;
+			bgfx::setViewName( 50, "TEXT" );
+			// Setup a top - left ortho matrix for screen space drawing.
+			const bx::Vec3 at = { 0.0f, 0.0f,  0.0f };
+			const bx::Vec3 eye = { 0.0f, 0.0f, -1.0f };
 
-	const bgfx::Caps *caps = bgfx::getCaps( );
-	{
-		int txtView = 50;
-		bgfx::setViewName( 50, "TEXT" );
-		// Setup a top - left ortho matrix for screen space drawing.
-		const bx::Vec3 at = { 0.0f, 0.0f,  0.0f };
-		const bx::Vec3 eye = { 0.0f, 0.0f, -1.0f };
-
-		float view[16];
-		bx::mtxLookAt( view, eye, at );
-		float ortho[16];
-		bx::mtxOrtho(
-			ortho
-			, 0.0f
-			, context->width
-			, context->height
-			, 0.0f
-			, 0.0f
-			, 100.0f
-			, 0.0f
-			, caps->homogeneousDepth
-		);
-		bgfx::setViewTransform( txtView, view, ortho );
-		bgfx::setViewRect( txtView, 0, 0, uint16_t( context->width ), uint16_t( context->height ) );
-		bgfx::setViewClear( txtView, BGFX_CLEAR_NONE );
-		bgfx::setViewFrameBuffer( txtView, fwRender->frameBuffer );
-		bgfx::setState( BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA );
-		textMan->submitTextBuffer( bufferHandle, txtView );
-		if (gTextHandle != nullptr )
-			textMan->submitTextBuffer( *gTextHandle, txtView );
+			float view[16];
+			bx::mtxLookAt( view, eye, at );
+			float ortho[16];
+			bx::mtxOrtho(
+				ortho
+				, 0.0f
+				, context->width
+				, context->height
+				, 0.0f
+				, 0.0f
+				, 100.0f
+				, 0.0f
+				, caps->homogeneousDepth
+			);
+			bgfx::setViewTransform( txtView, view, ortho );
+			bgfx::setViewRect( txtView, 0, 0, uint16_t( context->width ), uint16_t( context->height ) );
+			bgfx::setViewClear( txtView, BGFX_CLEAR_NONE );
+			bgfx::setViewFrameBuffer( txtView, fwRender->frameBuffer );
+			bgfx::setState( BGFX_STATE_WRITE_RGB | BGFX_STATE_CULL_CW | BGFX_STATE_WRITE_A | BGFX_STATE_MSAA );
+			textMan->submitTextBuffer( bufferHandle, txtView );
+			if ( gTextHandle != nullptr )
+				textMan->submitTextBuffer( *gTextHandle, txtView );
+		}
 	}
 
-
+	ImGui_Implbgfx_RenderDrawables( );
 	ImGui::Render( );
 	ImGui_Implbgfx_RenderDrawLists( ImGui::GetDrawData( ) );
 
@@ -203,6 +181,10 @@ typedef enum D3_PROCESS_DPI_AWARENESS {
 } YQ2_PROCESS_DPI_AWARENESS;
 
 static void setHighDPIMode( void ) {
+
+	if (!r_allowHighDPI.GetBool())
+		return;
+
 	/* For Vista, Win7 and Win8 */
 	BOOL( WINAPI * SetProcessDPIAware )( void ) = NULL;
 
@@ -241,15 +223,7 @@ int main( int argc, char **argv )
 	idLib::sys = sys;
 
 	//idLib::Init( );
-	//idCVar::RegisterStaticVars( );
-	//cvarSystem->Init( );
-	//cmdSystem->Init( );
-	//cmdSystem->BufferCommandText(CMD_EXEC_APPEND,"exec default.cfg");
 	common->Init( argc, argv );
-	//fileSystem->Init( );
-	//eventLoop->Init();
-	if ( com_editing.GetBool() )
-		sceneEditor->Init( );
 
 	eventLoop->RegisterCallback([]( const sysEvent_t &event )
 		-> auto {
@@ -381,7 +355,10 @@ int main( int argc, char **argv )
 	bgfxStartImageLoadThread();
 
 	if ( com_editing.GetBool() )
-		bgfxInitShaders( &context );
+	{
+		sceneEditor->Create();
+		sceneEditor->Init(com_sceneName.GetString());
+	}
 	else
 	{
 		gltfParser->Load( "Materials_Scifi_02.glb" );
@@ -401,7 +378,7 @@ int main( int argc, char **argv )
 	common->ClearWarnings( "main loop" );
 #if BX_PLATFORM_EMSCRIPTEN
 	emscripten_set_main_loop_arg( main_loop, &context, -1, 1 );
-#else
+#else 
 	while ( !context.quit ) {
 		main_loop( &context );
 	}
@@ -415,8 +392,8 @@ int main( int argc, char **argv )
 	ImGui_Implbgfx_Shutdown( );
 
 	ImGui::DestroyContext( );
-
-	fwRender->shutdown();
+	if ( !com_editing.GetBool() )
+		fwRender->shutdown();
 	bgfxShutdown( &context );
 
 	common->PrintWarnings( );

@@ -3,6 +3,7 @@
 #include "idFramework/idlib/containers/StrList.h"
 #include "bgfx-stubs/bgfxRender.h"
 #include "gltfProperties.h"
+#include "../bgfx-stubs/Renderers/ForwardRenderer.h"
 //
 //typedef idList<bgfxModel> bgfxModelList;
 //typedef idList<bgfxMaterial> bgfxMaterialList;
@@ -10,11 +11,12 @@
 class gltfSceneEditor : public imDrawable, bgfxRenderable {
 	friend class gltfAssetExplorer;
 public:
+	static void Create();
 	gltfSceneEditor();
-	void Init( );
+	void Init(const char * sceneFile);
 	void Shutdown( );
 	virtual bool Render( bgfxContext_t *context ) override;
-	virtual bool imDraw( bgfxContext_t *context ) override;
+	virtual bool imDraw( ) override;
 	virtual bool Show( bool visible ) override;
 	virtual bool isVisible( ) override { return windowOpen; };
 
@@ -57,17 +59,20 @@ private:
 	idVec3				scale;
 	idVec3				pos;
 	idMat4				curtrans;
+
+	ForwardRenderer	*	sceneRender;
 };
 extern gltfSceneEditor * sceneEditor;
 
 class gltfAssetExplorer : public imDrawable,bgfxRenderable
 {
 public:
+	static void Create();
 	gltfAssetExplorer( );
 	void Init( );
 	virtual ~gltfAssetExplorer( );
 	virtual bool Render( bgfxContext_t *context ) override;
-	virtual bool imDraw( bgfxContext_t *context ) override;
+	virtual bool imDraw( ) override;
 	virtual bool Show(bool visible ) override ;
 	virtual bool isVisible( ) override { return guiVisible;};
 

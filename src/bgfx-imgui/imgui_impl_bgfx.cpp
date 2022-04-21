@@ -21,12 +21,21 @@
 #include "bx/math.h"
 #include "bx/timer.h"
 
+const static int MAX_IMDRAWABLES = 25;
 // Data
 static uint8_t g_View = 255;
 static bgfx::TextureHandle g_FontTexture = BGFX_INVALID_HANDLE;
 static bgfx::ProgramHandle g_ShaderHandle = BGFX_INVALID_HANDLE;
 static bgfx::UniformHandle g_AttribLocationTex = BGFX_INVALID_HANDLE;
 static bgfx::VertexLayout g_VertexLayout;
+static idList<imDrawable*> g_imDrawables;
+
+
+void ImGui_Implbgfx_RenderDrawables()
+{
+	for ( imDrawable *drawable : g_imDrawables )
+		drawable->imDraw( );
+}
 
 // This is the main rendering function that you have to implement and call after
 // ImGui::Render(). Pass ImGui::GetDrawData() to this function.
@@ -43,6 +52,8 @@ void ImGui_Implbgfx_RenderDrawLists(ImDrawData* draw_data)
     if (fb_width == 0 || fb_height == 0) {
         return;
     }
+
+
 
     draw_data->ScaleClipRects(io.DisplayFramebufferScale);
 
@@ -197,4 +208,8 @@ void ImGui_Implbgfx_NewFrame()
     if (!isValid(g_FontTexture)) {
         ImGui_Implbgfx_CreateDeviceObjects();
     }
+}
+
+imDrawable::imDrawable( ) {
+	g_imDrawables.Alloc( ) = this;
 }

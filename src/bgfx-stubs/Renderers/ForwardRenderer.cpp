@@ -5,6 +5,8 @@
 
 idCVar transposetest( "transposetest", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "1 to transpose");
 
+extern void WriteIndexPair( triIndex_t *dest, const triIndex_t a, const triIndex_t b );
+
 ForwardRenderer::ForwardRenderer(gltfData* sceneData) : Renderer(sceneData) 
 {
 
@@ -21,7 +23,6 @@ void ForwardRenderer::onInitialize()
 	bgfx::ShaderHandle fsh		= bgfxCreateShader( "shaders/fs_forward.bin", "fsshader" );
 	program = bgfx::createProgram( vsh, fsh, true );
 }
-
 
 void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 trans, gltfData* data )
 {
@@ -70,8 +71,40 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 		RenderSceneNode(state, nodeList[child], curTrans, data );
 }
 
+extern void WriteIndexPair( triIndex_t *dest, const triIndex_t a, const triIndex_t b );
 
-void ForwardRenderer::RenderText( const char *text, idVec2 screenpos ) {
+idDrawVert *ForwardRenderer::AllocTris( int vertCount, const triIndex_t *tempIndexes, int indexCount ) {
+	if ( vtxData == nullptr )
+		vtxData = ( idDrawVert * ) Mem_ClearedAlloc( sizeof( idDrawVert ) * MAX_VERTS );
+	if ( idxData == nullptr )
+		idxData = ( triIndex_t * ) Mem_ClearedAlloc( sizeof( triIndex_t ) * MAX_INDEXES );
+
+	uint vtxDataSize = 0;
+
+	if ( vertCount + vtxCount >= MAX_VERTS ) {
+		common->Warning( "Max Vertex count reached for swf" );
+		return nullptr;
+	}
+
+	int startVert = vtxCount;
+	int startIndex = idxCount;
+
+	vtxCount += vertCount;
+	idxCount += indexCount;
+
+	if ( ( startIndex & 1 ) || ( indexCount & 1 ) ) {
+		// slow for write combined memory!
+		// this should be very rare, since quads are always an even index count
+		for ( int i = 0; i < indexCount; i++ ) {
+			idxData[startIndex + i] = startVert + tempIndexes[i];
+		}
+	} else {
+		for ( int i = 0; i < indexCount; i += 2 ) {
+			WriteIndexPair( idxData + startIndex + i, startVert + tempIndexes[i], startVert + tempIndexes[i + 1] );
+		}
+	}
+
+	return vtxData + startVert;
 
 }
 
