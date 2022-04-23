@@ -16,7 +16,6 @@
 #include "idlib/containers/StrList.h"
 #include "idFramework/idImGui/idImConsole.h"
 #include "idFramework/KeyInput.h"
-#include "idFramework/idImGui/idImConsole.h"
 #include "bgfx-stubs/Renderers/ForwardRenderer.h"
 #include "gltf-edit/gltfParser.h"
 #include "idFramework/Font.h"
@@ -401,12 +400,13 @@ int main( int argc, char **argv )
 
 	sceneEditor->Shutdown( );
 	eventLoop->Shutdown( );
+	imConsole->Shutdown();
 	common->Shutdown( );
 	fileSystem->Shutdown( false );
 	cvarSystem->Shutdown( );
 	cmdSystem->Shutdown( );
 	gltfParser->Shutdown();
-	
+
 	idLib::ShutDown( );
 
 	SDL_DestroyWindow( window );

@@ -14,6 +14,7 @@ extern idCVar com_timestampPrints;
 
 static autoComplete_t	globalAutoComplete;
 static void  Strtrim( char *s ) { char *str_end = s + strlen( s ); while ( str_end > s && str_end[-1] == ' ' ) str_end--; *str_end = 0; }
+static idStr itemStr;
 
 struct parms {
     ImVector<const char *> *listptr;
@@ -45,6 +46,7 @@ void idImConsole::Shutdown( ) {
 	ClearLog( );
 	for ( int i = 0; i < History.Size; i++ )
 		free( History[i] );
+	itemStr.Clear();
 }
 
 idImConsole::~idImConsole( ) {
@@ -207,7 +209,7 @@ void idImConsole::imDraw( const char *title, bool *p_open ){
 			bool forceColor = false;
 			bool coloring = false;
 			uint idx = 0;
-			static idStr itemStr;
+
 			itemStr.Clear();
 			while (*s) {
 				if (idStr::IsColor( ( const char * ) s ))
