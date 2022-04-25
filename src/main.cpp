@@ -38,7 +38,7 @@ idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOO
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
 idCVar r_useRenderThread( "r_useRenderThread", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_INTEGER, "Multithreaded renderering" );
 idCVar r_fullscreen( "r_fullscreen", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_BOOL, "Fullscreen" );
-idCVar r_allowHighDPI( "r_allowHighDPI", "0", CVAR_ARCHIVE | CVAR_RENDERER | CVAR_BOOL, "windows sizes are corrected in respect to the users DPI settings" );
+idCVar r_allowHighDPI( "allowHighDPI", "0", CVAR_SYSTEM | CVAR_BOOL, "windows sizes are corrected in respect to the users DPI settings" );
 
 
 Win32Vars_t	win32;
@@ -212,8 +212,6 @@ static void setHighDPIMode( void ) {
 
 int main( int argc, char **argv )
 {
-	setHighDPIMode();
-
 	static bgfxContext_t context;
 
 	idLib::common = common;
@@ -223,6 +221,7 @@ int main( int argc, char **argv )
 
 	//idLib::Init( );
 	common->Init( argc, argv );
+	setHighDPIMode();
 
 	eventLoop->RegisterCallback([]( const sysEvent_t &event )
 		-> auto {
@@ -266,6 +265,7 @@ int main( int argc, char **argv )
 			FULL_SCREEN = true;
 		}
 	}, CMD_FL_SYSTEM, "restarts vid_subsystem", idCmdSystem::ArgCompletion_GltfName );
+
 	const int width = WINDOW_WIDTH;
 	const int height = WINDOW_HEIGHT;
 

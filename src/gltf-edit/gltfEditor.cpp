@@ -375,7 +375,8 @@ bool gltfSceneEditor::imDraw( ) {
 		}
 		//fixme DrawCameraInfo( currentCamera );
 		DrawNodeInfo( selectedNode );
-		ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) renderTarget.width, ( float ) renderTarget.height ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
+		if (isValid(renderTarget.rb))
+			ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) renderTarget.width, ( float ) renderTarget.height ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
 	}
 	ImGui::End();
 	DrawSceneList();
