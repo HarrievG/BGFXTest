@@ -38,6 +38,9 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 	gltfData::ResolveNodeMatrix( node, &mat);
 	idMat4 curTrans = trans * node->matrix ;
 
+	for ( auto &child : node->children )
+		RenderSceneNode( state, nodeList[child], curTrans, data );
+
 	if ( node->mesh != -1 ) 		
 	{
 		for ( auto prim : meshList[node->mesh]->primitives )
@@ -67,8 +70,7 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 		}
 	}
 
-	for ( auto &child : node->children )
-		RenderSceneNode(state, nodeList[child], curTrans, data );
+
 }
 
 extern void WriteIndexPair( triIndex_t *dest, const triIndex_t a, const triIndex_t b );
@@ -135,11 +137,14 @@ void ForwardRenderer::onRender(float dt)
 	idMat4 mat;
 	auto &scenes = data->SceneList( );
 	for ( auto &scene : scenes )
+	{
 		for ( auto &node : scene->nodes)
 		{
 			idMat4 mat = mat4_identity;
 			RenderSceneNode(state, nodeList[node], mat, data);
 		}
+		break; // only the first for now.
+	}
 
 	lights.Update();
 

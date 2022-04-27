@@ -54,6 +54,7 @@ void gltfSceneEditor::Init( const char * sceneFile )
 {
 	gltfParser->Load( sceneFile );
 	editorData = gltfParser->currentAsset;
+	loadedFiles.Alloc() = sceneFile;
 	sceneRender = new ForwardRenderer( editorData );
 	sceneRender->reset(1920,1080);
 	sceneRender->initialize();
@@ -134,10 +135,10 @@ void gltfSceneEditor::Init( const char * sceneFile )
 	}, CMD_FL_TOOL, "" );
 #pragma endregion
 
-	bgfxRegisterCallback([](bgfxContext_t * context ) 
+	bgfxRegisterCallback( []( bgfxContext_t *context )
 		-> auto {
-		thisPtr->imDraw();
-		thisPtr->Render(context);
+		thisPtr->imDraw( );
+		thisPtr->Render( context );
 	} );
 
 	float fov = 27.f;
@@ -185,6 +186,8 @@ void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, i
 }
 bool gltfSceneEditor::Render( bgfxContext_t *context ) 
 {
+	if ( !bgfx::isValid( renderTarget.rb ) )
+		renderTarget.rb = bgfx::getTexture(sceneRender->frameBuffer, 0);
 
 	sceneRender->render( com_frameTime );
 
@@ -376,7 +379,7 @@ bool gltfSceneEditor::imDraw( ) {
 		//fixme DrawCameraInfo( currentCamera );
 		DrawNodeInfo( selectedNode );
 		if (isValid(renderTarget.rb))
-			ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) renderTarget.width, ( float ) renderTarget.height ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
+			ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) 1920 /2 , ( float ) 1080 /2), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
 	}
 	ImGui::End();
 	DrawSceneList();
@@ -679,58 +682,59 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 {
 	if (!guiVisible)
 		return false;
-	//if (!bgfx::isValid( renderTarget.fbh ))
-	//	bgfxCreateMrtTarget( renderTarget, "AssetExplorerView" );
+	if (!bgfx::isValid( renderTarget.fbh ))
+		renderTarget.fbh = Renderer::createFrameBuffer( );
+		//bgfxCreateMrtTarget( renderTarget, "AssetExplorerView" );
 
-	//bgfx::touch( renderTarget.viewId );
-	//static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
-	//if (selectedMesh != nullptr )
-	//{
-	//	bgfx::touch( renderTarget.viewId );
-	//	bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
+	bgfx::touch( renderTarget.viewId );
+	static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
+	if (selectedMesh != nullptr )
+	{
+		bgfx::touch( renderTarget.viewId );
+		bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 
-	//	float modelTransform[16];
-	//	//bx::mtxIdentity( modelTransform );
-	//	////bx::mtxMul( tmp, modelScale, xtmp );
-	//	////bx::mtxMul( modelTransform, tmp, modelTranslation );
-	// //   bgfx::setTransform( modelTransform );
-	//	//bgfx::setUniform(context->pbrContext.u_normalTransform,&modelTransform);
-	//	auto & matList = currentData->MaterialList();
-	//	auto & texList = currentData->TextureList();
-	//	auto & imgList = currentData->ImageList();
-	//	auto & smpList = currentData->SamplerList();
-	//	for ( auto prim : selectedMesh->primitives )
-	//	{
+		float modelTransform[16];
+		//bx::mtxIdentity( modelTransform );
+		////bx::mtxMul( tmp, modelScale, xtmp );
+		////bx::mtxMul( modelTransform, tmp, modelTranslation );
+	 //   bgfx::setTransform( modelTransform );
+		//bgfx::setUniform(context->pbrContext.u_normalTransform,&modelTransform);
+		auto & matList = currentData->MaterialList();
+		auto & texList = currentData->TextureList();
+		auto & imgList = currentData->ImageList();
+		auto & smpList = currentData->SamplerList();
+		for ( auto prim : selectedMesh->primitives )
+		{
 
-	//		if ( prim->material != -1 ) 
-	//		{
-	//			gltfMaterial *material = matList[prim->material];
-	//			//prim->material 
-	//			if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) 			{
-	//				gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
-	//				gltfSampler *sampler = smpList[texture->sampler];
-	//				gltfImage *image = imgList[texture->source];
-	//				bgfx::setTexture( 0, context->pbrContext.s_baseColor, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
-	//			}
-	//			if ( material->normalTexture.index!= -1 ) {
-	//				gltfTexture *texture = texList[material->normalTexture.index];
-	//				gltfSampler *sampler = smpList[texture->sampler];
-	//				gltfImage *image = imgList[texture->source];
-	//				bgfx::setTexture( 1, context->pbrContext.s_normal, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
-	//			}
-	//		}
-	//		//if ( selectedImage )
-	//		//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
+			if ( prim->material != -1 ) 
+			{
+				gltfMaterial *material = matList[prim->material];
+				//prim->material 
+				if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) 			{
+					gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
+					gltfSampler *sampler = smpList[texture->sampler];
+					gltfImage *image = imgList[texture->source];
+					bgfx::setTexture( 0, context->pbrContext.s_baseColor, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+				}
+				if ( material->normalTexture.index!= -1 ) {
+					gltfTexture *texture = texList[material->normalTexture.index];
+					gltfSampler *sampler = smpList[texture->sampler];
+					gltfImage *image = imgList[texture->source];
+					bgfx::setTexture( 1, context->pbrContext.s_normal, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+				}
+			}
+			//if ( selectedImage )
+			//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
 
-	//		bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
-	//		bgfx::setIndexBuffer( prim->indexBufferHandle );
-	//		bgfx::submit( renderTarget.viewId, context->pbrContext.pbrProgram );
-	//	}
+			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
+			bgfx::setIndexBuffer( prim->indexBufferHandle );
+			bgfx::submit( renderTarget.viewId, context->pbrContext.pbrProgram );
+		}
 
-	//	if ( bgfx::isValid( renderTarget.rb ) )
-	//		bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
-	//    
-	//}
+		if ( bgfx::isValid( renderTarget.rb ) )
+			bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
+	    
+	}
 	return false;
 }
 bool gltfAssetExplorer::imDraw( ) 

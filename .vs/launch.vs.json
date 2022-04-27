@@ -30,7 +30,8 @@
 				"+set com_allowConsole 1",
 				"+set developer 1",
 				"+set fs_debug 1",
-				"+set win_outputDebugString 1"
+				"+set win_outputDebugString 1",
+				"+set allowHighDPI 1"
 			]
 		}
   ]

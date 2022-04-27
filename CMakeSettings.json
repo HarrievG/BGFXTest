@@ -1,5 +1,5 @@
 ﻿{
-  "configurations": [
+	"configurations": [
 		{
 			"name": "x64-Debug",
 			"generator": "Ninja",
@@ -24,5 +24,5 @@
 			"ctestCommandArgs": "",
 			"variables": []
 		}
-  ]
+	]
 }
