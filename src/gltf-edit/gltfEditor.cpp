@@ -18,9 +18,9 @@
 #include "gltfParser.h"
 #include <ImGuizmo.h>
 #include "gltfParser.h"
+#include "gltfProperties.h"
 
 //tinygltf::TinyGLTF gGLFTLoader;
-
 //static gltfSceneEditor localSceneEditor;
 gltfSceneEditor *sceneEditor = nullptr;// = &localSceneEditor;
 
@@ -59,6 +59,7 @@ void gltfSceneEditor::Init( const char * sceneFile )
 	sceneRender->reset(1920,1080);
 	sceneRender->initialize();
 	assetExplorer->Init();
+	assetExplorer->SetRenderer(sceneRender);
 	static auto *thisPtr = this;
 	selectedScene = nullptr;
 	currentData	 = nullptr;
@@ -188,8 +189,10 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 {
 	if ( !bgfx::isValid( renderTarget.rb ) )
 		renderTarget.rb = bgfx::getTexture(sceneRender->frameBuffer, 0);
-
-	sceneRender->render( com_frameTime );
+	if (sceneViewOpen )
+		sceneRender->render( com_frameTime );
+	else
+		assetExplorer->Render( context );
 
 	//if ( !bgfx::isValid( renderTarget.fbh ) )
 	//{
@@ -380,7 +383,8 @@ bool gltfSceneEditor::imDraw( ) {
 		DrawNodeInfo( selectedNode );
 		if (isValid(renderTarget.rb))
 			ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) 1920 /2 , ( float ) 1080 /2), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
-	}
+	}else
+		sceneViewOpen = false;
 	ImGui::End();
 	DrawSceneList();
 
@@ -682,20 +686,23 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 {
 	if (!guiVisible)
 		return false;
-	if (!bgfx::isValid( renderTarget.fbh ))
-		renderTarget.fbh = Renderer::createFrameBuffer( );
+	//if (!bgfx::isValid( renderTarget.fbh ))
+	//{
+	//	renderTarget.fbh = Renderer::createFrameBuffer( );
+	//	renderTarget.rb = bgfx::createTexture2D( r_gltfEditRenderWidth.GetInteger(), r_gltfEditRenderHeight.GetInteger(), false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_BLIT_DST );
+	//}
 		//bgfxCreateMrtTarget( renderTarget, "AssetExplorerView" );
 
-	bgfx::touch( renderTarget.viewId );
-	static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
+//	bgfx::touch( renderTarget.viewId );
+	//static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
 	if (selectedMesh != nullptr )
 	{
-		bgfx::touch( renderTarget.viewId );
-		bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
+		//bgfx::touch( renderTarget.viewId );
+		//bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 
-		float modelTransform[16];
+		//float modelTransform[16];
 		//bx::mtxIdentity( modelTransform );
-		////bx::mtxMul( tmp, modelScale, xtmp );
+		//bx::mtxMul( tmp, modelScale, xtmp );
 		////bx::mtxMul( modelTransform, tmp, modelTranslation );
 	 //   bgfx::setTransform( modelTransform );
 		//bgfx::setUniform(context->pbrContext.u_normalTransform,&modelTransform);
@@ -703,39 +710,48 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 		auto & texList = currentData->TextureList();
 		auto & imgList = currentData->ImageList();
 		auto & smpList = currentData->SamplerList();
-		for ( auto prim : selectedMesh->primitives )
-		{
+		auto & meshList = currentData->MeshList();
+		gltfNode gltfnode;
 
-			if ( prim->material != -1 ) 
-			{
-				gltfMaterial *material = matList[prim->material];
-				//prim->material 
-				if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) 			{
-					gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
-					gltfSampler *sampler = smpList[texture->sampler];
-					gltfImage *image = imgList[texture->source];
-					bgfx::setTexture( 0, context->pbrContext.s_baseColor, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
-				}
-				if ( material->normalTexture.index!= -1 ) {
-					gltfTexture *texture = texList[material->normalTexture.index];
-					gltfSampler *sampler = smpList[texture->sampler];
-					gltfImage *image = imgList[texture->source];
-					bgfx::setTexture( 1, context->pbrContext.s_normal, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
-				}
-			}
-			//if ( selectedImage )
-			//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
+		gltfnode.mesh = 0;//meshList.IndexOf( (gltfMesh  *)selectedMesh );
+		gltfnode.matrix = mat4_identity;
+		gltfnode.dirty = false;
+		renderer->SetRenderTargetNode(&gltfnode);
+		renderer->render(com_frameTime);
+		renderer->SetRenderTargetNode(nullptr);
+		//for ( auto prim : selectedMesh->primitives )
+		//{
 
-			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
-			bgfx::setIndexBuffer( prim->indexBufferHandle );
-			bgfx::submit( renderTarget.viewId, context->pbrContext.pbrProgram );
-		}
+		//	if ( prim->material != -1 ) 
+		//	{
+		//		gltfMaterial *material = matList[prim->material];
+		//		//prim->material 
+		//		if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) 			{
+		//			gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
+		//			gltfSampler *sampler = smpList[texture->sampler];
+		//			gltfImage *image = imgList[texture->source];
+		//			bgfx::setTexture( 0, context->pbrContext.s_baseColor, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+		//		}
+		//		if ( material->normalTexture.index!= -1 ) {
+		//			gltfTexture *texture = texList[material->normalTexture.index];
+		//			gltfSampler *sampler = smpList[texture->sampler];
+		//			gltfImage *image = imgList[texture->source];
+		//			bgfx::setTexture( 1, context->pbrContext.s_normal, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+		//		}
+		//	}
+		//	//if ( selectedImage )
+		//	//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
 
-		if ( bgfx::isValid( renderTarget.rb ) )
-			bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
+		//	bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
+		//	bgfx::setIndexBuffer( prim->indexBufferHandle );
+		//	bgfx::submit( renderTarget.viewId, context->pbrContext.pbrProgram );
+		//}
+
+		//if ( bgfx::isValid( renderTarget.fbh ) )
+		//	bgfx::blit( 100 - renderTarget.viewId,renderTarget.rb , 0, 0, bgfx::getTexture(renderTarget.fbh, 0));
 	    
 	}
-	return false;
+	return true;
 }
 bool gltfAssetExplorer::imDraw( ) 
 {
@@ -840,7 +856,9 @@ bool gltfAssetExplorer::imDraw( )
 					camPos -= camAngle.ToForward( ) * com_frameTime;
 				}
 			}
-			ImGui::Image((void*)(intptr_t)renderTarget.rb.idx, idVec2( ( float ) renderTarget.width / 2, ( float ) renderTarget.height / 2 ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
+			renderTarget.rb = bgfx::getTexture(renderer->frameBuffer);
+			if ( isValid( renderTarget.rb ) )
+				ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) 1920 / 2, ( float ) 1080 / 2 ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
 
 			float windowWidth = ( float ) ImGui::GetWindowWidth( );
 			float windowHeight = ( float ) ImGui::GetWindowHeight( );

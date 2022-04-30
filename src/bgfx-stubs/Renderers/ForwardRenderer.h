@@ -14,7 +14,7 @@ public:
     virtual void onRender(float dt) override;
     virtual void onShutdown() override;
 	void RenderSceneNode(uint64_t state, gltfNode *node, idMat4 trans, gltfData* data );
-
+	void SetRenderTargetNode(gltfNode * node);
 	idDrawVert * AllocTris( int vertCount, const triIndex_t * tempIndexes, int indexCount);
 private:
 	static const int MAX_INDEXES = ( 20000 * 6 );
@@ -28,5 +28,6 @@ private:
 
 	triIndex_t *idxData;
 	int				idxCount;
+	gltfNode *		targetNode;
 
 };

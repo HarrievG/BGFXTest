@@ -7,9 +7,8 @@ idCVar transposetest( "transposetest", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_
 
 extern void WriteIndexPair( triIndex_t *dest, const triIndex_t a, const triIndex_t b );
 
-ForwardRenderer::ForwardRenderer(gltfData* sceneData) : Renderer(sceneData) 
+ForwardRenderer::ForwardRenderer(gltfData* sceneData) : Renderer(sceneData) ,targetNode( nullptr )
 {
-
 }
 
 bool ForwardRenderer::supported()
@@ -73,6 +72,11 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 
 }
 
+
+void ForwardRenderer::SetRenderTargetNode(gltfNode * node) {
+	targetNode = node;
+}
+
 extern void WriteIndexPair( triIndex_t *dest, const triIndex_t a, const triIndex_t b );
 
 idDrawVert *ForwardRenderer::AllocTris( int vertCount, const triIndex_t *tempIndexes, int indexCount ) {
@@ -133,18 +137,20 @@ void ForwardRenderer::onRender(float dt)
     pbr.bindAlbedoLUT();
     lights.BindLights();
 
-	auto &nodeList = data->NodeList( ); 
-	idMat4 mat;
-	auto &scenes = data->SceneList( );
-	for ( auto &scene : scenes )
+	if ( !targetNode  )
 	{
-		for ( auto &node : scene->nodes)
-		{
-			idMat4 mat = mat4_identity;
-			RenderSceneNode(state, nodeList[node], mat, data);
+		auto &nodeList = data->NodeList( );
+		idMat4 mat;
+		auto &scenes = data->SceneList( );
+		for ( auto &scene : scenes ) {
+			for ( auto &node : scene->nodes ) {
+				idMat4 mat = mat4_identity;
+				RenderSceneNode( state, nodeList[node], mat, data );
+			}
+			break; // only the first for now.
 		}
-		break; // only the first for now.
-	}
+	}else
+		RenderSceneNode( state, targetNode, mat4_identity, data );
 
 	lights.Update();
 
