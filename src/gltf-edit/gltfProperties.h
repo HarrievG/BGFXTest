@@ -206,26 +206,39 @@ class gltfAnimation_Channel {
 public:
 	gltfAnimation_Channel( ) : sampler( -1 ) { };
 	int sampler;
-	idStr target;
+	gltfAnimation_Channel_Target target;
 	idStr extensions;
 	idStr extras;
 };
 
 class gltfAnimation_Sampler {
 public:
-	gltfAnimation_Sampler( ) : input( -1 ), output( -1 ) { };
+	gltfAnimation_Sampler( ) : input( -1 ), interpolation("LINEAR"),output( -1 ) { };
 	int input;
 	idStr interpolation;
 	int output;
 	idStr extensions;
 	idStr extras;
+
+	int intType;
+
+	static int resolveType( idStr type ) {
+		if ( type == "LINEAR" )
+			return 0;
+		else if ( type == "STEP" )
+			return 1;
+		else if ( type == "CUBICSPLINE" )
+			return 2;
+		return -1;
+	}
+
 };
 
 class gltfAnimation {
 public:
 	gltfAnimation( ) { };
-	idStr channels;
-	idStr samplers;
+	idList<gltfAnimation_Channel*> channels;
+	idList<gltfAnimation_Sampler*> samplers;
 	idStr name;
 	idStr extensions;
 	idStr extras;
@@ -649,6 +662,7 @@ public:
 	GLTFCACHEITEM( Camera, cameras )
 	GLTFCACHEITEM( Material, materials )
 	GLTFCACHEITEM( Extensions, extensions )
+	GLTFCACHEITEM( Animation, animations )
 private:
 	idStr fileName;
 	int	fileNameHash;
@@ -658,20 +672,21 @@ private:
 	int jsonDataLength;
 	int totalChunks;
 
-	idList<gltfBuffer *>					buffers;
-	idList<gltfImage *>						images;
-	idList<gltfData *>						assetData;
-	idList<gltfSampler *>					samplers;
-	idList<gltfBufferView *>				bufferViews;
-	idList<gltfTexture *>					textures;
-	idList<gltfAccessor *>					accessors;
-	idList<gltfExtensionsUsed *>			extensionsUsed;
-	idList<gltfMesh *>						meshes;
-	int										scene;
-	idList<gltfScene *>						scenes;
-	idList<gltfNode *>						nodes;
-	idList<gltfCamera *>					cameras;
-	idList<gltfMaterial *>					materials;
-	idList<gltfExtensions *>				extensions;
+	idList<gltfBuffer *>			buffers;
+	idList<gltfImage *>				images;
+	idList<gltfData *>				assetData;
+	idList<gltfSampler *>			samplers;
+	idList<gltfBufferView *>		bufferViews;
+	idList<gltfTexture *>			textures;
+	idList<gltfAccessor *>			accessors;
+	idList<gltfExtensionsUsed *>	extensionsUsed;
+	idList<gltfMesh *>				meshes;
+	int								scene;
+	idList<gltfScene *>				scenes;
+	idList<gltfNode *>				nodes;
+	idList<gltfCamera *>			cameras;
+	idList<gltfMaterial *>			materials;
+	idList<gltfExtensions *>		extensions;
+	idList<gltfAnimation *>			animations;
 };
 #undef GLTFCACHEITEM

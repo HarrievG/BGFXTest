@@ -306,6 +306,82 @@ bool gltfItem_uri::Convert( ) {
 	return false;
 }
 
+void gltfItem_animation_sampler::parse( idToken &token ) {
+	gltfItemArray animSampler;
+	GLTFARRAYITEM( animSampler, input,			gltfItem_integer);
+	GLTFARRAYITEM( animSampler, interpolation,	gltfItem );
+	GLTFARRAYITEM( animSampler, output,			gltfItem_integer);
+	GLTFARRAYITEM( animSampler, extensions,		gltfItem );
+	GLTFARRAYITEM( animSampler, extras,			gltfItem );
+
+	gltfPropertyArray array = gltfPropertyArray( parser );
+	for ( auto &prop : array ) {
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfAnimation_Sampler", 0 );
+
+
+		item->AssureSizeAlloc( item->Num( ) + 1, idListNewElement<gltfAnimation_Sampler> );
+		gltfAnimation_Sampler *gltfAnimSampler = ( *item )[item->Num( ) - 1];
+
+		GLTFARRAYITEMREF( gltfAnimSampler, input );
+		GLTFARRAYITEMREF( gltfAnimSampler, interpolation );
+		GLTFARRAYITEMREF( gltfAnimSampler, output );
+		GLTFARRAYITEMREF( gltfAnimSampler, extensions );
+		GLTFARRAYITEMREF( gltfAnimSampler, extras );
+		animSampler.Parse( &lexer );
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", token.c_str( ) );
+	}
+	parser->ExpectTokenString( "]" );
+}
+
+void gltfItem_animation_channel_target::parse( idToken &token ) {
+	parser->UnreadToken( &token );
+	gltfItemArray animChannelTarget;
+	GLTFARRAYITEM( animChannelTarget, node,			gltfItem_integer);
+	GLTFARRAYITEM( animChannelTarget, path,			gltfItem );
+	GLTFARRAYITEM( animChannelTarget, extensions,	gltfItem );
+	GLTFARRAYITEM( animChannelTarget, extras,		gltfItem );
+
+	GLTFARRAYITEMREF( item,	node );
+	GLTFARRAYITEMREF( item,	path );
+	GLTFARRAYITEMREF( item,	extensions );
+	GLTFARRAYITEMREF( item,	extras );
+	animChannelTarget.Parse( parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
+
+void gltfItem_animation_channel::parse( idToken &token ) {
+	//parser->UnreadToken( &token );
+	gltfItemArray anim;
+	GLTFARRAYITEM( anim, sampler,		gltfItem_integer );
+	GLTFARRAYITEM( anim, target,		gltfItem_animation_channel_target );
+	GLTFARRAYITEM( anim, extensions,	gltfItem );
+	GLTFARRAYITEM( anim, extras,		gltfItem );
+
+	gltfPropertyArray array = gltfPropertyArray( parser );
+	for ( auto &prop : array ) {
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfAnimation_Channel", 0 );
+
+
+		item->AssureSizeAlloc( item->Num( ) + 1, idListNewElement<gltfAnimation_Channel> );
+		gltfAnimation_Channel *gltfAnimationChannel = ( *item )[item->Num( ) - 1];
+
+		GLTFARRAYITEMREF( gltfAnimationChannel, sampler );
+		target->Set		(&gltfAnimationChannel->target,&lexer );
+		GLTFARRAYITEMREF( gltfAnimationChannel, extensions );
+		GLTFARRAYITEMREF( gltfAnimationChannel, extras );
+		anim.Parse( &lexer );
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", token.c_str( ) );
+
+	}
+	parser->ExpectTokenString( "]" );
+}
+
 void gltfItem_mesh_primitive::parse( idToken &token )
 { 
 	gltfItemArray prim;
@@ -1152,9 +1228,30 @@ void GLTF_Parser::Parse_BUFFERS( idToken &token )
 }
 void GLTF_Parser::Parse_ANIMATIONS( idToken &token )
 {
+	gltfItemArray anim;
+	GLTFARRAYITEM( anim, channels,		gltfItem_animation_channel ); //channel[1 - *]
+	GLTFARRAYITEM( anim, samplers,		gltfItem_animation_sampler ); //sampler[1 - *]
+	GLTFARRAYITEM( anim, name,			gltfItem ); 
+	GLTFARRAYITEM( anim, extensions,	gltfItem );
+	GLTFARRAYITEM( anim, extras,		gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
-	for ( auto &prop : array )
-		common->Printf( "%s", prop.item.c_str( ) );
+	for ( auto &prop : array ) 	{
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfAnimation", 0 );
+
+		gltfAnimation *gltfanim= currentAsset->Animation( );
+
+		channels->Set	( &gltfanim->channels, &lexer);
+		samplers->Set	( &gltfanim->samplers, &lexer );
+		GLTFARRAYITEMREF( gltfanim,  name );
+		GLTFARRAYITEMREF( gltfanim,  extensions );
+		GLTFARRAYITEMREF( gltfanim,  extras );
+		anim.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_SKINS( idToken &token ) {

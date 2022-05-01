@@ -59,6 +59,9 @@ private:																				\
 	idLexer *parser;}
 #pragma endregion 
 
+gltfItemClassParser( animation_sampler,				idList<gltfAnimation_Sampler*> );
+gltfItemClassParser( animation_channel_target,		gltfAnimation_Channel_Target );
+gltfItemClassParser( animation_channel,				idList<gltfAnimation_Channel*>);
 gltfItemClassParser( mesh_primitive,				idList<gltfMesh_Primitive *>);
 gltfItemClassParser( mesh_primitive_attribute,		idList<gltfMesh_Primitive_Attribute *> );
 gltfItemClassParser( integer_array,					idList<int>);
