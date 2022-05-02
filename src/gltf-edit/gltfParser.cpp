@@ -13,7 +13,7 @@ gltf_sampler_wrap_type_map s_samplerWrapTypeMap[] = {
 	//33648 MIRRORED_REPEAT
 	33648, BGFX_SAMPLER_U_MIRROR, BGFX_SAMPLER_V_MIRROR,
 	//10497 REPEAT
-	10497, BGFX_SAMPLER_U_BORDER, BGFX_SAMPLER_V_BORDER,
+	10497, BGFX_SAMPLER_NONE , BGFX_SAMPLER_NONE ,
 	0,0,0
 };
 //todo
@@ -1771,22 +1771,25 @@ void GLTF_Parser::CreateBgfxData( )
 		}
 	}
 
+	auto & samplerList = currentAsset->SamplerList( );
 	//Samplers
-	for (auto &sampler : currentAsset->SamplerList( ) )
+	for ( auto &sampler : samplerList )
 		sampler->bgfxSamplerFlags = GetSamplerFlags(sampler);
-
-	//images
-	for ( auto &image : currentAsset->ImageList( ) ) 
+	
+	auto & imgList = currentAsset->ImageList( );
+	//textures
+	for ( auto &texture : currentAsset->TextureList( ) ) 
 	{
-		if(image->bgfxTexture.handle.idx == UINT16_MAX )
-		{
+		auto * image = imgList[texture->source];
+		if ( image->bgfxTexture.handle.idx == UINT16_MAX ) {
 			gltfBufferView *bv = currentAsset->BufferViewList( )[image->bufferView];
 			gltfData *data = bv->parent;
 			gltfBuffer *buff = data->BufferList( )[bv->buffer];
-			
+
 			//image->bgfxTexture = bgfxImageLoad(data->GetData(bv->buffer) + bv->byteOffset,bv->byteLength );
-			bgfxImageLoadAsync( data->GetData( bv->buffer ) + bv->byteOffset, bv->byteLength, &image->bgfxTexture );
+			bgfxImageLoadAsync( data->GetData( bv->buffer ) + bv->byteOffset, bv->byteLength, &image->bgfxTexture, samplerList[texture->sampler]->bgfxSamplerFlags );
 		}
+
 	}
 }
 

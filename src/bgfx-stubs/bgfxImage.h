@@ -6,6 +6,7 @@ struct imageLoad_t {
 	byte *data;
 	size_t length;
 	bgfxTextureHandle * targetHandle;
+	uint32_t flags;
 };
 
 
@@ -99,4 +100,4 @@ public:
 
 void bgfxStartImageLoadThread();
 bgfxTextureHandle bgfxImageLoad( byte *data, size_t length );
-void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle * targetHandle );
+void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle *targetHandle, uint32_t flags = (BGFX_SAMPLER_V_MIRROR | BGFX_SAMPLER_U_MIRROR) );
