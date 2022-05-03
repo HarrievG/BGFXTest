@@ -61,11 +61,6 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 
 				bgfx::submit( vDefault, program, 0, ~BGFX_DISCARD_BINDINGS );
 			}
-
-		//	if (r_forceRenderMode.GetInteger() != -1 )
-		//		bgfxSetRenderMode(viewId, context ,r_forceRenderMode.GetInteger());
-
-			bgfx::submit( vDefault, program );
 		}
 	}
 

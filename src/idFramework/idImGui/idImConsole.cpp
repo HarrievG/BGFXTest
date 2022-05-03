@@ -46,6 +46,7 @@ void idImConsole::Shutdown( ) {
 	ClearLog( );
 	for ( int i = 0; i < History.Size; i++ )
 		free( History[i] );
+	History.clear();
 	itemStr.Clear();
 }
 
