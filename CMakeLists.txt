@@ -177,10 +177,9 @@ set(Sources
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxRender.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxCallback.cpp
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/TextEditor.cpp
-    ${PROJECT_SOURCE_DIR}/src/gltf-edit/TextEditor.h
-    ${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.h
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.cpp
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfParser.cpp
+	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfAnimation.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.h
     ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.h

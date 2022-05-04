@@ -25,6 +25,7 @@
 #include "idFramework/sys/win32/win_local.h"
 #include "bgfx-stubs/Font/text_buffer_manager.h"
 #include "swf/SWF.h"
+#include "gltf-edit/gltfAnimation.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }

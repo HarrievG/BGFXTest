@@ -77,7 +77,7 @@ bgfx::Attrib::Enum GetAttributeEnum( const char *str , uint * elementSize = null
 }
 
 //https://github.com/KhronosGroup/glTF/issues/832
-gltf_accessor_component_type_map s_componentTypeMap[] = {
+gltf_accessor_component_type_map<bgfx::AttribType::Enum> s_bgfxComponentTypeMap[] = {
 	"signed byte",		5120,	bgfx::AttribType::Count, 1 ,
 	"unsigned byte",	5121,	bgfx::AttribType::Uint8, 1 ,
 	"signed short",		5122,	bgfx::AttribType::Int16, 2 ,
@@ -87,14 +87,26 @@ gltf_accessor_component_type_map s_componentTypeMap[] = {
 	"double",			5130,	bgfx::AttribType::Float, 8 ,
 	"",					0,		bgfx::AttribType::Count, 0
 };
+
+gltf_accessor_component_type_map<gltf_accessor_component::Type> s_nativeComponentTypeMap[] = {
+	"signed byte",		5120,	gltf_accessor_component::Type::_byte, 1 ,
+	"unsigned byte",	5121,	gltf_accessor_component::Type::_uByte, 1 ,
+	"signed short",		5122,	gltf_accessor_component::Type::_short, 2 ,
+	"unsigned short",	5123,	gltf_accessor_component::Type::_uShort, 2 ,
+	"unsigned int",		5125,	gltf_accessor_component::Type::_uInt, 4 ,
+	"float",			5126,	gltf_accessor_component::Type::_float, 4 ,
+	"double",			5130,	gltf_accessor_component::Type::_double, 8 ,
+	"",					0,		gltf_accessor_component::Type::Count, 0
+};
+
 bgfx::AttribType::Enum GetComponentTypeEnum( int id  , uint * sizeInBytes = nullptr) {
 	int i = -1;
-	while ( s_componentTypeMap[++i].id != 0)
-		if ( s_componentTypeMap[i].id == id ) {
+	while ( s_bgfxComponentTypeMap[++i].id != 0)
+		if ( s_bgfxComponentTypeMap[i].id == id ) {
 			if (sizeInBytes != nullptr )
-				*sizeInBytes = s_componentTypeMap[i].sizeInBytes;
+				*sizeInBytes = s_bgfxComponentTypeMap[i].sizeInBytes;
 
-			return s_componentTypeMap[i].type;
+			return s_bgfxComponentTypeMap[i].type;
 		}
 	
 	return bgfx::AttribType::Count;
@@ -1253,6 +1265,8 @@ void GLTF_Parser::Parse_ANIMATIONS( idToken &token )
 			common->Printf( "%s", prop.item.c_str( ) );
 	}
 	parser.ExpectTokenString( "]" );
+
+
 }
 void GLTF_Parser::Parse_SKINS( idToken &token ) {
 	gltfPropertyArray array = gltfPropertyArray( &parser );
@@ -1660,6 +1674,7 @@ void GLTF_Parser::CreateBgfxData( )
 	{
 		for ( auto prim : mesh->primitives ) 
 		{
+			//gltfAccessor -> idList<acessorType*>;
 			//vertex indices accessor
 			gltfAccessor * accessor = currentAsset->AccessorList( )[prim->indices];
 			gltfBufferView *bv = currentAsset->BufferViewList( )[accessor->bufferView];
@@ -1791,6 +1806,30 @@ void GLTF_Parser::CreateBgfxData( )
 		}
 
 	}
+	//anims
+	for ( auto * gltfAnim : currentAsset->AnimationList() ) 
+	{
+		for ( auto * animChannel : gltfAnim->channels ) {
+			auto * sampler = gltfAnim->samplers[animChannel->sampler];
+			//const input = currentAsset->AccessorList()[sampler->input].getDeinterlacedView( gltf );
+			//const max = input[input.length - 1];
+			//if ( max > this.maxTime ) {
+			//	this.maxTime = max;
+		}
+	}
+}
+
+idList<float *> &gltfAccessor::GetAccessorView( ) {
+	if ( floatView == nullptr )
+	{
+		floatView = new idList<float*>(16);
+		floatView->AssureSizeAlloc(count,idListNewElement<float>);
+		for (int i=0;i<count; i++)
+		{
+			*((*floatView)[0]) = 0.0f;
+		}
+	}
+	return *floatView;
 }
 
 

@@ -47,10 +47,25 @@ struct gltf_mesh_attribute_map {
 	uint elementSize;
 };
 
+struct gltf_accessor_component
+{
+	enum Type { 
+		_byte,
+		_uByte,
+		_short,
+		_uShort,
+		_uInt,
+		_float,
+		_double,
+		Count
+	};
+};
+
+template< class T >
 struct gltf_accessor_component_type_map {
 	idStr stringID;
 	int id;
-	bgfx::AttribType::Enum type;
+	T type;
 	uint sizeInBytes;//single element
 };
 
@@ -236,12 +251,14 @@ public:
 
 class gltfAnimation {
 public:
-	gltfAnimation( ) { };
+	gltfAnimation( ) : maxTime (0.0f) { };
 	idList<gltfAnimation_Channel*> channels;
 	idList<gltfAnimation_Sampler*> samplers;
 	idStr name;
 	idStr extensions;
 	idStr extras;
+
+	float maxTime;
 };
 
 class gltfAccessor_Sparse_Values {
@@ -275,7 +292,7 @@ public:
 
 class gltfAccessor {
 public:
-	gltfAccessor( ) : bufferView( -1 ), byteOffset( 0 ), componentType( -1 ), normalized( false ), count( -1 ) { }
+	gltfAccessor( ) : bufferView( -1 ), byteOffset( 0 ), componentType( -1 ), normalized( false ), count( -1 ) , floatView(nullptr){ }
 	int bufferView;
 	int byteOffset;
 	int componentType;
@@ -291,6 +308,9 @@ public:
 
 	bgfx::AttribType::Enum bgfxType;
 	uint typeSize;
+
+	idList<float *> & GetAccessorView( );
+	idList<float*> * floatView;
 };
 
 class gltfBufferView {
@@ -624,13 +644,13 @@ public:
 
 		return result;
 	}
-
+		
 	//bgfc = column-major
 	//idmath = row major, except mat3
 	//gltf matrices : column-major.
 	static void ResolveNodeMatrix( gltfNode *node, idMat4 *mat = nullptr ) 
 	{
-		if ( node->matrix == mat4_zero || node->dirty ) 
+		if ( node->dirty ) 
 		{
 			idMat4 scaleMat = idMat4(
 				node->scale.x, 0, 0, 0,
@@ -647,6 +667,8 @@ public:
 			node->dirty = false;
 		}
 	}
+
+	void Advance( gltfAnimation *anim = nullptr );
 
 	int &DefaultScene( ) { return scene; }
 	GLTFCACHEITEM( Buffer, buffers )
@@ -689,4 +711,5 @@ private:
 	idList<gltfExtensions *>		extensions;
 	idList<gltfAnimation *>			animations;
 };
+
 #undef GLTFCACHEITEM

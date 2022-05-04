@@ -187,6 +187,7 @@ void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, i
 }
 bool gltfSceneEditor::Render( bgfxContext_t *context ) 
 {
+
 	if ( !bgfx::isValid( renderTarget.rb ) )
 		renderTarget.rb = bgfx::getTexture(sceneRender->frameBuffer, 0);
 	if (sceneViewOpen )
@@ -324,6 +325,9 @@ bool gltfSceneEditor::imDraw( ) {
 
 	if (ImGui::Begin("GLTF SCENE",&sceneViewOpen, flags ))
 	{
+		if ( currentData )
+			currentData->Advance( );
+
 		localWindowPos = ImGui::GetWindowPos( );
 		localWindowSize = ImGui::GetWindowSize();
 		localMousePos = idVec2( io.MousePos.x - ImGui::GetWindowPos( ).x, io.MousePos.y - ImGui::GetWindowPos( ).y );
