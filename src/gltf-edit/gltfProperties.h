@@ -29,6 +29,14 @@ enum gltfProperty {
 	EXTENSIONS_REQUIRED
 };
 
+enum gltfTRS {
+	none,
+	rotation,
+	translation,
+	scale,
+	count
+};
+
 class gltfData;
 struct gltf_sampler_mag_type_map {
 	int id;
@@ -215,6 +223,18 @@ public:
 	idStr path;
 	idStr extensions;
 	idStr extras;
+
+	static gltfTRS resolveType( idStr type ) {
+		if ( type == "translation" )
+			return gltfTRS::translation;
+		else if ( type == "rotation" )
+			return  gltfTRS::rotation;
+		else if ( type == "scale" )
+			return  gltfTRS::scale;
+		return gltfTRS::count;
+	}
+	
+	gltfTRS TRS;
 };
 
 class gltfAnimation_Channel {
@@ -292,7 +312,8 @@ public:
 
 class gltfAccessor {
 public:
-	gltfAccessor( ) : bufferView( -1 ), byteOffset( 0 ), componentType( -1 ), normalized( false ), count( -1 ) , floatView(nullptr){ }
+	gltfAccessor( ) : bufferView( -1 ), byteOffset( 0 ), componentType( -1 ), normalized( false ), count( -1 ) ,
+		floatView(nullptr),vecView(nullptr),quatView(nullptr){ }
 	int bufferView;
 	int byteOffset;
 	int componentType;
@@ -309,8 +330,9 @@ public:
 	bgfx::AttribType::Enum bgfxType;
 	uint typeSize;
 
-	idList<float *> & GetAccessorView( );
-	idList<float*> * floatView;
+	idList<float> * floatView;
+	idList<idVec3*> * vecView;
+	idList<idQuat*> * quatView;
 };
 
 class gltfBufferView {
@@ -661,14 +683,18 @@ public:
 
 			node->matrix = idMat4( mat3_identity, node->translation ) * node->rotation.ToMat4( ).Transpose( ) * scaleMat;
 
-			if ( mat != nullptr )
-				*mat = node->matrix;
-
 			node->dirty = false;
 		}
+		if ( mat != nullptr )
+			*mat = node->matrix;
 	}
 
 	void Advance( gltfAnimation *anim = nullptr );
+
+	//this copies the data and view cached on the accessor
+	template <class T>
+	idList<T*> &GetAccessorView( gltfAccessor *accessor );
+	idList<float> &GetAccessorView( gltfAccessor *accessor );
 
 	int &DefaultScene( ) { return scene; }
 	GLTFCACHEITEM( Buffer, buffers )

@@ -343,6 +343,8 @@ void gltfItem_animation_sampler::parse( idToken &token ) {
 		animSampler.Parse( &lexer );
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", token.c_str( ) );
+
+		gltfAnimSampler->intType = gltfAnimation_Sampler::resolveType(gltfAnimSampler->interpolation);
 	}
 	parser->ExpectTokenString( "]" );
 }
@@ -363,6 +365,8 @@ void gltfItem_animation_channel_target::parse( idToken &token ) {
 
 	if ( gltf_parseVerbose.GetBool( ) )
 		common->Printf( "%s", token.c_str( ) );
+
+	item->TRS = gltfAnimation_Channel_Target::resolveType(item->path);
 }
 
 void gltfItem_animation_channel::parse( idToken &token ) {
@@ -1819,17 +1823,79 @@ void GLTF_Parser::CreateBgfxData( )
 	}
 }
 
-idList<float *> &gltfAccessor::GetAccessorView( ) {
+idList<float> &gltfData::GetAccessorView(gltfAccessor * accessor ) {
+	idList<float> * floatView = accessor->floatView;;
+	
 	if ( floatView == nullptr )
 	{
-		floatView = new idList<float*>(16);
-		floatView->AssureSizeAlloc(count,idListNewElement<float>);
-		for (int i=0;i<count; i++)
-		{
-			*((*floatView)[0]) = 0.0f;
+		gltfBufferView *attrBv = bufferViews[accessor->bufferView];
+		gltfData *attrData = attrBv->parent;
+		gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
+		assert(sizeof(float) == accessor->typeSize  );
+
+		idFile_Memory bin = idFile_Memory( "GetAccessorView(float*)", ( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
+		floatView = new idList<float>( 16 );
+		floatView->AssureSize( accessor->count );
+		for ( int i = 0; i < accessor->count; i++ ) {
+			bin.Read( ( void * ) &( *floatView )[i] , accessor->typeSize );
 		}
+		if ( attrBv->byteStride )
+			bin.Seek( attrBv->byteStride - ( accessor->typeSize ), FS_SEEK_CUR );
 	}
 	return *floatView;
+}
+
+template <>
+idList<idVec3 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
+	idList<idVec3 *> *vecView = accessor->vecView;
+
+	if ( vecView == nullptr ) {
+		gltfBufferView *attrBv = bufferViews[accessor->bufferView];
+		gltfData *attrData = attrBv->parent;
+		gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
+		assert(sizeof(float) == accessor->typeSize  );
+
+		idFile_Memory bin = idFile_Memory( "GetAccessorView(idVec3*)", ( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
+
+		vecView = new idList<idVec3 *>( 16 );
+		vecView->AssureSizeAlloc( accessor->count, idListNewElement<idVec3> );
+		for ( int i = 0; i < accessor->count; i++ ) {
+			idVec3 & vec = *(*vecView)[i];
+			bin.Read( ( void * ) &vec.x , accessor->typeSize );
+			bin.Read( ( void * ) &vec.y , accessor->typeSize );
+			bin.Read( ( void * ) &vec.z , accessor->typeSize );
+		}
+		if ( attrBv->byteStride )
+			bin.Seek( attrBv->byteStride - ( 3 * accessor->typeSize ), FS_SEEK_CUR );
+	}
+	return *vecView;
+}
+
+template <>
+idList<idQuat *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
+	idList<idQuat *> *quatView = accessor->quatView;
+
+	if ( quatView == nullptr ) {
+		gltfBufferView *attrBv = bufferViews[accessor->bufferView];
+		gltfData *attrData = attrBv->parent;
+		gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
+		assert( sizeof( float ) == accessor->typeSize );
+
+		idFile_Memory bin = idFile_Memory( "GetAccessorView(idQuat*)", ( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
+
+		quatView = new idList<idQuat *>( 16 );
+		quatView->AssureSizeAlloc( accessor->count, idListNewElement<idQuat> );
+		for ( int i = 0; i < accessor->count; i++ ) {
+			idQuat &vec = *( *quatView )[i];
+			bin.Read( ( void * ) &vec.x, accessor->typeSize );
+			bin.Read( ( void * ) &vec.y, accessor->typeSize );
+			bin.Read( ( void * ) &vec.z, accessor->typeSize );
+			bin.Read( ( void * ) &vec.w, accessor->typeSize );
+		}
+		if ( attrBv->byteStride )
+			bin.Seek( attrBv->byteStride - ( 4 * accessor->typeSize ), FS_SEEK_CUR );
+	}
+	return *quatView;
 }
 
 
