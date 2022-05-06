@@ -1654,7 +1654,7 @@ bool GLTF_Parser::Load(idStr filename )
 	parser.FreeSource();
 	common->SetRefreshOnPrint( false );
 	
-	//fix up node hierachy
+	//fix up node hierarchy
 	auto &nodeList = currentAsset->NodeList( );
 	for ( auto &scene : currentAsset->SceneList( ) )
 		for ( auto &node : scene->nodes )
@@ -1791,7 +1791,7 @@ void GLTF_Parser::CreateBgfxData( )
 	}
 
 	auto & samplerList = currentAsset->SamplerList( );
-	//Samplers
+	//Samplers -> this should move to read/parse sampler call 
 	for ( auto &sampler : samplerList )
 		sampler->bgfxSamplerFlags = GetSamplerFlags(sampler);
 	
@@ -1809,17 +1809,6 @@ void GLTF_Parser::CreateBgfxData( )
 			bgfxImageLoadAsync( data->GetData( bv->buffer ) + bv->byteOffset, bv->byteLength, &image->bgfxTexture, samplerList[texture->sampler]->bgfxSamplerFlags );
 		}
 
-	}
-	//anims
-	for ( auto * gltfAnim : currentAsset->AnimationList() ) 
-	{
-		for ( auto * animChannel : gltfAnim->channels ) {
-			auto * sampler = gltfAnim->samplers[animChannel->sampler];
-			//const input = currentAsset->AccessorList()[sampler->input].getDeinterlacedView( gltf );
-			//const max = input[input.length - 1];
-			//if ( max > this.maxTime ) {
-			//	this.maxTime = max;
-		}
 	}
 }
 

@@ -29,13 +29,6 @@ enum gltfProperty {
 	EXTENSIONS_REQUIRED
 };
 
-enum gltfTRS {
-	none,
-	rotation,
-	translation,
-	scale,
-	count
-};
 
 class gltfData;
 struct gltf_sampler_mag_type_map {
@@ -224,6 +217,17 @@ public:
 	idStr extensions;
 	idStr extras;
 
+	enum gltfTRS {
+		none,
+		rotation,
+		translation,
+		scale,
+		weights,
+		count
+	};
+
+	gltfTRS TRS;
+
 	static gltfTRS resolveType( idStr type ) {
 		if ( type == "translation" )
 			return gltfTRS::translation;
@@ -231,10 +235,10 @@ public:
 			return  gltfTRS::rotation;
 		else if ( type == "scale" )
 			return  gltfTRS::scale;
+		else if ( type == "weights" )
+			return  gltfTRS::weights;
 		return gltfTRS::count;
 	}
-	
-	gltfTRS TRS;
 };
 
 class gltfAnimation_Channel {
@@ -248,23 +252,30 @@ public:
 
 class gltfAnimation_Sampler {
 public:
-	gltfAnimation_Sampler( ) : input( -1 ), interpolation("LINEAR"),output( -1 ) { };
+	gltfAnimation_Sampler( ) : input( -1 ), interpolation("LINEAR"),output( -1 ), intType(gltfInterpType::count) { };
 	int input;
 	idStr interpolation;
 	int output;
 	idStr extensions;
 	idStr extras;
 
-	int intType;
+	enum gltfInterpType {
+		linear,
+		step,
+		cubicSpline,
+		count
+	};
 
-	static int resolveType( idStr type ) {
+	gltfInterpType intType;
+
+	static gltfInterpType resolveType( idStr type ) {
 		if ( type == "LINEAR" )
-			return 0;
+			return gltfInterpType::linear;
 		else if ( type == "STEP" )
-			return 1;
+			return gltfInterpType::step;
 		else if ( type == "CUBICSPLINE" )
-			return 2;
-		return -1;
+			return gltfInterpType::cubicSpline;
+		return gltfInterpType::count;
 	}
 
 };

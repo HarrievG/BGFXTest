@@ -31,7 +31,7 @@
 //int idEventLoop::JournalLevel( void ) const { return 0; }
 
 idCVar com_editing( "edit", "0", CVAR_BOOL | CVAR_SYSTEM, "editor mode" );
-idCVar com_sceneName( "sceneName", "Materials_Scifi_02_anim.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
+idCVar com_sceneName( "sceneName", "trs_AnimTest.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
 idCVar com_showImguiDemo( "ImGui demo", "0", CVAR_BOOL | CVAR_SYSTEM, "draw imgui demo window" );
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
@@ -59,6 +59,7 @@ idSession *session = NULL;
 ForwardRenderer * fwRender;
 static TextBufferManager * textMan;
 static TextBufferHandle * gTextHandle = nullptr;
+static gltfData * gSceneData = nullptr;
 void main_loop( void *data ) {
 	auto context = static_cast< bgfxContext_t * >( data );
 
@@ -109,7 +110,7 @@ void main_loop( void *data ) {
 	{
 		swfTest->Render( Sys_Milliseconds() );
 		fwRender->render( com_frameTime );
-
+		gSceneData->Advance();
 		const bgfx::Caps *caps = bgfx::getCaps( );
 		{
 			int txtView = 50;
@@ -149,7 +150,7 @@ void main_loop( void *data ) {
 
 
 	ImGuiIO &io = ImGui::GetIO( );
-	// Update and Render additional Platform Windows
+	// HVG_TODO
 	// Update and Render additional Platform Windows
 	if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
 		ImGui::UpdatePlatformWindows( );
@@ -362,7 +363,8 @@ int main( int argc, char **argv )
 	else
 	{
 		gltfParser->Load( com_sceneName.GetString() );
-		fwRender = new ForwardRenderer( gltfParser->currentAsset );
+		gSceneData = gltfParser->currentAsset;
+		fwRender = new ForwardRenderer( gSceneData );
 		fwRender->reset( width,height);
 		fwRender->initialize();
 		

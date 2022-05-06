@@ -20,8 +20,6 @@ ACES\t= 6\n\
 ACES_LUM\t= 7\n";
 
 idCVar r_tonemappingMode( "r_tonemappingMode", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, toneMappingModeStr );
-idCVar viewtest( "viewtest", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "1 to mutliply with view" );
-
 
 extern idCVar r_multipleScatteringEnabled;
 extern idCVar r_whiteFurnaceEnabled;
@@ -195,12 +193,10 @@ void Renderer::setNormalMatrix(const idMat4& modelMat)
 	//idMat
 	//glm::mat3 normalMat = glm::transpose( glm::adjugate( glm::mat3( modelMat ) ) );
 	//common->DWarning(" Matrix adjugate!" );
-	
-	idMat4 normalMat = modelMat.Inverse();//.Transpose();
-	if (viewtest.GetInteger() == 1 )
-		normalMat = modelViewMat;
+	//idMat4 normalMat = modelMat.Inverse();//.Transpose();
+	//idMat4 normalMat = modelViewMat;
 
-	bgfx::setUniform(normalMatrixUniform, normalMat.ToFloatPtr());
+	bgfx::setUniform(normalMatrixUniform, modelViewMat.ToFloatPtr());
 }
 
 void Renderer::blitToScreen(bgfx::ViewId view)
