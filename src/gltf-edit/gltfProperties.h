@@ -324,7 +324,7 @@ public:
 class gltfAccessor {
 public:
 	gltfAccessor( ) : bufferView( -1 ), byteOffset( 0 ), componentType( -1 ), normalized( false ), count( -1 ) ,
-		floatView(nullptr),vecView(nullptr),quatView(nullptr){ }
+		floatView(nullptr),vecView(nullptr),quatView(nullptr),matView(nullptr){ }
 	int bufferView;
 	int byteOffset;
 	int componentType;
@@ -341,9 +341,10 @@ public:
 	bgfx::AttribType::Enum bgfxType;
 	uint typeSize;
 
-	idList<float> * floatView;
+	idList<float>   * floatView;
 	idList<idVec3*> * vecView;
 	idList<idQuat*> * quatView;
+	idList<idMat4*> * matView;
 };
 
 class gltfBufferView {
@@ -402,13 +403,13 @@ public:
 
 class gltfSkin {
 public:
-	gltfSkin( ) { };
-	int		inverseBindMatrices;
-	int		skeleton;
-	idStr	joints; // integer[1,*]
-	idStr	name;
-	idStr	extensions;
-	idStr	extras;
+	gltfSkin( ) : inverseBindMatrices(-1),skeleton(-1),name("unnamedSkin"){ };
+	int			inverseBindMatrices;
+	int			skeleton;
+	idList<int>	joints; // integer[1,*]
+	idStr		name;
+	idStr		extensions;
+	idStr		extras;
 };
 
 class gltfOcclusionTexture_Info {
@@ -722,6 +723,7 @@ public:
 	GLTFCACHEITEM( Material, materials )
 	GLTFCACHEITEM( Extensions, extensions )
 	GLTFCACHEITEM( Animation, animations )
+	GLTFCACHEITEM( Skin, skins )
 private:
 	idStr fileName;
 	int	fileNameHash;
@@ -747,6 +749,7 @@ private:
 	idList<gltfMaterial *>			materials;
 	idList<gltfExtensions *>		extensions;
 	idList<gltfAnimation *>			animations;
+	idList<gltfSkin *>				skins;
 };
 
 #undef GLTFCACHEITEM

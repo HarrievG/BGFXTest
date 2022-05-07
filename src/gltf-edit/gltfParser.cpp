@@ -1273,9 +1273,32 @@ void GLTF_Parser::Parse_ANIMATIONS( idToken &token )
 
 }
 void GLTF_Parser::Parse_SKINS( idToken &token ) {
+	gltfItemArray skin;
+	GLTFARRAYITEM( skin, inverseBindMatrices, gltfItem_integer ); 
+	GLTFARRAYITEM( skin, skeleton, gltfItem_integer );
+	GLTFARRAYITEM( skin, joints, gltfItem_integer_array ); 
+	GLTFARRAYITEM( skin, name, gltfItem );
+	GLTFARRAYITEM( skin, extensions, gltfItem );
+	GLTFARRAYITEM( skin, extras, gltfItem );
+
 	gltfPropertyArray array = gltfPropertyArray( &parser );
-	for ( auto &prop : array )
-		common->Printf( "%s \n", prop.item.c_str( ) );
+	for ( auto &prop : array ) {
+		idLexer lexer( LEXFL_ALLOWPATHNAMES | LEXFL_ALLOWMULTICHARLITERALS | LEXFL_NOSTRINGESCAPECHARS | LEXFL_ALLOWPATHNAMES );
+		lexer.LoadMemory( prop.item.c_str( ), prop.item.Size( ), "gltfSkin", 0 );
+
+		gltfSkin *gltfSkin = currentAsset->Skin( );
+
+		GLTFARRAYITEMREF( gltfSkin, inverseBindMatrices );
+		GLTFARRAYITEMREF( gltfSkin, skeleton );
+		joints->Set		( &gltfSkin->joints, &lexer	);
+		GLTFARRAYITEMREF( gltfSkin, name );
+		GLTFARRAYITEMREF( gltfSkin, extensions );
+		GLTFARRAYITEMREF( gltfSkin, extras );
+		skin.Parse( &lexer );
+
+		if ( gltf_parseVerbose.GetBool( ) )
+			common->Printf( "%s", prop.item.c_str( ) );
+	}
 	parser.ExpectTokenString( "]" );
 }
 void GLTF_Parser::Parse_EXTENSIONS( idToken &token )
@@ -1687,7 +1710,10 @@ void GLTF_Parser::CreateBgfxData( )
 			gltfBuffer *buff = data->BufferList( )[bv->buffer];
 			uint idxDataSize = sizeof( uint ) * accessor->count;
 			uint * indices = ( uint *)Mem_ClearedAlloc( idxDataSize );
-			idFile_Memory idxBin = idFile_Memory( "gltfChunkIndices", ( const char * ) ((data->GetData( bv->buffer ) + bv->byteOffset + accessor->byteOffset )), bv->byteLength );
+
+			idFile_Memory idxBin = idFile_Memory( "gltfChunkIndices", 
+				( const char * ) ((data->GetData( bv->buffer ) + bv->byteOffset + accessor->byteOffset )), bv->byteLength );
+
 			for ( int i = 0; i < accessor->count; i++ ) {
 				idxBin.Read( ( void * ) ( &indices[i] ), accessor->typeSize );
 				if ( bv->byteStride )
@@ -1709,7 +1735,8 @@ void GLTF_Parser::CreateBgfxData( )
 				gltfData *attrData = attrBv->parent;
 				gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
 
-				idFile_Memory bin = idFile_Memory( "gltfChunkVertices", ( const char * )(( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + attrAcc->byteOffset )) , attrBv->byteLength );
+				idFile_Memory bin = idFile_Memory( "gltfChunkVertices",
+					( const char * )(( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + attrAcc->byteOffset )) , attrBv->byteLength );
 
 				if ( vtxData == nullptr ) {
 					vtxDataSize = sizeof( pbrVertex ) * attrAcc->count;
@@ -1768,6 +1795,19 @@ void GLTF_Parser::CreateBgfxData( )
 						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
 						break;
 					}
+					case bgfx::Attrib::Enum::Weight:
+					{
+						//for ( int i = 0; i < attrAcc->count; i++ ) {
+						//	bin.Read( ( void * ) ( &vtxData[i].weight.x ), attrAcc->typeSize );
+						//	bin.Read( ( void * ) ( &vtxData[i].weight.y ), attrAcc->typeSize );
+						//	bin.Read( ( void * ) ( &vtxData[i].weight.z ), attrAcc->typeSize );
+						//	bin.Read( ( void * ) ( &vtxData[i].weight.w ), attrAcc->typeSize );
+						//	if ( attrBv->byteStride )
+						//		bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
+						//}
+						////vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						break;
+					}
 				}
 			}
 
@@ -1812,6 +1852,8 @@ void GLTF_Parser::CreateBgfxData( )
 	}
 }
 
+
+
 idList<float> &gltfData::GetAccessorView(gltfAccessor * accessor ) {
 	idList<float> * floatView = accessor->floatView;;
 	
@@ -1822,7 +1864,9 @@ idList<float> &gltfData::GetAccessorView(gltfAccessor * accessor ) {
 		gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
 		assert(sizeof(float) == accessor->typeSize  );
 
-		idFile_Memory bin = idFile_Memory( "GetAccessorView(float*)", ( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
+		idFile_Memory bin = idFile_Memory( "GetAccessorView(float)",
+			( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
+
 		floatView = new idList<float>( 16 );
 		floatView->AssureSize( accessor->count );
 		for ( int i = 0; i < accessor->count; i++ ) {
@@ -1835,6 +1879,31 @@ idList<float> &gltfData::GetAccessorView(gltfAccessor * accessor ) {
 }
 
 template <>
+idList<idMat4 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
+	idList<idMat4 *> *matView = accessor->matView;
+	if ( matView == nullptr ) {
+		gltfBufferView *attrBv = bufferViews[accessor->bufferView];
+		gltfData *attrData = attrBv->parent;
+		gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
+		assert( sizeof( float ) == accessor->typeSize );
+
+		idFile_Memory bin = idFile_Memory( "GetAccessorView(idVec3*)",
+			( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
+
+		size_t elementSize = accessor->typeSize * 16;
+		matView = new idList<idMat4 *>( 16 );
+		matView->AssureSizeAlloc( accessor->count, idListNewElement<idMat4> );
+		for ( int i = 0; i < accessor->count; i++ ) {
+			idMat4 *mat = ( *matView )[i];
+			bin.Read( ( void * ) mat->ToFloatPtr(), elementSize);
+		}
+		if ( attrBv->byteStride )
+			bin.Seek( attrBv->byteStride - elementSize, FS_SEEK_CUR );
+	}
+	return *matView;
+}
+
+template <>
 idList<idVec3 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
 	idList<idVec3 *> *vecView = accessor->vecView;
 
@@ -1844,7 +1913,8 @@ idList<idVec3 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
 		gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
 		assert(sizeof(float) == accessor->typeSize  );
 
-		idFile_Memory bin = idFile_Memory( "GetAccessorView(idVec3*)", ( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
+		idFile_Memory bin = idFile_Memory( "GetAccessorView(idVec3*)",
+			( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
 
 		vecView = new idList<idVec3 *>( 16 );
 		vecView->AssureSizeAlloc( accessor->count, idListNewElement<idVec3> );
@@ -1870,7 +1940,8 @@ idList<idQuat *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
 		gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
 		assert( sizeof( float ) == accessor->typeSize );
 
-		idFile_Memory bin = idFile_Memory( "GetAccessorView(idQuat*)", ( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
+		idFile_Memory bin = idFile_Memory( "GetAccessorView(idQuat*)",
+			( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
 
 		quatView = new idList<idQuat *>( 16 );
 		quatView->AssureSizeAlloc( accessor->count, idListNewElement<idQuat> );

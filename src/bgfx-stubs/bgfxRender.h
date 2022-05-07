@@ -97,6 +97,7 @@ struct pbrVertex {
     idVec3 normal;
     idVec4 tangent;
 	idVec2 uv;
+	//idVec4 weight;
     //idVec3 bitangent;
     //uint32_t abgr;
 };

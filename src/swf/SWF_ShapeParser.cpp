@@ -997,7 +997,6 @@ void idSWFShapeParser::ReadFillStyle( idSWFBitStream & bitstream ) {
 	for ( int i = 0; i < lineStyleCount; i++ ) {
 		swfLineStyle_t & lineStyle = lineDraws[idx + i].style;
 		lineStyle.startWidth = bitstream.ReadU16();
-		common->Warning("%i",lineStyle.startWidth / 20);
 		if ( lineStyle2 ) {
 			lineStyle.endWidth = lineStyle.startWidth;
 			uint8 startCapStyle = bitstream.ReadU( 2 );

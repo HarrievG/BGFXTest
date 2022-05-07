@@ -31,7 +31,7 @@
 //int idEventLoop::JournalLevel( void ) const { return 0; }
 
 idCVar com_editing( "edit", "0", CVAR_BOOL | CVAR_SYSTEM, "editor mode" );
-idCVar com_sceneName( "sceneName", "trs_AnimTest.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
+idCVar com_sceneName( "sceneName", "skin_AnimTest.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
 idCVar com_showImguiDemo( "ImGui demo", "0", CVAR_BOOL | CVAR_SYSTEM, "draw imgui demo window" );
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );

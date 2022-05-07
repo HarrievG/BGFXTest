@@ -152,7 +152,11 @@ void gltfData::Advance( gltfAnimation *anim /*= nullptr */ ) {
 						}
 					}	break;
 					case  gltfAnimation_Channel_Target::weights:
-						break;
+					{
+
+						common->Warning( " TRS weights not implemented" );
+
+					}	break;
 					case gltfAnimation_Channel_Target::count:
 					default:
 						common->Warning( " Unrecognized TRS prop" );
