@@ -607,16 +607,17 @@ public:
 	//return TRUE if the camera uses 2 nodes (like when blender exports gltfs with +Y..)
 	//This is determined by checking for an "_Orientation" suffix to the camera name of the node that has the target camera assigned. 
 	// if so, translate node will be set to the parent node of the orientation node.
+	//Note: does not take overides into account!
 	gltfCameraNodePtrs GetCameraNodes( gltfCamera *camera )
 	{
 		gltfCameraNodePtrs result;
 
 		assert( camera );
 		int camId = -1;
-		for ( auto &cam : cameras )
+		for ( auto *cam : cameras )
 		{
 			camId++;
-			if ( cam = camera )
+			if ( cam == camera )
 				break;
 		}
 
@@ -642,7 +643,6 @@ public:
 		return result;
 	}
 
-	//Please note : assumes all nodes are _not_ dirty!
 	idMat4 GetViewMatrix( int camId ) const
 	{
 		if (cameraManager->HasOverideID(camId) )
@@ -653,9 +653,8 @@ public:
 
 		idMat4 result = mat4_identity;
 
-		idList<gltfNode*> hierachy;
+		idList<gltfNode*> hierachy(2);
 		gltfNode* parent = nullptr;
-		hierachy.SetGranularity(2);
 
 		for ( int i = 0; i < nodes.Num( ); i++ )
 		{
@@ -707,6 +706,7 @@ public:
 	//bgfx = column-major
 	//idmath = row major, except mat3
 	//gltf matrices : column-major.
+	//if mat* is valid , it will be multplied by this node's matrix that is resolved in its full hiararchy.
 	static void ResolveNodeMatrix( gltfNode *node, idMat4 *mat = nullptr ) 
 	{
 		if ( node->dirty ) 
@@ -722,8 +722,18 @@ public:
 
 			node->dirty = false;
 		}
-		if ( mat != nullptr )
-			*mat = node->matrix;
+
+		//resolve full hierarchy
+		if ( mat != nullptr ) {
+			idList<gltfNode *> hierachy(2);
+			gltfNode *parent = node;
+			while ( parent ) {
+				hierachy.Append( parent );
+				parent = parent->parent;
+			}
+			for ( int i = hierachy.Num( ) - 1; i >= 0; i-- )
+				*mat *= hierachy[i]->matrix;
+		}
 	}
 
 	void Advance( gltfAnimation *anim = nullptr );

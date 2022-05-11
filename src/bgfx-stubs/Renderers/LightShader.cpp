@@ -59,9 +59,7 @@ void LightShader::Update( ) {
 		PointLightVertex *light = ( PointLightVertex * ) ( mem->data + ( i * stride ) );
 		light->position = vec3_zero;
 		idMat4 mat = sceneData->GetLightMatrix(i);
-		//mat[0][3] = 0.0;
-		//mat[1][3] = 0.0;
-		//mat[2][3] = 0.0;
+
 		light->position *= mat;
 
 		float intense = (*lightList)[i]->intensity * idMath::ONEFOURTH_PI;

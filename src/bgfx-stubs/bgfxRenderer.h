@@ -69,7 +69,7 @@ public:
 	// used for tonemapping
 	bgfx::FrameBufferHandle frameBuffer = BGFX_INVALID_HANDLE;
 	static bgfx::FrameBufferHandle createFrameBuffer(bool hdr = true, bool depth = true);
-
+	void SetCamera(int cameraID ) { camId = cameraID; }
 protected:
 	struct PosVertex
 	{

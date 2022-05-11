@@ -211,7 +211,8 @@ void gltfArticulatedFigure::ComputeJoints( ) {
 		idMat4 & jointMat = jointMatrices.Alloc();
 		idMat4 * bindMat = invBindMats[count];
 
-		currentData->ResolveNodeMatrix(node,&jointMat);
+		currentData->ResolveNodeMatrix(node);
+		jointMat = node->matrix;
 		jointMatrices.Append( jointMat );
 		jointMat *= *bindMat;
 		count++;

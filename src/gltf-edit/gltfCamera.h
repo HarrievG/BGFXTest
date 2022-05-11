@@ -24,8 +24,10 @@ public:
 	// if an _orientation node is found, it will me be merged into the new Node
 	OverrideEntry & Override( gltfCamera * camera );
 	OverrideEntry & Override( int cameraID );
-	OverrideEntry & GetOverride( int cameraID );
+	//lookup -> cameraId == searchOwner ? entry.newCameraID : entry.originalCameraID
+	OverrideEntry & GetOverride( int cameraID , bool searchOwner = false);
 	bool HasOverideID( int cameraID ) ;
+	bool IsOverride( int cameraID );
 	bool IsEmtpy( const OverrideEntry & entry );
 	OverrideEntry EmptOverrideEntry;
 private:

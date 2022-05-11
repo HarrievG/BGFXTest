@@ -152,8 +152,7 @@ void gltfSceneEditor::Init( const char * sceneFile )
 }
 void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, idMat4 trans, const idList<gltfNode *> &nodeList )
 {
-	idMat4 mat;
-	gltfData::ResolveNodeMatrix( node, &mat);
+	gltfData::ResolveNodeMatrix( node );
 	idMat4 curTrans = trans * node->matrix ;
 	static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
 	if ( node->mesh != -1 ) 		
@@ -361,7 +360,7 @@ bool gltfSceneEditor::imDraw( ) {
 				if ( ImGui::BeginMenu( "Cameras" ) ) {
 					if (currentData && selectedScene ) {
 						int camCount = 0;
-						idList<gltfCamera*> cams = currentData->CameraList( );
+						auto &cams = currentData->CameraList( );
 						for (auto & camera : cams ) {
 							idStr camName;
 							if (!camera->name.IsEmpty( ))
@@ -372,6 +371,7 @@ bool gltfSceneEditor::imDraw( ) {
 							if (ImGui::MenuItem(camName.c_str())) {
 								currentCamera = cams[camCount];
 								selectedCameraId = camCount;
+								sceneRender->SetCamera(selectedCameraId);
 							}
 							ImGui::PopID(  );
 							camCount++;
@@ -421,28 +421,38 @@ void gltfSceneEditor::DrawCameraInfo( gltfCamera *camera )
 	}
 	ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
 	if ( ImGui::Begin( "Camera info", &p_open, window_flags ) && selectedCameraId != -1) {
-		
-		auto & camOverride = editorData->cameraManager->Override(selectedCameraId);
+	
+		auto &camManager = *editorData->cameraManager;
+		auto camOverride = camManager.GetOverride( selectedCameraId );
+		if ( camOverride == camManager.EmptOverrideEntry ) {
+			if ( !camManager.IsOverride( selectedCameraId ) )
+				camOverride = camManager.Override( selectedCameraId );
+			else
+				camOverride = camManager.GetOverride( selectedCameraId, true );
+		}
 
-		auto * camNode = currentData->NodeList()[camOverride.newNodeID];
-		idMat4 camMat = currentData->GetViewMatrix( camOverride.newCameraID ); 
-		
+		auto *camNode = currentData->NodeList( )[camOverride.newNodeID];
+		idMat4 camMat = currentData->GetViewMatrix( camOverride.newCameraID ).Transpose( );
+
+		idVec3 mouseDir = idVec3( io.MouseDelta.x, 0.0f, io.MouseDelta.y );
+		mouseDir.Normalize( );
 		if ( io.MouseDown[1] ) {
+			camNode->rotation *= idAngles(mouseDir).ToQuat();
 
-			idVec3 right = idVec3( camMat[2][0], camMat[2][1], camMat[2][2] );
-			idVec3 up = idVec3( camMat[0][0], camMat[0][1], camMat[0][2] );
-			idVec3 dir = idVec3( camMat[1][0], camMat[1][1], camMat[1][2] );
+			idVec3 forward = idVec3( camMat[2][0], camMat[2][1], camMat[2][2] );
+			idVec3 up = idVec3( camMat[1][0], camMat[1][1], camMat[1][2] );
+			idVec3 right = idVec3( camMat[0][0], camMat[0][1], camMat[0][2] );
+			
 
-			dir.Normalize();
+			forward.Normalize();
 			up.Normalize();
 			right.Normalize();
 
-			//idQuat dir = res.orientationNode != nullptr ? res.translationNode->rotation + res.orientationNode->rotation : res.translationNode->rotation;
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_W ) ) {
-				camNode->translation -= dir ;
+				camNode->translation -= forward ;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_S ) ) {
-				camNode->translation += dir ;
+				camNode->translation += forward ;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_R ) ) {
 				camNode->translation += up ;
@@ -451,10 +461,16 @@ void gltfSceneEditor::DrawCameraInfo( gltfCamera *camera )
 				camNode->translation -= up;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_A ) ) {
-				camNode->translation += right;
+				camNode->translation -= right;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_D ) ) {
-				camNode->translation -= right;
+				camNode->translation += right;
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_Q ) ) {
+				camNode->rotation *= idAngles(0,1,0).ToQuat();
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_E ) ) {
+				camNode->rotation *= idAngles(0,-1,0).ToQuat();
 			}
 			camNode->dirty = true;
 		}

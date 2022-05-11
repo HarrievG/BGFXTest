@@ -33,8 +33,7 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 	auto & imgList	= data->ImageList();
 	auto & smpList	= data->SamplerList();
 
-	idMat4 mat;
-	gltfData::ResolveNodeMatrix( node, &mat);
+	gltfData::ResolveNodeMatrix( node );
 	idMat4 curTrans = trans * node->matrix ;
 
 	for ( auto &child : node->children )

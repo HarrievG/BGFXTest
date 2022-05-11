@@ -171,6 +171,9 @@ void Renderer::setViewProjection(bgfx::ViewId view)
 	bx::Vec3 up = bx::Vec3( idup.x, idup.y, idup.z );
 	bx::mtxLookAt( viewMat.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
 
+	if ( data->cameraManager->HasOverideID(camId) )
+		camId = data->cameraManager->GetOverride(camId).newCameraID;
+
 	gltfCamera_Perspective &sceneCam = data->CameraList( )[camId]->perspective;
 	bx::mtxProj( projMat.ToFloatPtr( ), RAD2DEG( sceneCam.yfov ), sceneCam.aspectRatio, sceneCam.znear, sceneCam.zfar, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
 	bgfx::setViewTransform( view, viewMat.ToFloatPtr( ), projMat.ToFloatPtr( ) );

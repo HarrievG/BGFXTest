@@ -18,7 +18,7 @@ ID_INLINE bool gltfCameraManager::OverrideEntry::operator==( const gltfCameraMan
 
 
 gltfCameraManager::OverrideEntry & gltfCameraManager::Override( int cameraID ) {
-	auto entry = GetOverride(cameraID);
+	auto& entry = GetOverride(cameraID);
 	
 	if ( entry == EmptOverrideEntry && data->CameraList().Num() >= cameraID)
 		return Override(data->CameraList()[cameraID]);
@@ -30,8 +30,9 @@ gltfCameraManager::OverrideEntry & gltfCameraManager::Override( int cameraID ) {
 gltfCameraManager::OverrideEntry &gltfCameraManager::Override( gltfCamera *camera ) {
 	gltfCameraNodePtrs res = data->GetCameraNodes( camera );
 	OverrideEntry &newCam = overrides.Alloc( );
-
+	newCam.originalCameraID = data->CameraList().FindIndex(camera);
 	newCam.newNodeID = data->NodeList( ).Num( );
+	newCam.originalNodeID = data->NodeList().FindIndex(res.translationNode);
 	gltfNode *newCameraNode = data->Node( );
 	
 	newCameraNode->rotation = res.translationNode->rotation;
@@ -39,7 +40,8 @@ gltfCameraManager::OverrideEntry &gltfCameraManager::Override( gltfCamera *camer
 
 	newCam.newCameraID = data->CameraList( ).Num( );
 	gltfCamera *newCamera = data->Camera( );
-
+	*newCamera = *camera;
+	newCamera->name = "_override_" + camera->name;
 	newCam.originalCameraID =  res.translationNode->camera;
 	newCameraNode->camera = newCam.newCameraID;
 	newCameraNode->name = "_override_" + res.translationNode->name;
@@ -48,16 +50,16 @@ gltfCameraManager::OverrideEntry &gltfCameraManager::Override( gltfCamera *camer
 		newCameraNode->translation += res.orientationNode->translation;
 		newCameraNode->name = "_override_" + res.orientationNode->name;
 		newCam.originalCameraID =  res.orientationNode->camera;
+		newCam.originalNodeID = data->NodeList().FindIndex(res.orientationNode);
 	}
 	newCameraNode->dirty =true;
 
 	return newCam;
 }
 
-gltfCameraManager::OverrideEntry &gltfCameraManager::GetOverride( int cameraID ) {
-	int count = 0;
+gltfCameraManager::OverrideEntry &gltfCameraManager::GetOverride( int cameraID, bool searchOwner ) {
 	for ( auto &entry : overrides ) {
-		if ( entry.originalCameraID == cameraID ) {
+		if ( entry.originalCameraID == cameraID || (searchOwner && entry.newCameraID == cameraID)) {
 			return entry;
 		}
 	}
@@ -68,6 +70,16 @@ gltfCameraManager::OverrideEntry &gltfCameraManager::GetOverride( int cameraID )
 bool gltfCameraManager::HasOverideID( int cameraID ) {
 	auto &entry = GetOverride( cameraID );
 	return entry != EmptOverrideEntry;
+}
+
+bool gltfCameraManager::IsOverride( int cameraID ) {
+	int count = 0;
+	for ( auto &entry : overrides ) {
+		if ( entry.newCameraID == cameraID ) {
+			return true;
+		}
+	}
+	return false;
 }
 
 bool gltfCameraManager::IsEmtpy( const OverrideEntry &entry ) {
