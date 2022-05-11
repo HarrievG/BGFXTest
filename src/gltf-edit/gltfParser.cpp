@@ -2,6 +2,7 @@
 #include <FileSystem.h>
 #include "bgfx-stubs/bgfxRender.h"
 #include "bgfx-stubs/bgfxImage.h"
+#include "gltfAnimation.h"
 
 
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
@@ -1850,9 +1851,13 @@ void GLTF_Parser::CreateBgfxData( )
 		}
 
 	}
+
+	idList<gltfArticulatedFigure*> afs;
+	//AF
+	for (auto * skin : currentAsset->SkinList() ){
+		afs.Alloc() = new gltfArticulatedFigure(skin,currentAsset);
+	}
 }
-
-
 
 idList<float> &gltfData::GetAccessorView(gltfAccessor * accessor ) {
 	idList<float> * floatView = accessor->floatView;;
@@ -1887,7 +1892,7 @@ idList<idMat4 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
 		gltfBuffer *attrbuff = attrData->BufferList( )[attrBv->buffer];
 		assert( sizeof( float ) == accessor->typeSize );
 
-		idFile_Memory bin = idFile_Memory( "GetAccessorView(idVec3*)",
+		idFile_Memory bin = idFile_Memory( "GetAccessorView(idMat4*)",
 			( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
 
 		size_t elementSize = accessor->typeSize * 16;
@@ -1965,6 +1970,9 @@ gltfData::~gltfData() {
 	common->Warning("GLTF DATA NOT FREED" );
 	if (data)
 		delete[] data;
+	
+	delete cameraManager;
+
 }
 
 GLTF_Parser localGltfParser;

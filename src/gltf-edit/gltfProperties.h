@@ -5,6 +5,7 @@
 #include "bgfx-stubs/bgfxRender.h"
 #include "idFramework/idlib/math/Quat.h"
 #include "idlib/Lib.h"
+#include "gltfCamera.h"
 
 enum gltfProperty {
 	INVALID,
@@ -282,7 +283,7 @@ public:
 
 class gltfAnimation {
 public:
-	gltfAnimation( ) : maxTime (0.0f) { };
+	gltfAnimation( ) : maxTime (0.0f),numFrames(0) { };
 	idList<gltfAnimation_Channel*> channels;
 	idList<gltfAnimation_Sampler*> samplers;
 	idStr name;
@@ -290,6 +291,17 @@ public:
 	idStr extras;
 
 	float maxTime;
+
+	//id specific
+	mutable int	ref_count;
+	int numFrames;
+	void DecreaseRefs() const {ref_count--;};
+	void IncreaseRefs() const {ref_count++;};
+	bool GetBounds( idBounds &bnds, int time, int cyclecount ) const { return false;}
+	bool GetOriginRotation( idQuat &rotation, int time, int cyclecount ) const { return false;}
+	bool GetOrigin( idVec3 &offset, int time, int cyclecount ) const { return false;}
+	const idVec3 &TotalMovementDelta( void ) const {static idVec3 temp; return temp; }
+	int NumFrames() const {return numFrames;}
 };
 
 class gltfAccessor_Sparse_Values {
@@ -568,7 +580,7 @@ const inline idList<gltf##name*> & ##name##List() { return target; }
 
 class gltfData {
 public:
-	gltfData( ) : fileNameHash( 0 ), json( nullptr ), data( nullptr ), totalChunks( -1 ) { };
+	gltfData( ) : fileNameHash( 0 ), json( nullptr ), data( nullptr ), totalChunks( -1 ) {  cameraManager = new gltfCameraManager( this ); };
 	~gltfData( );
 	byte *AddData( int size, int *bufferID = nullptr );
 	byte *GetJsonData( int &size ) { size = jsonDataLength; return json; }
@@ -612,10 +624,15 @@ public:
 		{
 			if ( nodes[i]->camera != -1 && nodes[i]->camera == camId ) 
 			{
-				result.orientationNode = nodes[i];
-				result.translationNode = nodes[i];
+				gltfNode * tmp = nodes[i];
+
+				result.translationNode = tmp;
 				if ( nodes[i]->name.Find( "_Orientation" ) != -1 )
+				{
+					gltfNode * tmp = nodes[i];
+					result.orientationNode = nodes[i];
 					result.translationNode = nodes[i]->parent;
+				}
 				else
 					result.orientationNode = nullptr;
 
@@ -628,6 +645,12 @@ public:
 	//Please note : assumes all nodes are _not_ dirty!
 	idMat4 GetViewMatrix( int camId ) const
 	{
+		if (cameraManager->HasOverideID(camId) )
+		{
+			auto overrideCam = cameraManager->GetOverride( camId );
+			camId = overrideCam.newCameraID;
+		}
+
 		idMat4 result = mat4_identity;
 
 		idList<gltfNode*> hierachy;
@@ -639,17 +662,19 @@ public:
 			if ( nodes[i]->camera != -1 && nodes[i]->camera == camId ) 
 			{
 				parent = nodes[i];
-				while ( parent )
-				{
-					hierachy.Append(parent);
+				while ( parent ) {
+					hierachy.Append( parent );
 					parent = parent->parent;
 				}
 				break;
 			}
 		}
 
-		for ( int i = hierachy.Num()-1; i >=0; i--) 
+		for ( int i = hierachy.Num( ) - 1; i >= 0; i-- )
+		{
+			ResolveNodeMatrix(hierachy[i]);
 			result *= hierachy[i]->matrix;
+		}
 
 		return result;
 	}
@@ -679,7 +704,7 @@ public:
 		return result;
 	}
 		
-	//bgfc = column-major
+	//bgfx = column-major
 	//idmath = row major, except mat3
 	//gltf matrices : column-major.
 	static void ResolveNodeMatrix( gltfNode *node, idMat4 *mat = nullptr ) 
@@ -724,6 +749,8 @@ public:
 	GLTFCACHEITEM( Extensions, extensions )
 	GLTFCACHEITEM( Animation, animations )
 	GLTFCACHEITEM( Skin, skins )
+
+	gltfCameraManager * cameraManager;
 private:
 	idStr fileName;
 	int	fileNameHash;
@@ -732,6 +759,8 @@ private:
 	byte **data;
 	int jsonDataLength;
 	int totalChunks;
+
+	
 
 	idList<gltfBuffer *>			buffers;
 	idList<gltfImage *>				images;

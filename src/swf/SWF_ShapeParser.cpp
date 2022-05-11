@@ -132,9 +132,6 @@ void idSWFShapeParser::Parse( idSWFBitStream & bitstream, idSWFShape & shape, in
 		ld.indices.SetNum( spld.edges.Num() * 3 );
 		ld.indices.SetNum( 0 );
 
-
-
-
 		//edge list
 		for ( int e = 0; e < spld.edges.Num(); e++ ) {
 			//startcap

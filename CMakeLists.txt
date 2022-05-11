@@ -170,6 +170,7 @@ set(Sources
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/font/text_buffer_manager.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/cube_atlas.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxRenderer.cpp
+	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/bgfxDebugRenderer.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/Renderers/ForwardRenderer.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/Renderers/LightShader.cpp
 	${PROJECT_SOURCE_DIR}/src/bgfx-stubs/Renderers/PBRShader.cpp
@@ -180,12 +181,13 @@ set(Sources
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfEditor.cpp
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfParser.cpp
 	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfAnimation.cpp
+	${PROJECT_SOURCE_DIR}/src/gltf-edit/gltfCamera.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imgui_impl_bgfx.h
     ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.h
     ${PROJECT_SOURCE_DIR}/src/sdl-imgui/imgui_impl_sdl.cpp
     ${PROJECT_SOURCE_DIR}/src/bgfx-imgui/imconfig.h
-	${CMAKE_CURRENT_SOURCE_DIR}/src/swf/SWF_Abc.cpp
+	${PROJECT_SOURCE_DIR}/src/swf/SWF_Abc.cpp
 	${PROJECT_SOURCE_DIR}/src/main.cpp)
 
 include_directories(src)

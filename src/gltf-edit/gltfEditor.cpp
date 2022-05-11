@@ -383,7 +383,7 @@ bool gltfSceneEditor::imDraw( ) {
 			}
 			ImGui::EndMenuBar( );
 		}
-		//fixme DrawCameraInfo( currentCamera );
+		DrawCameraInfo( currentCamera );
 		DrawNodeInfo( selectedNode );
 		if (isValid(renderTarget.rb))
 			ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) 1920 /2 , ( float ) 1080 /2), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
@@ -399,6 +399,7 @@ void gltfSceneEditor::DrawCameraInfo( gltfCamera *camera )
 	if ( !currentData || !currentCamera ) 
 		return;
 
+	
 	static bool p_open = true;
 	static int corner = 1;
 	ImGuiIO &io = ImGui::GetIO( );
@@ -419,45 +420,54 @@ void gltfSceneEditor::DrawCameraInfo( gltfCamera *camera )
 		window_flags |= ImGuiWindowFlags_NoMove;
 	}
 	ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
-	if ( ImGui::Begin( "Camera info", &p_open, window_flags ) ) {
-	
-		gltfCameraNodePtrs res = currentData->GetCameraNodes( currentCamera );
+	if ( ImGui::Begin( "Camera info", &p_open, window_flags ) && selectedCameraId != -1) {
+		
+		auto & camOverride = editorData->cameraManager->Override(selectedCameraId);
 
+		auto * camNode = currentData->NodeList()[camOverride.newNodeID];
+		idMat4 camMat = currentData->GetViewMatrix( camOverride.newCameraID ); 
+		
 		if ( io.MouseDown[1] ) {
 
-			res.translationNode->rotation *= idAngles(0, io.MouseDelta.x * ( com_frameTime / 100000.0f ), io.MouseDelta.y *  ( com_frameTime / 100000.0f )).ToQuat();
+			idVec3 right = idVec3( camMat[2][0], camMat[2][1], camMat[2][2] );
+			idVec3 up = idVec3( camMat[0][0], camMat[0][1], camMat[0][2] );
+			idVec3 dir = idVec3( camMat[1][0], camMat[1][1], camMat[1][2] );
 
-
-			idVec3 dir = idVec3( cameraView[2][0], cameraView[2][1], cameraView[2][2] );
+			dir.Normalize();
+			up.Normalize();
+			right.Normalize();
 
 			//idQuat dir = res.orientationNode != nullptr ? res.translationNode->rotation + res.orientationNode->rotation : res.translationNode->rotation;
-
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_W ) ) {
-				res.translationNode->translation -= dir *  ( com_frameTime / 100000.0f );
+				camNode->translation -= dir ;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_S ) ) {
-				res.translationNode->translation += dir *  ( com_frameTime / 100000.0f );
+				camNode->translation += dir ;
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_R ) ) {
+				camNode->translation += up ;
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_F ) ) {
+				camNode->translation -= up;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_A ) ) {
-				res.translationNode->rotation *= idAngles( ( com_frameTime / 100000.0f ),0, 0 ).ToQuat( );
+				camNode->translation += right;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_D ) ) {
-				res.translationNode->rotation *= idAngles( -( com_frameTime / 100000.0f ),0, 0).ToQuat( );
+				camNode->translation -= right;
 			}
-			res.translationNode->dirty = true;
+			camNode->dirty = true;
 		}
 
 		ImGui::Text( "Camera" );
-		if ( res.translationNode != nullptr && !currentCamera->name.IsEmpty( ) )
+		if ( !currentCamera->name.IsEmpty( ) )
 		{
 			ImGui::SameLine();
 			ImGui::Text( ": %s", currentCamera->name.c_str());
 		}
 		ImGui::Separator( );
-		if ( res.translationNode != nullptr ) {
-			ImGui::Text( "Position" );
-			ImGui::DragFloat3( "##campos", res.translationNode->translation.ToFloatPtr( ) );
-		}
+		ImGui::Text( "Position" );
+		ImGui::DragFloat3( "##campos", camNode->translation.ToFloatPtr( ) );
 		ImGui::Separator( );
 
 		if ( ImGui::BeginPopupContextWindow( ) )         {

@@ -69,6 +69,7 @@ template< class type >
 ID_INLINE type *idListNewElement( void ) {
 	return new type;
 }
+
 /*
 ================
 idListNewElement<type,argType>

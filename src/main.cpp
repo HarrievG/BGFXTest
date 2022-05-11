@@ -26,12 +26,13 @@
 #include "bgfx-stubs/Font/text_buffer_manager.h"
 #include "swf/SWF.h"
 #include "gltf-edit/gltfAnimation.h"
+#include "bgfx-stubs/bgfxDebugRenderer.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
 
 idCVar com_editing( "edit", "0", CVAR_BOOL | CVAR_SYSTEM, "editor mode" );
-idCVar com_sceneName( "sceneName", "skin_AnimTest.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
+idCVar com_sceneName( "sceneName", "trs_AnimTest.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
 idCVar com_showImguiDemo( "ImGui demo", "0", CVAR_BOOL | CVAR_SYSTEM, "draw imgui demo window" );
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
@@ -109,6 +110,7 @@ void main_loop( void *data ) {
 	else
 	{
 		swfTest->Render( Sys_Milliseconds() );
+		bgfxDebugRenderer::Flush();
 		fwRender->render( com_frameTime );
 		gSceneData->Advance();
 		const bgfx::Caps *caps = bgfx::getCaps( );
@@ -353,6 +355,8 @@ int main( int argc, char **argv )
 	context.height = height;
 	context.window = window;
 	
+	bgfxDebugRenderer::CreateRenderer();
+
 	bgfxStartImageLoadThread();
 
 	if ( com_editing.GetBool() )
