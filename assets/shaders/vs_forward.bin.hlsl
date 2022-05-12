@@ -635,7 +635,8 @@ float3 reinhard2(float3 _x, float _whiteSqr)
 return (_x * (1.0 + _x/_whiteSqr) ) / (1.0 + _x);
 }
 uniform float4x4 u_normalMatrix;
-Output main( float3 a_normal : NORMAL , float3 a_position : POSITION , float4 a_tangent : TANGENT , float2 a_texcoord0 : TEXCOORD0) { Output _varying_; _varying_.v_normal; _varying_.v_tangent; _varying_.v_texcoord; _varying_.v_worldpos;
+static float4x4 u_boneMatrices[128];
+Output main( int4 a_indices : BLENDINDICES , float3 a_normal : NORMAL , float3 a_position : POSITION , float4 a_tangent : TANGENT , float2 a_texcoord0 : TEXCOORD0 , float4 a_weight : BLENDWEIGHT) { Output _varying_; _varying_.v_normal; _varying_.v_tangent; _varying_.v_texcoord; _varying_.v_worldpos;
 {
 _varying_.v_worldpos = mul(u_model[0], float4(a_position, 1.0)).xyz;
 _varying_.v_normal = mul(u_normalMatrix, a_normal);

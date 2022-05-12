@@ -1,4 +1,4 @@
-$input a_position, a_normal, a_tangent, a_texcoord0
+$input a_position, a_normal, a_tangent, a_texcoord0, a_weight, a_indices
 $output v_worldpos, v_normal, v_tangent, v_texcoord
 
 
@@ -9,6 +9,7 @@ $output v_worldpos, v_normal, v_tangent, v_texcoord
 // usually this is based on the model view matrix
 // but shading is done in world space
 uniform mat4 u_normalMatrix;
+uniform mat4 u_boneMatrices[128];
 
 void main()
 {

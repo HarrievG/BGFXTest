@@ -212,7 +212,7 @@ public:
 
 class gltfAnimation_Channel_Target {
 public:
-	gltfAnimation_Channel_Target( ) : node( -1 ) { };
+	gltfAnimation_Channel_Target( ) : node( -1 ), TRS( gltfTRS::count ) { };
 	int node;
 	idStr path;
 	idStr extensions;

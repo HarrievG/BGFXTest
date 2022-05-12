@@ -5,6 +5,8 @@
 #include "bgfxRender.h"
 #include "bgfxRenderer.h"
 #include "math.h"
+#include "../idFramework/idlib/containers/List.h"
+#include "..//gltf-edit/gltfProperties.h"
 
 #define ALPHA_EPSILON	0.001f
 
@@ -12,6 +14,22 @@
 #define STENCIL_INCR -2
 
 bgfxDebugRenderer * bgfxDebugRenderer::gDebugRender = nullptr;
+
+
+class SkinnedVertex {
+public:
+	idList< idVec3 > verts;
+	idList< uint16 > indices;
+};
+
+void bgfxDebugRenderer::DrawSkin( gltfNode *node, gltfData *data ) {
+	auto &skinList = data->SkinList( );
+	auto &nodeList = data->NodeList( );
+	auto &meshList = data->MeshList( );
+
+
+
+}
 
 void bgfxDebugRenderer::CreateRenderer( ) {
 	if ( !gDebugRender )

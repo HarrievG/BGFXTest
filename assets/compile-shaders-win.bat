@@ -2,27 +2,7 @@
 
 REM compile shaders
 
-REM simple shader
-REM bin\shadercRelease.exe ^
-REM -f shaders\v_simple.sc -o shaders\v_simple.bin ^
-REM --platform windows --type vertex --verbose -i ./ -p vs_5_0
-REM 
-REM bin\shadercRelease.exe ^
-REM -f shaders\f_simple.sc -o shaders\f_simple.bin ^
-REM --platform windows --type fragment --verbose -i ./ -p ps_5_0
-REM 
-REM bin\shadercRelease.exe ^
-REM -f shaders\fs_bae_textured_physical.sc -o shaders\f_pbr.bin ^
-REM --platform windows --type fragment --verbose -i ./ -p ps_5_0
-REM 
-REM bin\shadercRelease.exe ^
-REM -f shaders\vs_bae_textured_physical.sc -o shaders\v_pbr.bin ^
-REM --platform windows --type vertex --verbose -i ./ -p vs_5_0
-REM 
-REM bin\shadercRelease.exe ^
-REM -f shaders\vs_bae_textured_physical.sc -o shaders\v_pbr.bin ^
-REM --platform windows --type vertex --verbose -i ./ -p vs_5_0
-
+@echo PBR/Tonemapper
 bin\shadercRelease.exe ^
 -f shaders\fs_tonemap.sc -o shaders\fs_tonemap.bin ^
 --platform windows --type fragment --verbose -i ./ -p ps_5_0
@@ -42,6 +22,7 @@ bin\shadercRelease.exe ^
 bin\shadercRelease.exe ^
 -f shaders\cs_multiple_scattering_lut.sc -o shaders\cs_multiple_scattering_lut.bin ^
 --platform windows --type compute --verbose -i ./ -p cs_5_0 --debug -O 0
+@echo =======
 
 @echo SWF
 bin\shadercRelease.exe ^
@@ -50,5 +31,15 @@ bin\shadercRelease.exe ^
 
 bin\shadercRelease.exe ^
 -f shaders\vs_swf.sc -o shaders\vs_swf.bin ^
+--platform windows --type vertex --verbose -i ./ -p vs_5_0 --debug -O 0
+@echo =======
+
+@echo degbugRender
+bin\shadercRelease.exe ^
+-f shaders\fs_debugRender.sc -o shaders\fs_debugRender.bin ^
+--platform windows --type fragment --verbose -i ./ -p ps_5_0 --debug -O 0
+
+bin\shadercRelease.exe ^
+-f shaders\vs_debugRender.sc -o shaders\vs_debugRender.bin ^
 --platform windows --type vertex --verbose -i ./ -p vs_5_0 --debug -O 0
 @echo =======

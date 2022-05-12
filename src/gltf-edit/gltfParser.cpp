@@ -8,6 +8,8 @@
 static const unsigned int gltfChunk_Type_JSON =  0x4E4F534A; //1313821514
 static const unsigned int gltfChunk_Type_BIN =  0x004E4942; //5130562
 
+idCVar gltfParser_PrefixNodeWithID( "gltfParser_PrefixNodeWithID", "1", CVAR_SYSTEM | CVAR_BOOL, "The node's id is prefixed to the node's name during load" );
+
 gltf_sampler_wrap_type_map s_samplerWrapTypeMap[] = {
 	//33071 CLAMP_TO_EDGE
 	33071, BGFX_SAMPLER_U_CLAMP, BGFX_SAMPLER_V_CLAMP,
@@ -61,7 +63,8 @@ gltf_mesh_attribute_map s_meshAttributeMap[] = {
 	"COLOR_1",		bgfx::Attrib::Color1,	4,
 	"COLOR_2",		bgfx::Attrib::Color2,	4,
 	"COLOR_3",		bgfx::Attrib::Color3,	4,
-	"WEIGHTS_0",	bgfx::Attrib::Weight,	1,
+	"WEIGHTS_0",	bgfx::Attrib::Weight,	4,
+	"JOINTS_0",		bgfx::Attrib::Indices,	4,
 	"",				bgfx::Attrib::Count
 };
 bgfx::Attrib::Enum GetAttributeEnum( const char *str , uint * elementSize = nullptr) {
@@ -112,7 +115,6 @@ bgfx::AttribType::Enum GetComponentTypeEnum( int id  , uint * sizeInBytes = null
 	
 	return bgfx::AttribType::Count;
 }
-
 
 //some arbitrary amount for now.
 #define GLTF_MAX_CHUNKS 32
@@ -1684,6 +1686,11 @@ bool GLTF_Parser::Load(idStr filename )
 		for ( auto &node : scene->nodes )
 			SetNodeParent( nodeList[node] );
 
+	//prefix with id 
+	if ( gltfParser_PrefixNodeWithID.GetBool() )
+		for (int i = 0; i < nodeList.Num(); i++)
+			 nodeList[i]->name = "[" + idStr( i ) + "]" + nodeList[i]->name;
+	
 	CreateBgfxData();
 	return true;
 }
@@ -1759,7 +1766,7 @@ void GLTF_Parser::CreateBgfxData( )
 
 							//vtxData[i].abgr = 0xff000000 + ( b << 16 ) + ( g << 8 ) + r;
 						}
-						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+
 						break;
 					}
 					case bgfx::Attrib::Enum::Normal : {
@@ -1770,7 +1777,7 @@ void GLTF_Parser::CreateBgfxData( )
 							if ( attrBv->byteStride )
 								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
 						}
-						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+
 						break;
 					}
 					case bgfx::Attrib::Enum::TexCoord0:{
@@ -1780,7 +1787,7 @@ void GLTF_Parser::CreateBgfxData( )
 							if ( attrBv->byteStride )
 								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
 						}
-						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+
 						break;
 					}
 					case bgfx::Attrib::Enum::Tangent:
@@ -1793,33 +1800,45 @@ void GLTF_Parser::CreateBgfxData( )
 							if ( attrBv->byteStride )
 								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
 						}
-						//vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
 						break;
 					}
 					case bgfx::Attrib::Enum::Weight:
 					{
-						//for ( int i = 0; i < attrAcc->count; i++ ) {
-						//	bin.Read( ( void * ) ( &vtxData[i].weight.x ), attrAcc->typeSize );
-						//	bin.Read( ( void * ) ( &vtxData[i].weight.y ), attrAcc->typeSize );
-						//	bin.Read( ( void * ) ( &vtxData[i].weight.z ), attrAcc->typeSize );
-						//	bin.Read( ( void * ) ( &vtxData[i].weight.w ), attrAcc->typeSize );
-						//	if ( attrBv->byteStride )
-						//		bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
-						//}
-						////vtxLayout.add( attrib->bgfxType, attrib->elementSize, bgfx::AttribType::Float, attrAcc->normalized );
+						for ( int i = 0; i < attrAcc->count; i++ ) {
+							bin.Read( ( void * ) ( &vtxData[i].weight.x ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].weight.y ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].weight.z ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].weight.w ), attrAcc->typeSize );
+							if ( attrBv->byteStride )
+								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
+						}
+						break;
+					}
+
+					case bgfx::Attrib::Enum::Indices:
+					{
+						for ( int i = 0; i < attrAcc->count; i++ ) {
+							bin.Read( ( void * ) ( &vtxData[i].boneIndex.x ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].boneIndex.y ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].boneIndex.z ), attrAcc->typeSize );
+							bin.Read( ( void * ) ( &vtxData[i].boneIndex.w ), attrAcc->typeSize );
+							if ( attrBv->byteStride )
+								bin.Seek( attrBv->byteStride - ( attrib->elementSize * attrAcc->typeSize ), FS_SEEK_CUR );
+						}
 						break;
 					}
 				}
 			}
 
 			vtxLayout.begin( )
-				.add( bgfx::Attrib::Position, 3, bgfx::AttribType::Float )
-				.add( bgfx::Attrib::Normal, 3, bgfx::AttribType::Float )
-				.add( bgfx::Attrib::Tangent, 4, bgfx::AttribType::Float )
-				.add( bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::Position,	3, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::Normal,		3, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::Tangent,	4, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::TexCoord0,	2, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::Weight,		4, bgfx::AttribType::Float )
+				.add( bgfx::Attrib::Indices,	4, bgfx::AttribType::Uint8 )
 				//.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true )
 				.end( );
-			//vtxLayout.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true );
 			vtxLayout.end();
 			if ( vtxData != NULL ) {
 				prim->vertexBufferHandle = bgfx::createVertexBuffer(

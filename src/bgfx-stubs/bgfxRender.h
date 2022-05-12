@@ -12,6 +12,7 @@
 #include "idFramework/idlib/containers/List.h" 
 #include "common.h"
 #include <bx/rng.h>
+#include "idFramework/idlib/math/VectorI.h"
 
 
 // all drawing is done to a 640 x 480 virtual screen size
@@ -97,7 +98,8 @@ struct pbrVertex {
     idVec3 normal;
     idVec4 tangent;
 	idVec2 uv;
-	//idVec4 weight;
+	idVec4 weight;
+	idVec4i boneIndex;
     //idVec3 bitangent;
     //uint32_t abgr;
 };

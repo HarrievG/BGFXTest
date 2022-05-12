@@ -23,11 +23,11 @@ private:
     bgfx::ProgramHandle program = BGFX_INVALID_HANDLE;
 	int					selectedCameraId =0;
 
-	idDrawVert *vtxData;
-	int				vtxCount;
+	idDrawVert			*vtxData;
+	int					vtxCount;
 
-	triIndex_t *idxData;
-	int				idxCount;
-	gltfNode *		targetNode;
+	triIndex_t			*idxData;
+	int					idxCount;
+	gltfNode *			targetNode;
 
 };

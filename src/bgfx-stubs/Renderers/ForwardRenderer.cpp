@@ -1,6 +1,7 @@
 #include "ForwardRenderer.h"
 #include <bx/string.h>
 #include "..\gltf-edit\gltfParser.h"
+#include "../bgfxDebugRenderer.h"
 
 
 idCVar transposetest( "transposetest", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "1 to transpose");
@@ -32,6 +33,7 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 	auto & texList	= data->TextureList();
 	auto & imgList	= data->ImageList();
 	auto & smpList	= data->SamplerList();
+	auto & skinList	= data->SkinList();
 
 	gltfData::ResolveNodeMatrix( node );
 	idMat4 curTrans = trans * node->matrix ;
@@ -60,6 +62,10 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 
 				bgfx::submit( vDefault, program, 0, ~BGFX_DISCARD_BINDINGS );
 			}
+		}
+		if (node->skin != -1 )
+		{
+			bgfxDebugRenderer::Flush();
 		}
 	}
 

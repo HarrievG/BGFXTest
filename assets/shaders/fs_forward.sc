@@ -13,12 +13,11 @@ $input v_worldpos, v_normal, v_tangent, v_texcoord
 #include "lights_punctual.sh"
 
 uniform vec4 u_camPos;
-
 void main()
 {
     PBRMaterial mat = pbrMaterial(v_texcoord);
     // convert normal map from tangent space -> world space (= space of v_tangent, etc.)
-    vec3 N = convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
+    vec3 N =convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
     mat.a = specularAntiAliasing(N, mat.a);
 
     // shading
@@ -74,7 +73,7 @@ void main()
 			if(attenuation > 0.0)
 			{
 				vec3 L = normalize(light.position - fragPos);
-
+		
 				vec3 radianceIn = light.intensity * attenuation;
 				float NoL = saturate(dot(N, L));
 				radianceOut += BRDF(V, L, N, NoV, NoL, mat) * msFactor * radianceIn * NoL;
@@ -94,8 +93,10 @@ void main()
 
 	//normal debug
 	//gl_FragColor.rgb = (v_normal + 1.0) / 2.0;
-	//gl_FragColor.rgb = (N + 1.0) / 2.0; 
+	//gl_FragColor.rgb = (v_normal + N + 1.0) / 2.0; 
 	//gl_FragColor.rgb = v_tangent * 0.5 + vec3_splat(0.5);
-	 
+	//gl_FragColor.rgb= pbrBaseColor(v_texcoord);
+	//gl_FragColor.rgb = vec3_splat(mat.roughness);
+	//gl_FragColor.rgb = vec3_splat(mat.metallic);
 }
 	

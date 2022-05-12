@@ -904,11 +904,17 @@ float innerConeCos;
 float outerConeCos;
 uint type;
 };
+const float GAMMA = 2.2;
+const float INV_GAMMA = 1.0 / 2.2;
 Buffer<float4> b_Lights : register(t[12]);
 const int LightType_Directional = 0;
 const int LightType_Point = 1;
 const int LightType_Spot = 2;
 const int LightType_old = 3;
+float3 linearTosRGB(float3 color)
+{
+return pow(color, vec3_splat(INV_GAMMA));
+}
 Light getLight(uint i)
 {
 int index = 4 * i;
@@ -920,7 +926,7 @@ light.intensity = b_Lights[index + 1].w;
 light.position = b_Lights[index + 2].xyz;
 light.innerConeCos = b_Lights[index + 2].w;
 light.outerConeCos = b_Lights[index + 3].x;
-light.type = b_Lights[index + 3].y;
+light.type = int(b_Lights[index + 3].y);
 return light;
 }
 float getRangeAttenuation(float range, float distance)
@@ -1091,7 +1097,7 @@ void main( float4 gl_FragCoord : SV_POSITION , float3 v_normal : NORMAL , float4
 {
 float4 bgfx_VoidFrag = vec4_splat(0.0);
 PBRMaterial mat = pbrMaterial(v_texcoord);
-float3 N = convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
+float3 N =convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
 mat.a = specularAntiAliasing(N, mat.a);
 float3 camPos = u_camPos.xyz;
 float3 fragPos = v_worldpos;

@@ -186,7 +186,6 @@ void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, i
 }
 bool gltfSceneEditor::Render( bgfxContext_t *context ) 
 {
-
 	if ( !bgfx::isValid( renderTarget.rb ) )
 		renderTarget.rb = bgfx::getTexture(sceneRender->frameBuffer, 0);
 	if (sceneViewOpen )

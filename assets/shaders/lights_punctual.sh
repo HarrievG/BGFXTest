@@ -15,12 +15,22 @@ struct Light
     uint type;
 };
 
+const float GAMMA = 2.2;
+const float INV_GAMMA = 1.0 / 2.2;
+
 BUFFER_RO(b_Lights, vec4, SAMPLER_LIGHTS);
 
 const int LightType_Directional = 0;
 const int LightType_Point = 1;
 const int LightType_Spot = 2;
 const int LightType_old = 3;
+
+// linear to sRGB approximation
+// see http://chilliant.blogspot.com/2012/08/srgb-approximations-for-hlsl.html
+vec3 linearTosRGB(vec3 color)
+{
+	return pow(color, vec3_splat(INV_GAMMA));
+}
 
 Light getLight(uint i)
 {
@@ -37,7 +47,7 @@ Light getLight(uint i)
     light.innerConeCos		=  b_Lights[index + 2].w;
 
     light.outerConeCos		=  b_Lights[index + 3].x;
-    light.type				=  b_Lights[index + 3].y;
+    light.type				=  int(b_Lights[index + 3].y);
 
     return light;
 }

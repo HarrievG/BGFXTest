@@ -6,6 +6,8 @@
 #include "../idFramework/Common.h"
 
 class idDrawVert;
+class gltfNode;
+class gltfData;
 
 class bgfxDebugRenderer {
 public:
@@ -18,6 +20,7 @@ public:
 	static void CreateRenderer( );
 	static bgfxDebugRenderer * gDebugRender;
 	static void Flush( ) { gDebugRender ? gDebugRender->_Flush() : common->DWarning("tried to flush an null Debug Renderer" ); }
+	void DrawSkin( gltfNode * node , gltfData * data );
 private:
 	static const int MAX_INDEXES = ( 20000 * 6 );
 	static const int MAX_VERTS = ( 20000 * 4 );
