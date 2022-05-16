@@ -628,6 +628,5 @@ return (_x * (1.0 + _x/_whiteSqr) ) / (1.0 + _x);
 void main( float4 gl_FragCoord : SV_POSITION , float4 v_color : COLOR0 , out float4 bgfx_FragData0 : SV_TARGET0 )
 {
 float4 bgfx_VoidFrag = vec4_splat(0.0);
-float4 unpackedColor = v_color * ( 1.0f / 255.0f );
 bgfx_FragData0 = v_color;
 }

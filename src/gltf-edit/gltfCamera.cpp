@@ -28,30 +28,25 @@ gltfCameraManager::OverrideEntry & gltfCameraManager::Override( int cameraID ) {
 }
 
 gltfCameraManager::OverrideEntry &gltfCameraManager::Override( gltfCamera *camera ) {
-	gltfCameraNodePtrs res = data->GetCameraNodes( camera );
+	gltfNode * res = data->GetCameraNodes( camera );
 	OverrideEntry &newCam = overrides.Alloc( );
 	newCam.originalCameraID = data->CameraList().FindIndex(camera);
 	newCam.newNodeID = data->NodeList( ).Num( );
-	newCam.originalNodeID = data->NodeList().FindIndex(res.translationNode);
+	newCam.originalNodeID = data->NodeList().FindIndex(res);
 	gltfNode *newCameraNode = data->Node( );
 	
-	newCameraNode->rotation = res.translationNode->rotation;
-	newCameraNode->translation = res.translationNode->translation;
+	//so this is only correct when the camera os not a child of something else.
+	newCameraNode->rotation = res->rotation;
+	newCameraNode->translation = res->translation;
+	newCameraNode->scale = res->scale;
 
 	newCam.newCameraID = data->CameraList( ).Num( );
 	gltfCamera *newCamera = data->Camera( );
 	*newCamera = *camera;
 	newCamera->name = "_override_" + camera->name;
-	newCam.originalCameraID =  res.translationNode->camera;
+	newCam.originalCameraID =  res->camera;
 	newCameraNode->camera = newCam.newCameraID;
-	newCameraNode->name = "_override_" + res.translationNode->name;
-	if ( res.orientationNode ) {
-		newCameraNode->rotation *= res.orientationNode->rotation;
-		newCameraNode->translation += res.orientationNode->translation;
-		newCameraNode->name = "_override_" + res.orientationNode->name;
-		newCam.originalCameraID =  res.orientationNode->camera;
-		newCam.originalNodeID = data->NodeList().FindIndex(res.orientationNode);
-	}
+	newCameraNode->name = "_override_" + res->name;
 	newCameraNode->dirty =true;
 
 	return newCam;

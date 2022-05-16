@@ -1835,8 +1835,8 @@ void GLTF_Parser::CreateBgfxData( )
 				.add( bgfx::Attrib::Normal,		3, bgfx::AttribType::Float )
 				.add( bgfx::Attrib::Tangent,	4, bgfx::AttribType::Float )
 				.add( bgfx::Attrib::TexCoord0,	2, bgfx::AttribType::Float )
-				.add( bgfx::Attrib::Weight,		4, bgfx::AttribType::Float )
-				.add( bgfx::Attrib::Indices,	4, bgfx::AttribType::Uint8 )
+				.add( bgfx::Attrib::Weight,		4, bgfx::AttribType::Float,true )
+				.add( bgfx::Attrib::Indices,	4, bgfx::AttribType::Uint8,false,true )
 				//.add( bgfx::Attrib::Color0, 4, bgfx::AttribType::Uint8, true )
 				.end( );
 			vtxLayout.end();
@@ -1902,9 +1902,8 @@ idList<float> &gltfData::GetAccessorView(gltfAccessor * accessor ) {
 	return *floatView;
 }
 
-template <>
-idList<idMat4 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
-	idList<idMat4 *> *matView = accessor->matView;
+idList<idMat4> &gltfData::GetAccessorViewMat( gltfAccessor *accessor ) {
+	idList<idMat4> *matView = accessor->matView;
 	if ( matView == nullptr ) {
 		gltfBufferView *attrBv = bufferViews[accessor->bufferView];
 		gltfData *attrData = attrBv->parent;
@@ -1915,17 +1914,17 @@ idList<idMat4 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
 			( const char * ) ( ( attrData->GetData( attrBv->buffer ) + attrBv->byteOffset + accessor->byteOffset ) ), attrBv->byteLength );
 
 		size_t elementSize = accessor->typeSize * 16;
-		matView = new idList<idMat4 *>( 16 );
-		matView->AssureSizeAlloc( accessor->count, idListNewElement<idMat4> );
+		matView = new idList<idMat4>( 16 );
+		matView->AssureSize( accessor->count );
 		for ( int i = 0; i < accessor->count; i++ ) {
-			idMat4 *mat = ( *matView )[i];
-			bin.Read( ( void * ) mat->ToFloatPtr(), elementSize);
+			bin.Read( ( void * ) &( *matView )[i] , elementSize);
 		}
 		if ( attrBv->byteStride )
 			bin.Seek( attrBv->byteStride - elementSize, FS_SEEK_CUR );
 	}
 	return *matView;
 }
+
 
 template <>
 idList<idVec3 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {

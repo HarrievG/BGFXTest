@@ -5,7 +5,7 @@
 
 gltfAnimEditor * animEditor = nullptr;
 
-idCVar gltfAnim_timescale( "gltfAnim_timescale", "1", CVAR_FLOAT, "timescale for swf files" );
+idCVar gltfAnim_timescale( "gltfAnim_timescale", "0", CVAR_FLOAT, "timescale for swf files" );
 idCVar r_showSkel( "r_showSkel", "0", CVAR_RENDERER | CVAR_INTEGER, "draw the skeleton when model animates, 1 = draw model with skeleton, 2 = draw skeleton only", 0, 2, idCmdSystem::ArgCompletion_Integer<0, 2> );
 idCVar r_jointNameScale( "r_jointNameScale", "0.02", CVAR_RENDERER | CVAR_FLOAT, "size of joint names when r_showskel is set to 1" );
 idCVar r_jointNameOffset( "r_jointNameOffset", "0.5", CVAR_RENDERER | CVAR_FLOAT, "offset of joint names when r_showskel is set to 1" );
@@ -88,37 +88,45 @@ void gltfData::Advance( gltfAnimation *anim /*= nullptr */ ) {
 						state->lastAnimTime = currentTime;
 						state->startTime = currentTime;
 					}else if ( deltaTime >= frameDelta ) {
-						state->currentFrame += 1;
+						state->currentFrame = nextFrame;
 						state->lastAnimTime = currentTime;
 					}
 
 					switch ( channel->target.TRS ) {
 					case gltfAnimation_Channel_Target::rotation:
 					{
+
 						idList<idQuat*> & values = GetAccessorView<idQuat>(output);
-						switch ( sampler.intType ) {
-						case gltfAnimation_Sampler::linear:
-							target->rotation = target->rotation.Slerp( *values[state->currentFrame], *values[nextFrame], ( 1.0f / frameDelta ) * deltaTime );
-							break;
-						case gltfAnimation_Sampler::step:
+						if ( values.Num( ) == 1 )
 							target->rotation = *values[state->currentFrame];
-							break;
-						case gltfAnimation_Sampler::cubicSpline:
-							common->Warning(" cubicSpline not implemented for TRS rotation" );
-							break;
-						default:
-						case gltfAnimation_Sampler::count:
-							common->Warning(" Unrecognized interpolation type" );
-							break;
+						else {
+							switch ( sampler.intType ) {
+							case gltfAnimation_Sampler::linear:
+								target->rotation = target->rotation.Slerp( *values[state->currentFrame], *values[nextFrame], ( 1.0f / frameDelta ) * deltaTime );
+								break;
+							case gltfAnimation_Sampler::step:
+								target->rotation = *values[state->currentFrame];
+								break;
+							case gltfAnimation_Sampler::cubicSpline:
+								common->Warning( " cubicSpline not implemented for TRS rotation" );
+								break;
+							default:
+							case gltfAnimation_Sampler::count:
+								common->Warning( " Unrecognized interpolation type" );
+								break;
+							}
 						}
 					}	break;
 
 					case  gltfAnimation_Channel_Target::translation:
 					{
 						idList<idVec3*> & values = GetAccessorView<idVec3>(output);
+						if ( values.Num( ) == 1 )
+							target->translation = *values[state->currentFrame];
+						else {
 						switch ( sampler.intType ) {
 						case gltfAnimation_Sampler::linear:
-							target->translation.Lerp(*values[state->currentFrame], *values[nextFrame], ( 1.0f / frameDelta ) * deltaTime );
+							target->translation.Lerp( *values[state->currentFrame], *values[nextFrame], ( 1.0f / frameDelta ) * deltaTime );
 							break;
 						case gltfAnimation_Sampler::step:
 							target->translation = *values[state->currentFrame];
@@ -131,26 +139,29 @@ void gltfData::Advance( gltfAnimation *anim /*= nullptr */ ) {
 							common->Warning( " Unrecognized interpolation type" );
 							break;
 						}
+						}
 					}	break;
 					case  gltfAnimation_Channel_Target::scale:
 					{
 						idList<idVec3*> & values = GetAccessorView<idVec3>(output);
-						switch ( sampler.intType ) {
-
-							break;
-						case gltfAnimation_Sampler::linear:
-							target->scale.Lerp( *values[state->currentFrame], *values[nextFrame], ( 1.0f / frameDelta ) * deltaTime );
-							break;
-						case gltfAnimation_Sampler::step:
+						if ( values.Num() == 1)
 							target->scale = *values[state->currentFrame];
-							break;
-						case gltfAnimation_Sampler::cubicSpline:
-							common->Warning( " cubicSpline not implemented for TRS scale" );
-							break;
-						default:
-						case gltfAnimation_Sampler::count:
-							common->Warning( " Unrecognized interpolation type" );
-							break;
+						else {
+							switch ( sampler.intType ) {
+							case gltfAnimation_Sampler::linear:
+								target->scale.Lerp( *values[state->currentFrame], *values[nextFrame], ( 1.0f / frameDelta ) * deltaTime );
+								break;
+							case gltfAnimation_Sampler::step:
+								target->scale = *values[state->currentFrame];
+								break;
+							case gltfAnimation_Sampler::cubicSpline:
+								common->Warning( " cubicSpline not implemented for TRS scale" );
+								break;
+							default:
+							case gltfAnimation_Sampler::count:
+								common->Warning( " Unrecognized interpolation type" );
+								break;
+							}
 						}
 					}	break;
 					case  gltfAnimation_Channel_Target::weights:
@@ -200,23 +211,23 @@ gltfArticulatedFigure::gltfArticulatedFigure( gltfSkin *skin , gltfData * data) 
 }
 
 void gltfArticulatedFigure::ComputeJoints( ) {
-	auto * invBindMatAcc = currentData->AccessorList()[currentSkin->inverseBindMatrices];
-	idList<idMat4*> &invBindMats = currentData->GetAccessorView<idMat4>(invBindMatAcc);
-	
-	auto & nodeList = currentData->NodeList();
-	int count = 0;
-	for (int joint : currentSkin->joints )
-	{
-		auto * node = nodeList[joint];
-		idMat4 & jointMat = jointMatrices.Alloc();
-		idMat4 * bindMat = invBindMats[count];
+	//auto * invBindMatAcc = currentData->AccessorList()[currentSkin->inverseBindMatrices];
+	//idList<idMat4*> &invBindMats = currentData->GetAccessorView<idMat4>(invBindMatAcc);
+	//
+	//auto & nodeList = currentData->NodeList();
+	//int count = 0;
+	//for (int joint : currentSkin->joints )
+	//{
+	//	auto * node = nodeList[joint];
+	//	idMat4 & jointMat = jointMatrices.Alloc();
+	//	idMat4 * bindMat = invBindMats[count];
 
-		currentData->ResolveNodeMatrix(node);
-		jointMat = node->matrix;
-		jointMatrices.Append( jointMat );
-		jointMat *= *bindMat;
-		count++;
-	}
+	//	currentData->ResolveNodeMatrix(node);
+	//	jointMat = node->matrix;
+	//	jointMat *= *bindMat;
+	//	jointMatrices.Append( jointMat );
+	//	count++;
+	//}
 
 	//this.jointMatrices = [];
 	//this.jointNormalMatrices = [];

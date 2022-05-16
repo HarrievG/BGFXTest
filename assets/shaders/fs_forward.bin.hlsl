@@ -1,5 +1,5 @@
 // shaderc command line:
-// bin\shadercRelease.exe -f shaders\fs_forward.sc -o shaders\fs_forward.bin --platform windows --type fragment --verbose -i ./ -p ps_5_0 --debug -O 0
+// bin\shadercRelease.exe -f shaders\fs_forward.sc -o shaders\fs_forward.bin --platform windows --type fragment --verbose -i ./ -p ps_5_0 --debug -O 0 --define USE_SKINNING
 
 
 float intBitsToFloat(int _x) { return asfloat(_x); }
@@ -683,7 +683,7 @@ uniform SamplerState s_texOcclusionSampler : register(s[4]); uniform Texture2D s
 uniform SamplerState s_texEmissiveSampler : register(s[5]); uniform Texture2D s_texEmissiveTexture : register(t[5]); static BgfxSampler2D s_texEmissive = { s_texEmissiveSampler, s_texEmissiveTexture };
 uniform float4 u_baseColorFactor;
 uniform float4 u_metallicRoughnessNormalOcclusionFactor;
-uniform float4 u_emissiveFactorVec;
+static float4 u_emissiveFactorVec;
 uniform float4 u_hasTextures;
 uniform float4 u_multipleScatteringVec;
 struct PBRMaterial
@@ -851,8 +851,8 @@ float3 Fr = F * (V * D);
 float3 Fd = mat.diffuseColor * Fd_Lambert();
 return Fr + (1.0 - F) * Fd;
 }
-uniform float4 u_lightCountVec;
-uniform float4 u_ambientLightIrradiance;
+static float4 u_lightCountVec;
+static float4 u_ambientLightIrradiance;
 Buffer<float4> b_pointLights : register(t[6]);
 struct PointLight
 {
@@ -1151,4 +1151,5 @@ radianceOut += getAmbientLight().irradiance * mat.diffuseColor * mat.occlusion;
 radianceOut += mat.emissive;
 bgfx_FragData0.rgb = radianceOut;
 bgfx_FragData0.a = mat.albedo.a;
+bgfx_FragData0.rgb= pbrBaseColor(v_texcoord);
 }

@@ -35,6 +35,7 @@ void Renderer::initialize()
 	normalMatrixUniform = bgfx::createUniform("u_normalMatrix", bgfx::UniformType::Mat4);
 	exposureVecUniform = bgfx::createUniform("u_exposureVec", bgfx::UniformType::Vec4);
 	tonemappingModeVecUniform = bgfx::createUniform("u_tonemappingModeVec", bgfx::UniformType::Vec4);
+	boneMatricesUniform = bgfx::createUniform("u_boneMatrices", bgfx::UniformType::Mat4,128);
 
 	// triangle used for blitting
 	constexpr float BOTTOM = -1.0f, TOP = 3.0f, LEFT = -1.0f, RIGHT = 3.0f;
@@ -161,6 +162,7 @@ bool Renderer::supported()
 void Renderer::setViewProjection(bgfx::ViewId view)
 {
 	idMat4 curTrans = data->GetViewMatrix( camId );
+
 	idVec3 idup = idVec3( curTrans[0][1], curTrans[1][1], curTrans[2][1] );
 	idVec3 forward = idVec3( -curTrans[0][2], -curTrans[1][2], -curTrans[2][2] );
 	idVec3 pos = idVec3( curTrans[0][3], curTrans[1][3], curTrans[2][3] );
@@ -171,8 +173,8 @@ void Renderer::setViewProjection(bgfx::ViewId view)
 	bx::Vec3 up = bx::Vec3( idup.x, idup.y, idup.z );
 	bx::mtxLookAt( viewMat.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
 
-	if ( data->cameraManager->HasOverideID(camId) )
-		camId = data->cameraManager->GetOverride(camId).newCameraID;
+	if ( data->cameraManager->HasOverideID( camId ) )
+		camId = data->cameraManager->GetOverride( camId ).newCameraID;
 
 	gltfCamera_Perspective &sceneCam = data->CameraList( )[camId]->perspective;
 	bx::mtxProj( projMat.ToFloatPtr( ), RAD2DEG( sceneCam.yfov ), sceneCam.aspectRatio, sceneCam.znear, sceneCam.zfar, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
@@ -184,12 +186,12 @@ void Renderer::setNormalMatrix(const idMat4& modelMat)
 {
 	// usually the normal matrix is based on the model view matrix
 	// but shading is done in world space (not eye space) so it's just the model matrix
-	idMat4 modelViewMat = viewMat * modelMat;
+	idMat4 modelViewMat = viewMat *modelMat;
 
 	// if we don't do non-uniform scaling, the normal matrix is the same as the model-view matrix
 	// (only the magnitude of the normal is changed, but we normalize either way)
 	//glm::mat3 normalMat = glm::mat3(modelMat);
-
+	
 	// use adjugate instead of inverse
 	// see https://github.com/graphitemaster/normals_revisited#the-details-of-transforming-normals
 	// cofactor is the transpose of the adjugate
@@ -200,6 +202,39 @@ void Renderer::setNormalMatrix(const idMat4& modelMat)
 	//idMat4 normalMat = modelViewMat;
 
 	bgfx::setUniform(normalMatrixUniform, modelViewMat.ToFloatPtr());
+}
+
+
+void Renderer::setSkinningMatrix( gltfSkin *skin,gltfAccessor * acc ) {
+
+	idList<idMat4> values = data->GetAccessorViewMat(acc);
+
+	auto &nodeList = data->NodeList( );
+	int count = 0;
+	idMat4 last;
+	
+	if ( skin->skeleton == -1 )
+		skin->skeleton = skin->joints[0];
+
+	gltfNode *root = nodeList[skin->skeleton];
+
+	for ( int joint : skin->joints ) {
+		auto *node = nodeList[joint];
+		idMat4 * bindMat = &values[count];
+		bindMat->TransposeSelf();
+
+		data->ResolveNodeMatrix( node,bindMat,root);
+		auto * nodePtr = node->parent;
+		if ( nodePtr && count > 1 ) {
+			idMat4 worldTrans = mat4_identity;
+			data->ResolveNodeMatrix( nodePtr );
+			*bindMat *= nodePtr->matrix.Inverse( );
+		}
+
+		bindMat->TransposeSelf();
+		count++;
+	}
+	bgfx::setUniform(boneMatricesUniform, values.Ptr(),values.Num());
 }
 
 void Renderer::blitToScreen(bgfx::ViewId view)

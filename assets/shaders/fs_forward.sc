@@ -95,7 +95,7 @@ void main()
 	//gl_FragColor.rgb = (v_normal + 1.0) / 2.0;
 	//gl_FragColor.rgb = (v_normal + N + 1.0) / 2.0; 
 	//gl_FragColor.rgb = v_tangent * 0.5 + vec3_splat(0.5);
-	//gl_FragColor.rgb= pbrBaseColor(v_texcoord);
+	gl_FragColor.rgb= pbrBaseColor(v_texcoord);
 	//gl_FragColor.rgb = vec3_splat(mat.roughness);
 	//gl_FragColor.rgb = vec3_splat(mat.metallic);
 }

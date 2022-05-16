@@ -356,7 +356,7 @@ public:
 	idList<float>   * floatView;
 	idList<idVec3*> * vecView;
 	idList<idQuat*> * quatView;
-	idList<idMat4*> * matView;
+	idList<idMat4> * matView;
 };
 
 class gltfBufferView {
@@ -608,7 +608,7 @@ public:
 	//This is determined by checking for an "_Orientation" suffix to the camera name of the node that has the target camera assigned. 
 	// if so, translate node will be set to the parent node of the orientation node.
 	//Note: does not take overides into account!
-	gltfCameraNodePtrs GetCameraNodes( gltfCamera *camera )
+	gltfNode* GetCameraNodes( gltfCamera *camera )
 	{
 		gltfCameraNodePtrs result;
 
@@ -624,23 +624,10 @@ public:
 		for ( int i = 0; i < nodes.Num( ); i++ )
 		{
 			if ( nodes[i]->camera != -1 && nodes[i]->camera == camId ) 
-			{
-				gltfNode * tmp = nodes[i];
-
-				result.translationNode = tmp;
-				if ( nodes[i]->name.Find( "_Orientation" ) != -1 )
-				{
-					gltfNode * tmp = nodes[i];
-					result.orientationNode = nodes[i];
-					result.translationNode = nodes[i]->parent;
-				}
-				else
-					result.orientationNode = nullptr;
-
-				return result;
-			}
+				return nodes[i];
 		}
-		return result;
+
+		return nullptr;
 	}
 
 	idMat4 GetViewMatrix( int camId ) const
@@ -702,12 +689,14 @@ public:
 
 		return result;
 	}
-		
+	
+	// v * T * R * S. ->row major
+	// v' = S * R * T * v -> column major;
 	//bgfx = column-major
 	//idmath = row major, except mat3
 	//gltf matrices : column-major.
-	//if mat* is valid , it will be multplied by this node's matrix that is resolved in its full hiararchy.
-	static void ResolveNodeMatrix( gltfNode *node, idMat4 *mat = nullptr ) 
+	//if mat* is valid , it will be multplied by this node's matrix that is resolved in its full hiararchy and stops at root.
+	static void ResolveNodeMatrix( gltfNode *node, idMat4 *mat = nullptr ,gltfNode *root = nullptr ) 
 	{
 		if ( node->dirty ) 
 		{
@@ -717,7 +706,7 @@ public:
 				0, 0, node->scale.z, 0,
 				0, 0, 0, 1
 			);
-
+			
 			node->matrix = idMat4( mat3_identity, node->translation ) * node->rotation.ToMat4( ).Transpose( ) * scaleMat;
 
 			node->dirty = false;
@@ -728,7 +717,10 @@ public:
 			idList<gltfNode *> hierachy(2);
 			gltfNode *parent = node;
 			while ( parent ) {
+				ResolveNodeMatrix(parent);
 				hierachy.Append( parent );
+				if ( parent == root )
+					break;
 				parent = parent->parent;
 			}
 			for ( int i = hierachy.Num( ) - 1; i >= 0; i-- )
@@ -742,6 +734,7 @@ public:
 	template <class T>
 	idList<T*> &GetAccessorView( gltfAccessor *accessor );
 	idList<float> &GetAccessorView( gltfAccessor *accessor );
+	idList<idMat4> &GetAccessorViewMat( gltfAccessor *accessor );
 
 	int &DefaultScene( ) { return scene; }
 	GLTFCACHEITEM( Buffer, buffers )

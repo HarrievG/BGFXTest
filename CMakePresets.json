@@ -35,7 +35,11 @@
 			"name": "x64-release",
 			"displayName": "x64 Release",
 			"description": "Sets release build type",
-			"inherits": "x64-debug",
+			"inherits": "base",
+			"architecture": {
+				"value": "x64",
+				"strategy": "external"
+			},
 			"cacheVariables": {
 				"CMAKE_BUILD_TYPE": "Release"
 			}

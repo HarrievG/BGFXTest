@@ -19,6 +19,9 @@ bool ForwardRenderer::supported()
 
 void ForwardRenderer::onInitialize()
 {
+
+
+
 	bgfx::ShaderHandle vsh		= bgfxCreateShader("shaders/vs_forward.bin","vshader" );
 	bgfx::ShaderHandle fsh		= bgfxCreateShader( "shaders/fs_forward.bin", "fsshader" );
 	program = bgfx::createProgram( vsh, fsh, true );
@@ -52,6 +55,14 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 			else
 				setNormalMatrix(curTrans);
 
+			if ( node->skin != -1 ) {
+				auto *skin = data->SkinList( )[node->skin];
+				auto *acc = data->AccessorList( )[skin->inverseBindMatrices];
+
+				setSkinningMatrix( skin, acc );
+				//bgfxDebugRenderer::Flush();
+			}
+
 			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
 			bgfx::setIndexBuffer( prim->indexBufferHandle );
 			if ( prim->material != -1 ) 			{
@@ -63,10 +74,7 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 				bgfx::submit( vDefault, program, 0, ~BGFX_DISCARD_BINDINGS );
 			}
 		}
-		if (node->skin != -1 )
-		{
-			bgfxDebugRenderer::Flush();
-		}
+
 	}
 
 

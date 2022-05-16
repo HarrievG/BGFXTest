@@ -1,5 +1,5 @@
 // shaderc command line:
-// bin\shadercRelease.exe -f shaders\cs_multiple_scattering_lut.sc -o shaders\cs_multiple_scattering_lut.bin --platform windows --type compute --verbose -i ./ -p cs_5_0 --debug -O 0
+// bin\shadercRelease.exe -f shaders\cs_multiple_scattering_lut.sc -o shaders\cs_multiple_scattering_lut.bin --platform windows --type compute --verbose -i ./ -p cs_5_0 --debug -O 0 --define USE_SKINNING
 
 float intBitsToFloat(int _x) { return asfloat(_x); }
 float2 intBitsToFloat(uint2 _x) { return asfloat(_x); }
