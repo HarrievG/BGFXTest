@@ -651,15 +651,19 @@ float4x4 skin = float4x4(float4(1.0,0.0,0.0,0.0),float4(0.0,1.0,0.0,0.0),float4(
 return skin;
 }
 uniform float4x4 u_normalMatrix;
+uniform float4 u_vertexOptions;
 float4 getPosition(float3 _position, int4 _indices, float4 _weights)
 {
+if(((uint(u_vertexOptions.x) & (1 << 0)) != 0))
 return mul(getSkinningMatrix(_indices,_weights) ,float4(_position, 1.0));
+else
+return float4(_position,1);
 return float4(_position,1);
 }
 Output main( int4 a_indices : BLENDINDICES , float3 a_normal : NORMAL , float3 a_position : POSITION , float4 a_tangent : TANGENT , float2 a_texcoord0 : TEXCOORD0 , float4 a_weight : BLENDWEIGHT) { Output _varying_; _varying_.v_normal; _varying_.v_tangent; _varying_.v_texcoord; _varying_.v_worldpos;
 {
 float4 target = getPosition(a_position,a_indices,a_weight);
-float3 pos = target.xyz / target.w;
+float3 pos = target.xyz;
 _varying_.v_worldpos = mul(u_model[0], pos );
 _varying_.v_normal = mul(u_normalMatrix, a_normal);
 _varying_.v_tangent = mul(u_model[0],a_tangent.xyz);

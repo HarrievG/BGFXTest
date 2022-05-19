@@ -683,7 +683,7 @@ uniform SamplerState s_texOcclusionSampler : register(s[4]); uniform Texture2D s
 uniform SamplerState s_texEmissiveSampler : register(s[5]); uniform Texture2D s_texEmissiveTexture : register(t[5]); static BgfxSampler2D s_texEmissive = { s_texEmissiveSampler, s_texEmissiveTexture };
 uniform float4 u_baseColorFactor;
 uniform float4 u_metallicRoughnessNormalOcclusionFactor;
-static float4 u_emissiveFactorVec;
+uniform float4 u_emissiveFactorVec;
 uniform float4 u_hasTextures;
 uniform float4 u_multipleScatteringVec;
 struct PBRMaterial
@@ -851,8 +851,8 @@ float3 Fr = F * (V * D);
 float3 Fd = mat.diffuseColor * Fd_Lambert();
 return Fr + (1.0 - F) * Fd;
 }
-static float4 u_lightCountVec;
-static float4 u_ambientLightIrradiance;
+uniform float4 u_lightCountVec;
+uniform float4 u_ambientLightIrradiance;
 Buffer<float4> b_pointLights : register(t[6]);
 struct PointLight
 {
@@ -1092,6 +1092,7 @@ modelScale.y = length(float3(modelMatrix[1].xyz));
 modelScale.z = length(float3(modelMatrix[2].xyz));
 return normalize(refractionVector) * thickness * modelScale;
 }
+uniform float4 u_fragmentOptions;
 uniform float4 u_camPos;
 void main( float4 gl_FragCoord : SV_POSITION , float3 v_normal : NORMAL , float4 v_tangent : TANGENT , float2 v_texcoord : TEXCOORD0 , float3 v_worldpos : POSITION1 , out float4 bgfx_FragData0 : SV_TARGET0 )
 {
@@ -1151,5 +1152,10 @@ radianceOut += getAmbientLight().irradiance * mat.diffuseColor * mat.occlusion;
 radianceOut += mat.emissive;
 bgfx_FragData0.rgb = radianceOut;
 bgfx_FragData0.a = mat.albedo.a;
-bgfx_FragData0.rgb= pbrBaseColor(v_texcoord);
+if (((uint(u_fragmentOptions.x) & (1 << 2)) != 0))
+bgfx_FragData0.rgb = (v_normal + 1.0) / 2.0;
+if (((uint(u_fragmentOptions.x) & (1 << 3)) != 0))
+bgfx_FragData0.rgb = ( mat.normal + 1.0) / 2.0;
+if (((uint(u_fragmentOptions.x) & (1 << 1)) != 0))
+bgfx_FragData0.rgb = pbrBaseColor(v_texcoord);
 }

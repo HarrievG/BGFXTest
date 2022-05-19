@@ -421,17 +421,19 @@ void gltfSceneEditor::DrawCameraInfo( gltfCamera *camera )
 	ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
 	if ( ImGui::Begin( "Camera info", &p_open, window_flags ) && selectedCameraId != -1) {
 	
-		auto &camManager = *editorData->cameraManager;
-		auto camOverride = camManager.GetOverride( selectedCameraId );
-		if ( camOverride == camManager.EmptOverrideEntry ) {
-			if ( !camManager.IsOverride( selectedCameraId ) )
-				camOverride = camManager.Override( selectedCameraId );
-			else
-				camOverride = camManager.GetOverride( selectedCameraId, true );
-		}
-
-		auto *camNode = currentData->NodeList( )[camOverride.newNodeID];
-		idMat4 camMat = currentData->GetViewMatrix( camOverride.newCameraID ).Transpose( );
+		//auto &camManager = *editorData->cameraManager;
+		//auto camOverride = camManager.GetOverride( selectedCameraId );
+		//if ( camOverride == camManager.EmptOverrideEntry ) {
+		//	if ( !camManager.IsOverride( selectedCameraId ) )
+		//		camOverride = camManager.Override( selectedCameraId );
+		//	else
+		//		camOverride = camManager.GetOverride( selectedCameraId, true );
+		//}
+		//
+		//auto *camNode = currentData->NodeList( )[camOverride.newNodeID];
+		//idMat4 camMat = currentData->GetViewMatrix( camOverride.newCameraID ).Transpose( );
+		auto *camNode = editorData->cameraManager->GetOwner(selectedCameraId);
+		idMat4 camMat = currentData->GetViewMatrix( selectedCameraId ).Transpose( );
 
 		idVec3 mouseDir = idVec3( io.MouseDelta.x, 0.0f, io.MouseDelta.y );
 		mouseDir.Normalize( );
@@ -578,6 +580,8 @@ void gltfSceneEditor::DrawSceneList()
 					for ( auto &scene : scenes )
 					{
 						bool selected = selectedScene == scene;
+						selectedSceneId = sceneCount;
+
 						ImGui::PushID( sceneCount++ );
 						if ( ImGui::Selectable( scene->name.Length( ) ? scene->name.c_str( ) : data->FileName( ).c_str( ), selected ) )
 						{

@@ -1879,7 +1879,7 @@ void GLTF_Parser::CreateBgfxData( )
 }
 
 idList<float> &gltfData::GetAccessorView(gltfAccessor * accessor ) {
-	idList<float> * floatView = accessor->floatView;;
+	idList<float> *&floatView = accessor->floatView;;
 	
 	if ( floatView == nullptr )
 	{
@@ -1903,7 +1903,7 @@ idList<float> &gltfData::GetAccessorView(gltfAccessor * accessor ) {
 }
 
 idList<idMat4> &gltfData::GetAccessorViewMat( gltfAccessor *accessor ) {
-	idList<idMat4> *matView = accessor->matView;
+	idList<idMat4> *&matView = accessor->matView;
 	if ( matView == nullptr ) {
 		gltfBufferView *attrBv = bufferViews[accessor->bufferView];
 		gltfData *attrData = attrBv->parent;
@@ -1928,7 +1928,7 @@ idList<idMat4> &gltfData::GetAccessorViewMat( gltfAccessor *accessor ) {
 
 template <>
 idList<idVec3 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
-	idList<idVec3 *> *vecView = accessor->vecView;
+	idList<idVec3 *> *&vecView = accessor->vecView;
 
 	if ( vecView == nullptr ) {
 		gltfBufferView *attrBv = bufferViews[accessor->bufferView];
@@ -1955,7 +1955,7 @@ idList<idVec3 *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
 
 template <>
 idList<idQuat *> &gltfData::GetAccessorView( gltfAccessor *accessor ) {
-	idList<idQuat *> *quatView = accessor->quatView;
+	idList<idQuat *> *&quatView = accessor->quatView;
 
 	if ( quatView == nullptr ) {
 		gltfBufferView *attrBv = bufferViews[accessor->bufferView];

@@ -10,6 +10,11 @@
 idCVar r_multipleScatteringEnabled( "r_multipleScatteringEnabled", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "1 to r_multipleScatteringEnabled" );
 idCVar r_whiteFurnaceEnabled( "r_whiteFurnaceEnabled", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "1 to r_whiteFurnaceEnabled" );
 
+idCVar r_pbrDebug( "r_pbrDebug", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "" );
+idCVar r_pbrDebugDrawNormals( "r_pbrDebugDrawNormals", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "" );
+idCVar r_pbrDebugDrawNormalsMat( "r_pbrDebugDrawNormalsMat", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "" );
+idCVar r_pbrDebugDrawBaseColour( "r_pbrDebugDrawBaseColour", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "" );
+
 void PBRShader::initialize( ) {
 	baseColorFactorUniform =
 		bgfx::createUniform( "u_baseColorFactor", bgfx::UniformType::Vec4 );
@@ -21,6 +26,8 @@ void PBRShader::initialize( ) {
 		bgfx::createUniform( "u_hasTextures", bgfx::UniformType::Vec4 );
 	multipleScatteringUniform =
 		bgfx::createUniform( "u_multipleScatteringVec", bgfx::UniformType::Vec4 );
+	fragmentOptionsUniform =
+		bgfx::createUniform( "u_fragmentOptions", bgfx::UniformType::Vec4 );
 	albedoLUTSampler =
 		bgfx::createUniform( "s_texAlbedoLUT", bgfx::UniformType::Sampler );
 	baseColorSampler =
@@ -33,6 +40,7 @@ void PBRShader::initialize( ) {
 		bgfx::createUniform( "s_texOcclusion", bgfx::UniformType::Sampler );
 	emissiveSampler =
 		bgfx::createUniform( "s_texEmissive", bgfx::UniformType::Sampler );
+
 
 	defaultTexture = bgfx::createTexture2D( 1, 1, false, 1, bgfx::TextureFormat::RGBA8 );
 	albedoLUTTexture = bgfx::createTexture2D( ALBEDO_LUT_SIZE,
@@ -52,6 +60,7 @@ void PBRShader::shutdown( ) {
 	bgfx::destroy( emissiveFactorUniform );
 	bgfx::destroy( hasTexturesUniform );
 	bgfx::destroy( multipleScatteringUniform );
+	bgfx::destroy( fragmentOptionsUniform );
 	bgfx::destroy( albedoLUTSampler );
 	bgfx::destroy( baseColorSampler );
 	bgfx::destroy( metallicRoughnessSampler );
@@ -62,7 +71,7 @@ void PBRShader::shutdown( ) {
 	bgfx::destroy( defaultTexture );
 	bgfx::destroy( albedoLUTProgram );
 
-	baseColorFactorUniform = metallicRoughnessNormalOcclusionFactorUniform = emissiveFactorUniform =
+	fragmentOptionsUniform = baseColorFactorUniform = metallicRoughnessNormalOcclusionFactorUniform = emissiveFactorUniform =
 		hasTexturesUniform = multipleScatteringUniform = albedoLUTSampler = baseColorSampler =
 		metallicRoughnessSampler = normalSampler = occlusionSampler = emissiveSampler = BGFX_INVALID_HANDLE;
 	albedoLUTTexture = defaultTexture = BGFX_INVALID_HANDLE;
@@ -159,6 +168,17 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 		state |= BGFX_STATE_BLEND_ALPHA;
 	if ( !material->doubleSided )
 		state |= BGFX_STATE_CULL_CW;
+
+	float fragmentOptions[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+	uint32_t fragmentOptionsMask = 0;
+	
+	fragmentOptionsMask |= r_pbrDebug.GetBool()					? (1 << 0) : 0;
+	fragmentOptionsMask |= r_pbrDebugDrawBaseColour.GetBool()	? (1 << 1) : 0;
+	fragmentOptionsMask |= r_pbrDebugDrawNormals.GetBool()		? (1 << 2) : 0;
+	fragmentOptionsMask |= r_pbrDebugDrawNormalsMat.GetBool()	? (1 << 3) : 0;
+	fragmentOptions[0] = static_cast< float >( fragmentOptionsMask );
+	bgfx::setUniform( fragmentOptionsUniform, fragmentOptions );
+
 	return state;
 }
 

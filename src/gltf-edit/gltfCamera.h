@@ -29,6 +29,8 @@ public:
 	bool HasOverideID( int cameraID ) ;
 	bool IsOverride( int cameraID );
 	bool IsEmtpy( const OverrideEntry & entry );
+
+	gltfNode * GetOwner( int cameraID ) const ;
 	OverrideEntry EmptOverrideEntry;
 private:
 	gltfData *data;

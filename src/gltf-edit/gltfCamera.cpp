@@ -29,6 +29,9 @@ gltfCameraManager::OverrideEntry & gltfCameraManager::Override( int cameraID ) {
 
 gltfCameraManager::OverrideEntry &gltfCameraManager::Override( gltfCamera *camera ) {
 	gltfNode * res = data->GetCameraNodes( camera );
+	if (res)
+		res = new gltfNode( );
+
 	OverrideEntry &newCam = overrides.Alloc( );
 	newCam.originalCameraID = data->CameraList().FindIndex(camera);
 	newCam.newNodeID = data->NodeList( ).Num( );
@@ -79,5 +82,15 @@ bool gltfCameraManager::IsOverride( int cameraID ) {
 
 bool gltfCameraManager::IsEmtpy( const OverrideEntry &entry ) {
 	return entry == gltfCameraManager::EmptOverrideEntry;
+}
+
+gltfNode *gltfCameraManager::GetOwner( int cameraID ) const {
+	auto & nodeList = data->NodeList();
+	for (auto * node : nodeList )
+	{
+		if (node->camera == cameraID)
+			return node;
+	}
+	return nullptr;
 }
 

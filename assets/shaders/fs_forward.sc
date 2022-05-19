@@ -12,6 +12,13 @@ $input v_worldpos, v_normal, v_tangent, v_texcoord
 #include "lights.sh"
 #include "lights_punctual.sh"
 
+uniform vec4 u_fragmentOptions;
+
+#define u_pbrDebug					((uint(u_fragmentOptions.x) & (1 << 0)) != 0)
+#define u_pbrDebugDrawBaseColour	((uint(u_fragmentOptions.x) & (1 << 1)) != 0)
+#define u_pbrDebugDrawNormals		((uint(u_fragmentOptions.x) & (1 << 2)) != 0)
+#define u_pbrDebugDrawNormalsMat	((uint(u_fragmentOptions.x) & (1 << 3)) != 0)
+
 uniform vec4 u_camPos;
 void main()
 {
@@ -91,11 +98,20 @@ void main()
     gl_FragColor.rgb = radianceOut;
     gl_FragColor.a = mat.albedo.a;
 
+
 	//normal debug
+	if (u_pbrDebugDrawNormals)
+		gl_FragColor.rgb = (v_normal + 1.0) / 2.0;
+	if (u_pbrDebugDrawNormalsMat)
+		gl_FragColor.rgb = ( mat.normal + 1.0) / 2.0; 
+
 	//gl_FragColor.rgb = (v_normal + 1.0) / 2.0;
-	//gl_FragColor.rgb = (v_normal + N + 1.0) / 2.0; 
+
 	//gl_FragColor.rgb = v_tangent * 0.5 + vec3_splat(0.5);
-	gl_FragColor.rgb= pbrBaseColor(v_texcoord);
+
+	if (u_pbrDebugDrawBaseColour)
+		gl_FragColor.rgb = pbrBaseColor(v_texcoord);
+	
 	//gl_FragColor.rgb = vec3_splat(mat.roughness);
 	//gl_FragColor.rgb = vec3_splat(mat.metallic);
 }

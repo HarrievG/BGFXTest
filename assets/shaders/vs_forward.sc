@@ -11,6 +11,9 @@ $output v_worldpos, v_normal, v_tangent, v_texcoord
 // usually this is based on the model view matrix
 // but shading is done in world space
 uniform mat4 u_normalMatrix;
+uniform vec4 u_vertexOptions;
+
+#define u_HasBones		((uint(u_vertexOptions.x) & (1 << 0)) != 0)
 
 vec4 getPosition(vec3 _position, int4 _indices, vec4 _weights)
 {
@@ -19,7 +22,10 @@ vec4 getPosition(vec3 _position, int4 _indices, vec4 _weights)
 #endif
 
 #ifdef USE_SKINNING
-	return mul(getSkinningMatrix(_indices,_weights) ,vec4(_position, 1.0));
+	if(u_HasBones)
+		return mul(getSkinningMatrix(_indices,_weights) ,vec4(_position, 1.0));
+	else
+		return vec4(_position,1);
 #endif
 	return vec4(_position,1);
 }

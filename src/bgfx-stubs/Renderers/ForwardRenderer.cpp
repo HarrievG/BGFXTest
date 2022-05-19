@@ -48,6 +48,9 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 	{
 		for ( auto prim : meshList[node->mesh]->primitives )
 		{
+			float vertexOptions[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+			uint32_t vertexOptionsMask = 0;
+
 			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
 
 			if(transposetest.GetInteger() == 1)
@@ -60,9 +63,13 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 				auto *acc = data->AccessorList( )[skin->inverseBindMatrices];
 
 				setSkinningMatrix( skin, acc );
-				//bgfxDebugRenderer::Flush();
+				
+				vertexOptionsMask |= 1 << 0 ;
 			}
 
+			vertexOptions[0] = static_cast< float >( vertexOptionsMask );
+			bgfx::setUniform( vertexOptionsUniform , vertexOptions );
+			
 			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
 			bgfx::setIndexBuffer( prim->indexBufferHandle );
 			if ( prim->material != -1 ) 			{

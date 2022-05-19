@@ -115,6 +115,7 @@ protected:
 	int				idxCount;
 
 	bgfx::VertexBufferHandle blitTriangleBuffer = BGFX_INVALID_HANDLE;
+	bgfx::UniformHandle vertexOptionsUniform = BGFX_INVALID_HANDLE;
 private:
 
 	bgfx::ProgramHandle blitProgram = BGFX_INVALID_HANDLE;
@@ -124,5 +125,6 @@ private:
 	bgfx::UniformHandle exposureVecUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle tonemappingModeVecUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle boneMatricesUniform = BGFX_INVALID_HANDLE;
+
 
 };

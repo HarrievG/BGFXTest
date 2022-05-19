@@ -41,7 +41,7 @@ private:
 	gltfCamera *		currentCamera;
 	gltfData *			editorData;
 	int					selectedCameraId;
-
+	int					selectedSceneId;
 	//HVG_TODO -> Use hash index
 	//bgfxModelList		renderModels; 
 	idStrList			modelNames;

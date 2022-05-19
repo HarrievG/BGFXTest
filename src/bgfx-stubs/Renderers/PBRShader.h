@@ -34,6 +34,7 @@ private:
 	bgfx::UniformHandle normalSampler = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle occlusionSampler = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle emissiveSampler = BGFX_INVALID_HANDLE;
+	bgfx::UniformHandle fragmentOptionsUniform = BGFX_INVALID_HANDLE;
 
 	bgfx::TextureHandle albedoLUTTexture = BGFX_INVALID_HANDLE;
 	bgfx::TextureHandle defaultTexture = BGFX_INVALID_HANDLE;

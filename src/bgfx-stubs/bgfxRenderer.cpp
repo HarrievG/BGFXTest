@@ -36,7 +36,8 @@ void Renderer::initialize()
 	exposureVecUniform = bgfx::createUniform("u_exposureVec", bgfx::UniformType::Vec4);
 	tonemappingModeVecUniform = bgfx::createUniform("u_tonemappingModeVec", bgfx::UniformType::Vec4);
 	boneMatricesUniform = bgfx::createUniform("u_boneMatrices", bgfx::UniformType::Mat4,128);
-
+	vertexOptionsUniform = bgfx::createUniform("u_vertexOptions", bgfx::UniformType::Vec4);
+	
 	// triangle used for blitting
 	constexpr float BOTTOM = -1.0f, TOP = 3.0f, LEFT = -1.0f, RIGHT = 3.0f;
 	const PosVertex vertices[3] = { { LEFT, BOTTOM, 0.0f }, { RIGHT, BOTTOM, 0.0f }, { LEFT, TOP, 0.0f } };
@@ -173,9 +174,20 @@ void Renderer::setViewProjection(bgfx::ViewId view)
 	bx::Vec3 up = bx::Vec3( idup.x, idup.y, idup.z );
 	bx::mtxLookAt( viewMat.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
 
-	if ( data->cameraManager->HasOverideID( camId ) )
-		camId = data->cameraManager->GetOverride( camId ).newCameraID;
+	//if ( data->cameraManager->HasOverideID( camId ) )
+	//	camId = data->cameraManager->GetOverride( camId ).newCameraID;
 
+	//if (!camId && !data->CameraList().Num())
+	//{
+	//	auto * newCam = data->Camera();
+	//	newCam->perspective.aspectRatio = 1920.0/1080.0;
+	//	newCam->perspective.yfov = 90;
+	//	newCam->perspective.zfar = 100000;
+	//	newCam->perspective.znear = 0;
+	//	//note to self. stop modifying gltfData!
+	//	auto * newNode = data->Node();
+
+	//}
 	gltfCamera_Perspective &sceneCam = data->CameraList( )[camId]->perspective;
 	bx::mtxProj( projMat.ToFloatPtr( ), RAD2DEG( sceneCam.yfov ), sceneCam.aspectRatio, sceneCam.znear, sceneCam.zfar, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
 	bgfx::setViewTransform( view, viewMat.ToFloatPtr( ), projMat.ToFloatPtr( ) );
