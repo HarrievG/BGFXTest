@@ -89,7 +89,7 @@ protected:
 
 	void setViewProjection(bgfx::ViewId view);
 	void setNormalMatrix(const idMat4& modelMat);
-	void setSkinningMatrix( gltfSkin *skin,gltfAccessor * acc );
+	void setSkinningMatrix( gltfSkin *skin,gltfAccessor * acc);
 	void blitToScreen(bgfx::ViewId view = MAX_VIEW);
 
 	static bgfx::TextureFormat::Enum findDepthFormat(unsigned long long textureFlags, bool stencil = false);

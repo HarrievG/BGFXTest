@@ -108,7 +108,7 @@ public:
 class gltfNode {
 public:
 	gltfNode( ) : camera( -1 ), skin( -1 ), matrix( mat4_zero ),
-		mesh( -1 ), rotation( 0.f, 0.f, 0.f, 0.f ), scale( 1.f, 1.f, 1.f ),
+		mesh( -1 ), rotation( 0.f, 0.f, 0.f, 1.f ), scale( 1.f, 1.f, 1.f ),
 		translation( vec3_zero ), parent( nullptr ), dirty( true ) { }
 	int						camera;
 	idList<int>				children;

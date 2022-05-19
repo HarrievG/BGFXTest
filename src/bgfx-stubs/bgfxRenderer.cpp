@@ -206,35 +206,28 @@ void Renderer::setNormalMatrix(const idMat4& modelMat)
 
 
 void Renderer::setSkinningMatrix( gltfSkin *skin,gltfAccessor * acc ) {
-
-	idList<idMat4> values = data->GetAccessorViewMat(acc);
+	idMat4 world = mat4_identity;
+	idList<idMat4> values = data->GetAccessorViewMat( acc );
 
 	auto &nodeList = data->NodeList( );
 	int count = 0;
-	idMat4 last;
-	
+		
 	if ( skin->skeleton == -1 )
 		skin->skeleton = skin->joints[0];
-
+	
 	gltfNode *root = nodeList[skin->skeleton];
 
 	for ( int joint : skin->joints ) {
+		world = mat4_identity;
 		auto *node = nodeList[joint];
-		idMat4 * bindMat = &values[count];
-		bindMat->TransposeSelf();
-
-		data->ResolveNodeMatrix( node,bindMat,root);
-		auto * nodePtr = node->parent;
-		if ( nodePtr && count > 1 ) {
-			idMat4 worldTrans = mat4_identity;
-			data->ResolveNodeMatrix( nodePtr );
-			*bindMat *= nodePtr->matrix.Inverse( );
-		}
-
-		bindMat->TransposeSelf();
+		idMat4 *bindMat = &values[count];
+		bindMat->TransposeSelf( );
+		data->ResolveNodeMatrix(node, &world );
+		*bindMat = world * *bindMat;
+		bindMat->TransposeSelf( );
 		count++;
 	}
-	bgfx::setUniform(boneMatricesUniform, values.Ptr(),values.Num());
+	bgfx::setUniform( boneMatricesUniform, values.Ptr( ), values.Num( ) );
 }
 
 void Renderer::blitToScreen(bgfx::ViewId view)
