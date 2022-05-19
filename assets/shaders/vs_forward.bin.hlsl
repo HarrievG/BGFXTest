@@ -637,7 +637,7 @@ return (_x * (1.0 + _x/_whiteSqr) ) / (1.0 + _x);
 uniform float4x4 u_boneMatrices[128];
 float4x4 getSkinningMatrix(float4 _joints_0, float4 _weights_0 )
 {
-float4x4 skin = float4x4(float4(1.0,0.0,0.0,0.0),float4(0.0,1.0,0.0,0.0),float4(0.0,0.0,1.0,0.0),float4(0.0,0.0,0.0,1.0));
+float4x4 skin = float4x4(float4(0.0,0.0,0.0,0.0),float4(0.0,0.0,0.0,0.0),float4(0.0,0.0,0.0,0.0),float4(0.0,0.0,0.0,0.0));
 skin +=
 _weights_0.x * u_boneMatrices[int(_joints_0.x)] +
 _weights_0.y * u_boneMatrices[int(_joints_0.y)] +

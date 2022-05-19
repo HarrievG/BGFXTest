@@ -11,7 +11,8 @@ uniform mat4 u_boneMatrices[128];
 
 mat4 getSkinningMatrix(vec4 _joints_0, vec4 _weights_0 )
 {
-    mat4 skin = mat4(vec4(1.0,0.0,0.0,0.0),vec4(0.0,1.0,0.0,0.0),vec4(0.0,0.0,1.0,0.0),vec4(0.0,0.0,0.0,1.0));
+	//mat4 skin = mat4(vec4(1.0,0.0,0.0,0.0),vec4(0.0,1.0,0.0,0.0),vec4(0.0,0.0,1.0,0.0),vec4(0.0,0.0,0.0,1.0));
+    mat4 skin = mat4(vec4(0.0,0.0,0.0,0.0),vec4(0.0,0.0,0.0,0.0),vec4(0.0,0.0,0.0,0.0),vec4(0.0,0.0,0.0,0.0));
 
     skin +=
         _weights_0.x * u_boneMatrices[int(_joints_0.x)] +

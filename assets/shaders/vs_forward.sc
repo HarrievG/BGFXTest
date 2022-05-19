@@ -27,7 +27,7 @@ vec4 getPosition(vec3 _position, int4 _indices, vec4 _weights)
 void main()
 {
 	vec4 target = getPosition(a_position,a_indices,a_weight);
-	vec3 pos = target.xyz / target.w;
+	vec3 pos = target.xyz;// / target.w;
     v_worldpos = mul(u_model[0], pos );
     v_normal = mul(u_normalMatrix, a_normal);
     v_tangent = mul(u_model[0],a_tangent.xyz);
