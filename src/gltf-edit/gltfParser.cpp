@@ -509,7 +509,7 @@ void gltfItem_vec4::parse( idToken &token ) {
 	numbers->Set( &numberarray, parser );
 	numbers->parse( token );
 	if ( numbers->item->Num( ) != 4 )
-		common->FatalError( "gltfItem_vec4 : missing arguments, expectd 4, got %i", numbers->item->Num( ) );
+		common->FatalError( "gltfItem_vec4 : missing arguments, expected 4, got %i", numbers->item->Num( ) );
 
 	double *val = numbers->item->Ptr( );
 	*item = idVec4( val[0], val[1], val[2], val[3] );
@@ -521,10 +521,22 @@ void gltfItem_vec3::parse( idToken &token ) {
 	numbers->Set( &numberarray, parser );
 	numbers->parse( token );
 	if ( numbers->item->Num( ) != 3 )
-		common->FatalError( "gltfItem_vec3 : missing arguments, expectd 3, got %i", numbers->item->Num( ) );
+		common->FatalError( "gltfItem_vec3 : missing arguments, expected 3, got %i", numbers->item->Num( ) );
 
 	double *val = numbers->item->Ptr( );
 	*item = idVec3( val[0], val[1], val[2] );
+}
+
+void gltfItem_vec2::parse( idToken &token ) {
+	auto *numbers = new gltfItem_number_array( "" );
+	idList<double> numberarray;
+	numbers->Set( &numberarray, parser );
+	numbers->parse( token );
+	if ( numbers->item->Num( ) != 2 )
+		common->FatalError( "gltfItem_vec3 : missing arguments, expected 2, got %i", numbers->item->Num( ) );
+
+	double *val = numbers->item->Ptr( );
+	*item = idVec2( val[0], val[1] );
 }
 
 void gltfItem_quat::parse( idToken &token ) { 	
@@ -653,13 +665,13 @@ void gltfItem_occlusion_texture::parse( idToken &token ) {
 	GLTFARRAYITEM( textureInfo, index,				gltfItem_integer);
 	GLTFARRAYITEM( textureInfo, texCoord,			gltfItem_integer );
 	GLTFARRAYITEM( textureInfo, strength,			gltfItem_number);
-	GLTFARRAYITEM( textureInfo, extensions,			gltfItem );
+	GLTFARRAYITEM( textureInfo, extensions,			gltfItem_texture_info_extensions );
 	GLTFARRAYITEM( textureInfo, extras,				gltfItem );
 
 	GLTFARRAYITEMREF( item, index );
 	GLTFARRAYITEMREF( item, texCoord );
 	GLTFARRAYITEMREF( item, strength );
-	GLTFARRAYITEMREF( item, extensions );
+	extensions->Set	( &item->extensions, parser );
 	GLTFARRAYITEMREF( item, extras );
 	textureInfo.Parse( parser );
 
@@ -673,14 +685,14 @@ void gltfItem_normal_texture::parse( idToken &token ) {
 	GLTFARRAYITEM( textureInfo, index,				gltfItem_integer);
 	GLTFARRAYITEM( textureInfo, texCoord,			gltfItem_integer );
 	GLTFARRAYITEM( textureInfo, scale,				gltfItem_number);
-	GLTFARRAYITEM( textureInfo, extensions,			gltfItem );
+	GLTFARRAYITEM( textureInfo, extensions,			gltfItem_texture_info_extensions );
 	GLTFARRAYITEM( textureInfo, extras,				gltfItem );
 
-	GLTFARRAYITEMREF( item, index );
-	GLTFARRAYITEMREF( item, texCoord );
-	GLTFARRAYITEMREF( item, scale );
-	GLTFARRAYITEMREF( item, extensions );
-	GLTFARRAYITEMREF( item, extras );
+	GLTFARRAYITEMREF( item,					index );
+	GLTFARRAYITEMREF( item,					texCoord );
+	GLTFARRAYITEMREF( item,					scale );
+	extensions->Set	( &item->extensions,	parser );
+	GLTFARRAYITEMREF( item,					extras );
 	textureInfo.Parse( parser );
 
 	if ( gltf_parseVerbose.GetBool( ) )
@@ -692,12 +704,12 @@ void gltfItem_texture_info::parse( idToken &token ) {
 	gltfItemArray textureInfo;
 	GLTFARRAYITEM( textureInfo, index,				gltfItem_integer);
 	GLTFARRAYITEM( textureInfo, texCoord,			gltfItem_integer );
-	GLTFARRAYITEM( textureInfo, extensions,			gltfItem );
+	GLTFARRAYITEM( textureInfo, extensions,			gltfItem_texture_info_extensions );
 	GLTFARRAYITEM( textureInfo, extras,				gltfItem );
 
 	GLTFARRAYITEMREF( item, index );
 	GLTFARRAYITEMREF( item, texCoord );
-	GLTFARRAYITEMREF( item, extensions );
+	extensions->Set	( &item->extensions, parser );
 	GLTFARRAYITEMREF( item, extras );
 	textureInfo.Parse( parser );
 
@@ -736,6 +748,26 @@ void gltfItem_extra::parse( idToken &token )
 	parser->ParseBracedSection(item->json);
 	if ( gltf_parseVerbose.GetBool( ) )
 		common->Printf( "%s", item->json.c_str( ) );
+}
+
+void gltfItem_TextureInfo_KHR_texture_transform::parse( idToken &token ) {
+	parser->UnreadToken( &token );
+	gltfItemArray texureTransform;
+	GLTFARRAYITEM( texureTransform, offset,		gltfItem_vec2 );
+	GLTFARRAYITEM( texureTransform, rotation,	gltfItem_number);
+	GLTFARRAYITEM( texureTransform, scale,		gltfItem_vec2 );
+	GLTFARRAYITEM( texureTransform, texCoord,	gltfItem_integer );
+
+	item->KHR_texture_transform = new gltfExt_KHR_texture_transform( );
+
+	offset->Set			( &item->KHR_texture_transform->offset,	parser );
+	GLTFARRAYITEMREF	( item->KHR_texture_transform,			rotation );
+	scale->Set			( &item->KHR_texture_transform->scale,	parser );
+	GLTFARRAYITEMREF	( item->KHR_texture_transform,			texCoord );
+	texureTransform.Parse( parser );
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
 }
 
 void gltfItem_Material_KHR_materials_pbrSpecularGlossiness::parse( idToken &token ) 
@@ -848,7 +880,20 @@ void gltfItem_material_extensions::parse( idToken &token ) {
 
 	KHR_materials_pbrSpecularGlossiness->Set( item, parser );
 	extensions.Parse( parser );
-	gltfPropertyArray array = gltfPropertyArray( parser);
+
+	if ( gltf_parseVerbose.GetBool( ) )
+		common->Printf( "%s", token.c_str( ) );
+}
+
+void gltfItem_texture_info_extensions::parse( idToken &token ) {
+	parser->UnreadToken( &token );
+
+	gltfItemArray extensions;
+	GLTFARRAYITEM( extensions, KHR_texture_transform, gltfItem_TextureInfo_KHR_texture_transform );
+
+	KHR_texture_transform->Set( item, parser );
+	extensions.Parse( parser );
+
 	if ( gltf_parseVerbose.GetBool( ) )
 		common->Printf( "%s", token.c_str( ) );
 }
@@ -1046,11 +1091,11 @@ void GLTF_Parser::Parse_MESHES( idToken &token )
 void GLTF_Parser::Parse_TEXTURES( idToken &token )
 {
 	gltfItemArray texture;
-	GLTFARRAYITEM( texture, sampler, gltfItem_integer );
-	GLTFARRAYITEM( texture, source, gltfItem_integer );
-	GLTFARRAYITEM( texture, name, gltfItem );
-	GLTFARRAYITEM( texture, extensions, gltfItem );
-	GLTFARRAYITEM( texture, extras, gltfItem );
+	GLTFARRAYITEM( texture, sampler,	gltfItem_integer );
+	GLTFARRAYITEM( texture, source,		gltfItem_integer );
+	GLTFARRAYITEM( texture, name,		gltfItem );
+	GLTFARRAYITEM( texture, extensions, gltfItem_texture_info_extensions );
+	GLTFARRAYITEM( texture, extras,		gltfItem );
 
 	gltfPropertyArray array = gltfPropertyArray( &parser );
 	for ( auto &prop : array ) {
@@ -1059,11 +1104,11 @@ void GLTF_Parser::Parse_TEXTURES( idToken &token )
 
 		gltfTexture *gltftexture = currentAsset->Texture( );
 
-		GLTFARRAYITEMREF( gltftexture, sampler );
-		GLTFARRAYITEMREF( gltftexture, source );
-		GLTFARRAYITEMREF( gltftexture, name );
-		GLTFARRAYITEMREF( gltftexture, extensions );
-		GLTFARRAYITEMREF( gltftexture, extras );
+		GLTFARRAYITEMREF( gltftexture,				sampler );
+		GLTFARRAYITEMREF( gltftexture,				source );
+		GLTFARRAYITEMREF( gltftexture,				name );
+		extensions->Set	( &gltftexture->extensions,	&lexer	);
+		GLTFARRAYITEMREF( gltftexture,				extras );
 		texture.Parse( &lexer );
 
 		if ( gltf_parseVerbose.GetBool( ) )

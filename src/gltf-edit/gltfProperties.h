@@ -105,6 +105,7 @@ public:
 	gltfExt_KHR_materials_pbrSpecularGlossiness *KHR_materials_pbrSpecularGlossiness;
 };
 
+
 class gltfNode {
 public:
 	gltfNode( ) : camera( -1 ), skin( -1 ), matrix( mat4_zero ),
@@ -424,43 +425,55 @@ public:
 	idStr		extras;
 };
 
+class gltfExt_KHR_texture_transform;
+class gltfTexture_Info_Extensions {
+public:
+	gltfTexture_Info_Extensions( ) :
+		KHR_texture_transform( nullptr ) { }
+	gltfExt_KHR_texture_transform *KHR_texture_transform;
+};
+
 class gltfOcclusionTexture_Info {
 public:
 	gltfOcclusionTexture_Info( ) : index( -1 ), texCoord( 0 ), strength( 1.0f ) { }
-	int		index;
-	int		texCoord;
-	float	strength;
-	idStr	extensions;
-	idStr	extras;
+	int							index;
+	int							texCoord;
+	float						strength;
+	gltfTexture_Info_Extensions	extensions;
+	idStr						extras;
 };
 
 class gltfNormalTexture_Info {
 public:
 	gltfNormalTexture_Info( ) : index( -1 ), texCoord( 0 ), scale( 1.0f ) { }
-	int		index;
-	int		texCoord;
-	float	scale;
-	idStr	extensions;
-	idStr	extras;
+	int							index;
+	int							texCoord;
+	float						scale;
+	gltfTexture_Info_Extensions	extensions;
+	idStr						extras;
 };
 
 class gltfTexture_Info {
 public:
 	gltfTexture_Info( ) : index( -1 ), texCoord( 0 ) { }
-	int		index;
-	int		texCoord;
-	idStr	extensions;
-	idStr	extras;
+	int							index;
+	int							texCoord;
+	gltfTexture_Info_Extensions	extensions;
+	idStr						extras;
 };
+
+
+
+
 
 class gltfTexture {
 public:
 	gltfTexture( ) : sampler( -1 ), source( -1 ) { }
-	int		sampler;
-	int		source;
-	idStr	name;
-	idStr	extensions;
-	idStr	extras;
+	int							sampler;
+	int							source;
+	idStr						name;
+	gltfTexture_Info_Extensions	extensions;
+	idStr						extras;
 };
 
 class gltfMaterial_pbrMetallicRoughness {
@@ -564,6 +577,19 @@ public:
 			return 2;
 		return -1;
 	}
+};
+
+//KHR_texture_transform
+//https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_transform/schema/KHR_texture_transform.textureInfo.schema.json
+class gltfExt_KHR_texture_transform {
+public:
+	gltfExt_KHR_texture_transform( ) : offset( vec2_zero ), rotation( 0.0f ), scale( vec2_one ), texCoord( -1 ) { }
+	idVec2	offset;
+	float	rotation;
+	idVec2	scale;
+	int		texCoord;
+	idStr	extensions;
+	idStr	extras;
 };
 
 /////////////////////////////////////////////////////////////////////////////
@@ -752,7 +778,7 @@ public:
 	GLTFCACHEITEM( Extensions, extensions )
 	GLTFCACHEITEM( Animation, animations )
 	GLTFCACHEITEM( Skin, skins )
-
+	
 	gltfCameraManager * cameraManager;
 private:
 	idStr fileName;

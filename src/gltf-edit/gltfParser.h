@@ -69,6 +69,7 @@ gltfItemClassParser( number_array,					idList<double>);//does float suffice?
 gltfItemClassParser( mat4,							idMat4 );
 gltfItemClassParser( vec4,							idVec4 );
 gltfItemClassParser( vec3,							idVec3 );
+gltfItemClassParser( vec2,							idVec2 );
 gltfItemClassParser( quat,							idQuat );
 gltfItemClassParser( accessor_sparse,				gltfAccessor_Sparse );
 gltfItemClassParser( accessor_sparse_indices,		gltfAccessor_Sparse_Indices );
@@ -82,13 +83,13 @@ gltfItemClassParser( occlusion_texture,				gltfOcclusionTexture_Info );
 gltfItemClassParser( extra,							gltfExtra );
 gltfItemClassParser( node_extensions,				gltfNode_Extensions );
 gltfItemClassParser( material_extensions,			gltfMaterial_Extensions );
+gltfItemClassParser( texture_info_extensions,		gltfTexture_Info_Extensions );
 
 //extensions
-//gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtension );
-//gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfMaterial_Extensions );
-gltfItemClassParser( KHR_lights_punctual, gltfExtensions );
-gltfItemClassParser( Node_KHR_lights_punctual, gltfNode_Extensions );
-gltfItemClassParser( Material_KHR_materials_pbrSpecularGlossiness, gltfMaterial_Extensions );
+gltfItemClassParser( KHR_lights_punctual,							gltfExtensions );
+gltfItemClassParser( Node_KHR_lights_punctual,						gltfNode_Extensions );
+gltfItemClassParser( Material_KHR_materials_pbrSpecularGlossiness,	gltfMaterial_Extensions );
+gltfItemClassParser( TextureInfo_KHR_texture_transform,				gltfTexture_Info_Extensions );
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token
