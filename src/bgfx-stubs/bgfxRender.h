@@ -176,6 +176,7 @@ class gltfMaterial;
 struct bgfxMaterial {
     gltfMaterial * material;
     TransparencyMode TransparencyMode = TransparencyMode::OPAQUE_;
+	uint32_t lastMask;
 };
 //
 //struct MeshGroup

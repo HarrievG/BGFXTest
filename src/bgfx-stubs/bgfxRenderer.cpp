@@ -177,17 +177,18 @@ void Renderer::setViewProjection(bgfx::ViewId view)
 	//if ( data->cameraManager->HasOverideID( camId ) )
 	//	camId = data->cameraManager->GetOverride( camId ).newCameraID;
 
-	//if (!camId && !data->CameraList().Num())
-	//{
-	//	auto * newCam = data->Camera();
-	//	newCam->perspective.aspectRatio = 1920.0/1080.0;
-	//	newCam->perspective.yfov = 90;
-	//	newCam->perspective.zfar = 100000;
-	//	newCam->perspective.znear = 0;
-	//	//note to self. stop modifying gltfData!
-	//	auto * newNode = data->Node();
-
-	//}
+	if (!camId && !data->CameraList().Num())
+	{
+		auto * newCam = data->Camera();
+		newCam->perspective.aspectRatio = 1920.0/1080.0;
+		newCam->perspective.yfov = 90;
+		newCam->perspective.zfar = 100000;
+		newCam->perspective.znear = 0;
+		//note to self. stop modifying gltfData!
+		auto * newNode = data->Node();
+		newNode->camera = 0;
+		camId = 0;
+	}
 	gltfCamera_Perspective &sceneCam = data->CameraList( )[camId]->perspective;
 	bx::mtxProj( projMat.ToFloatPtr( ), RAD2DEG( sceneCam.yfov ), sceneCam.aspectRatio, sceneCam.znear, sceneCam.zfar, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
 	bgfx::setViewTransform( view, viewMat.ToFloatPtr( ), projMat.ToFloatPtr( ) );

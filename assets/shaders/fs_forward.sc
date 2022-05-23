@@ -11,6 +11,7 @@ $input v_worldpos, v_normal, v_tangent, v_texcoord
 #include "pbr.sh"
 #include "lights.sh"
 #include "lights_punctual.sh"
+#include "texCoord_transform.sh"
 
 uniform vec4 u_fragmentOptions;
 
@@ -19,9 +20,11 @@ uniform vec4 u_fragmentOptions;
 #define u_pbrDebugDrawNormals		((uint(u_fragmentOptions.x) & (1 << 2)) != 0)
 #define u_pbrDebugDrawNormalsMat	((uint(u_fragmentOptions.x) & (1 << 3)) != 0)
 
+
 uniform vec4 u_camPos;
 void main()
 {
+	TextureTransform texTrans = getTransform(0);	
     PBRMaterial mat = pbrMaterial(v_texcoord);
     // convert normal map from tangent space -> world space (= space of v_tangent, etc.)
     vec3 N =convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
@@ -98,6 +101,9 @@ void main()
     gl_FragColor.rgb = radianceOut;
     gl_FragColor.a = mat.albedo.a;
 
+	if (u_BlendMaskValue > 0 && (mat.albedo.a - (u_BlendMaskValue-1.0)) < 0.0)
+		discard;
+	
 
 	//normal debug
 	if (u_pbrDebugDrawNormals)

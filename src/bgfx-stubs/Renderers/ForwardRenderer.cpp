@@ -19,9 +19,6 @@ bool ForwardRenderer::supported()
 
 void ForwardRenderer::onInitialize()
 {
-
-
-
 	bgfx::ShaderHandle vsh		= bgfxCreateShader("shaders/vs_forward.bin","vshader" );
 	bgfx::ShaderHandle fsh		= bgfxCreateShader( "shaders/fs_forward.bin", "fsshader" );
 	program = bgfx::createProgram( vsh, fsh, true );
@@ -46,45 +43,19 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 
 	if ( node->mesh != -1 ) 		
 	{
-		for ( auto prim : meshList[node->mesh]->primitives )
+		int primitiveCount=0;
+		for ( auto * prim : meshList[node->mesh]->primitives )
 		{
-			float vertexOptions[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
-			uint32_t vertexOptionsMask = 0;
-
-			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
-
-			if(transposetest.GetInteger() == 1)
-				setNormalMatrix(curTrans.Transpose());
-			else
-				setNormalMatrix(curTrans);
-
-			if ( node->skin != -1 ) {
-				auto *skin = data->SkinList( )[node->skin];
-				auto *acc = data->AccessorList( )[skin->inverseBindMatrices];
-
-				setSkinningMatrix( skin, acc );
-				
-				vertexOptionsMask |= 1 << 0 ;
-			}
-
-			vertexOptions[0] = static_cast< float >( vertexOptionsMask );
-			bgfx::setUniform( vertexOptionsUniform , vertexOptions );
 			
-			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
-			bgfx::setIndexBuffer( prim->indexBufferHandle );
-			if ( prim->material != -1 ) 			{
-				gltfMaterial *material = matList[prim->material];
-
-				uint64_t materialState = pbr.bindMaterial( material, data );
-				bgfx::setState( state | materialState );
-
-				bgfx::submit( vDefault, program, 0, ~BGFX_DISCARD_BINDINGS );
-			}
+			RenderItem &item = renderItems.Alloc();
+			item.gltfMeshID = node->mesh;
+			item.gltfMesh_PrimitiveID = primitiveCount;
+			item.gltfSkinID = node->skin;
+			item.transform = curTrans;
+			item.gltfMaterialID = prim->material;
+			primitiveCount++;
 		}
-
 	}
-
-
 }
 
 
@@ -126,7 +97,54 @@ idDrawVert *ForwardRenderer::AllocTris( int vertCount, const triIndex_t *tempInd
 	}
 
 	return vtxData + startVert;
+}
 
+
+void ForwardRenderer::Flush( uint64_t state ) 
+{
+	bgfx::ViewId vDefault = 0;
+	auto & meshList = data->MeshList();
+	auto & matList = data->MaterialList();
+
+	for (auto & item : renderItems )
+	{
+		idMat4 & curTrans = item.transform;
+		gltfMesh_Primitive * prim = meshList[item.gltfMeshID]->primitives[item.gltfMesh_PrimitiveID];
+
+		float vertexOptions[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		uint32_t vertexOptionsMask = 0;
+
+		bgfx::setTransform( curTrans.Transpose( ).ToFloatPtr( ) );
+
+		if ( transposetest.GetInteger( ) == 1 )
+			setNormalMatrix( curTrans.Transpose( ) );
+		else
+			setNormalMatrix( curTrans );
+
+		if ( item.gltfSkinID != -1 ) {
+			auto *skin = data->SkinList( )[item.gltfSkinID];
+			auto *acc = data->AccessorList( )[skin->inverseBindMatrices];
+
+			setSkinningMatrix( skin, acc );
+
+			vertexOptionsMask |= 1 << 0;
+		}
+
+		bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
+		bgfx::setIndexBuffer( prim->indexBufferHandle );
+		if ( prim->material != -1 ) {
+			gltfMaterial *material = matList[prim->material];
+
+			uint64_t materialState = pbr.bindMaterial( material, data );
+			bgfx::setState( state | materialState );
+		}
+
+		vertexOptions[0] = static_cast< float >( vertexOptionsMask );
+		bgfx::setUniform( vertexOptionsUniform, vertexOptions );
+
+		bgfx::submit( vDefault, program, 0, ~BGFX_DISCARD_BINDINGS );
+	}
+	renderItems.Clear();
 }
 
 void ForwardRenderer::onRender(float dt)
@@ -167,20 +185,15 @@ void ForwardRenderer::onRender(float dt)
 	}else
 		RenderSceneNode( state, targetNode, mat4_identity, data );
 
-	lights.Update();
+	idSort_RenderItem sort;
+	sort.SetData(data);
+	renderItems.SortWithTemplate(sort);
+	//for (auto & item : renderItems)
+	//	common->Printf( "%i\t%i\t%i\n",item.gltfMeshID,item.gltfMesh_PrimitiveID,item.gltfSkinID );
+	Flush(state);
 
-    //for(auto & mesh : scene.p)
-    //{
-    //    idMat4 model = glm::identity<idMat4>();
-    //    bgfx::setTransform(glm::value_ptr(model));
-    //    setNormalMatrix(model);
-    //    bgfx::setVertexBuffer(0, mesh.vertexBuffer);
-    //    bgfx::setIndexBuffer(mesh.indexBuffer);
-    //    const Material& mat = scene->materials[mesh.material];
-    //    uint64_t materialState = pbr.bindMaterial(mat);
-    //    bgfx::setState(state | materialState);
-    //    bgfx::submit(vDefault, program, 0, ~BGFX_DISCARD_TEXTURE_SAMPLERS);
-    //}
+	lights.Update();
+	pbr.UpdateTextureTransforms();
 
     bgfx::discard(BGFX_DISCARD_ALL);
 }

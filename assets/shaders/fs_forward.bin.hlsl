@@ -1092,11 +1092,40 @@ modelScale.y = length(float3(modelMatrix[1].xyz));
 modelScale.z = length(float3(modelMatrix[2].xyz));
 return normalize(refractionVector) * thickness * modelScale;
 }
+static float4 u_texTransformMask;
+struct TextureTransform
+{
+float2 offset;
+float2 scale;
+float rotation;
+uint texCooord;
+uint mask;
+};
+Buffer<float2> b_TextureTransforms : register(t[13]);
+TextureTransform getTransform(uint i)
+{
+int index = 3 * i;
+TextureTransform transForm;
+transForm.offset = b_TextureTransforms[index + 0];
+transForm.scale = b_TextureTransforms[index + 1];
+transForm.rotation = b_TextureTransforms[index + 2].x;
+half2 fp16 = b_TextureTransforms[index + 2].y;
+transForm.texCooord = int(fp16.x);
+transForm.mask = uint(fp16.y);
+return transForm;
+}
+float2 getTexCoord(TextureTransform transform , float2 _texcoord)
+{
+if (!((uint(u_texTransformMask.x) & (1 << 0)) != 0))
+return _texcoord;
+return float2(1,1);
+}
 uniform float4 u_fragmentOptions;
 uniform float4 u_camPos;
 void main( float4 gl_FragCoord : SV_POSITION , float3 v_normal : NORMAL , float4 v_tangent : TANGENT , float2 v_texcoord : TEXCOORD0 , float3 v_worldpos : POSITION1 , out float4 bgfx_FragData0 : SV_TARGET0 )
 {
 float4 bgfx_VoidFrag = vec4_splat(0.0);
+TextureTransform texTrans = getTransform(0);
 PBRMaterial mat = pbrMaterial(v_texcoord);
 float3 N =convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
 mat.a = specularAntiAliasing(N, mat.a);
@@ -1152,6 +1181,8 @@ radianceOut += getAmbientLight().irradiance * mat.diffuseColor * mat.occlusion;
 radianceOut += mat.emissive;
 bgfx_FragData0.rgb = radianceOut;
 bgfx_FragData0.a = mat.albedo.a;
+if ((u_hasTextures.w) > 0 && (mat.albedo.a - ((u_hasTextures.w)-1.0)) < 0.0)
+discard;
 if (((uint(u_fragmentOptions.x) & (1 << 2)) != 0))
 bgfx_FragData0.rgb = (v_normal + 1.0) / 2.0;
 if (((uint(u_fragmentOptions.x) & (1 << 3)) != 0))

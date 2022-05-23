@@ -1056,6 +1056,8 @@ void GLTF_Parser::Parse_MATERIALS( idToken &token )
 		extras->Set					( &gltfmaterial->extras,				&lexer	);
 		material.Parse( &lexer );
 
+		gltfmaterial->intType = gltfMaterial::resolveAlphaMode( gltfmaterial->alphaMode );
+
 		if ( gltf_parseVerbose.GetBool( ) )
 			common->Printf( "%s", prop.item.c_str( ) );
 	}

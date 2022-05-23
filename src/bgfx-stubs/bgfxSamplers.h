@@ -9,14 +9,17 @@ class Samplers
 public:
     static const uint8_t PBR_ALBEDO_LUT = 0;
 
+	static const uint8_t PBR_MASKOFFSET = 1;
     static const uint8_t PBR_BASECOLOR = 1;
     static const uint8_t PBR_METALROUGHNESS = 2;
     static const uint8_t PBR_NORMAL = 3;
-    static const uint8_t PBR_OCCLUSION = 4;
-    static const uint8_t PBR_EMISSIVE = 5;
+	static const uint8_t PBR_OCCLUSION = 4;
+	static const uint8_t PBR_EMISSIVE = 5;
+	static const uint8_t PBR_MAXTEXTRANS = PBR_EMISSIVE; 
 
     static const uint8_t LIGHTS_POINTLIGHTS = 6;
 	static const uint8_t SAMPLER_LIGHTS = 12;
+	static const uint8_t SAMPLER_TEXTURE_TRANSFORMS = 13;
 
     static const uint8_t CLUSTERS_CLUSTERS = 7;
     static const uint8_t CLUSTERS_LIGHTINDICES = 8;

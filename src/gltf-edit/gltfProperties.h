@@ -463,9 +463,6 @@ public:
 };
 
 
-
-
-
 class gltfTexture {
 public:
 	gltfTexture( ) : sampler( -1 ), source( -1 ) { }
@@ -490,6 +487,13 @@ public:
 
 class gltfMaterial {
 public:
+	enum gltfAlphaMode {
+		gltfOPAQUE,
+		gltfMASK,
+		gltfBLEND,
+		count
+	};
+
 	gltfMaterial( ) : emissiveFactor( vec3_zero ), alphaMode( "OPAQUE" ), alphaCutoff( 0.5f ), doubleSided( false ) { }
 	gltfMaterial_pbrMetallicRoughness	pbrMetallicRoughness;
 	gltfNormalTexture_Info				normalTexture;
@@ -504,6 +508,18 @@ public:
 	gltfExtra							extras;
 	//
 	bgfxMaterial						bgfxMaterial;
+
+	gltfAlphaMode intType;
+
+	static gltfAlphaMode resolveAlphaMode( idStr type ) {
+		if ( type == "OPAQUE" )
+			return gltfAlphaMode::gltfOPAQUE;
+		else if ( type == "MASK" )
+			return gltfAlphaMode::gltfMASK;
+		else if ( type == "BLEND" )
+			return gltfAlphaMode::gltfBLEND;
+		return gltfAlphaMode::count;
+	}
 };
 
 class gltfAsset {
@@ -583,13 +599,16 @@ public:
 //https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_transform/schema/KHR_texture_transform.textureInfo.schema.json
 class gltfExt_KHR_texture_transform {
 public:
-	gltfExt_KHR_texture_transform( ) : offset( vec2_zero ), rotation( 0.0f ), scale( vec2_one ), texCoord( -1 ) { }
+	gltfExt_KHR_texture_transform( ) : offset( vec2_zero ), rotation( 0.0f ), scale( vec2_one ), texCoord( -1 ),index(0) { }
 	idVec2	offset;
 	float	rotation;
 	idVec2	scale;
 	int		texCoord;
 	idStr	extensions;
 	idStr	extras;
+
+	//for shader
+	uint	index;
 };
 
 /////////////////////////////////////////////////////////////////////////////
