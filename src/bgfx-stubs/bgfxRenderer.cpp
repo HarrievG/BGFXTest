@@ -199,7 +199,7 @@ void Renderer::setNormalMatrix(const idMat4& modelMat)
 {
 	// usually the normal matrix is based on the model view matrix
 	// but shading is done in world space (not eye space) so it's just the model matrix
-	idMat4 modelViewMat = viewMat *modelMat;
+	idMat4 modelViewMat = modelMat;
 
 	// if we don't do non-uniform scaling, the normal matrix is the same as the model-view matrix
 	// (only the magnitude of the normal is changed, but we normalize either way)

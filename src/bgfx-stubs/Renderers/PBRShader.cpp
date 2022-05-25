@@ -12,8 +12,10 @@ idCVar r_whiteFurnaceEnabled( "r_whiteFurnaceEnabled", "0", CVAR_RENDERER | CVAR
 
 idCVar r_pbrDebug( "r_pbrDebug", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "" );
 idCVar r_pbrDebugDrawNormals( "r_pbrDebugDrawNormals", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "" );
+
 idCVar r_pbrDebugDrawNormalsMat( "r_pbrDebugDrawNormalsMat", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "" );
 idCVar r_pbrDebugDrawBaseColour( "r_pbrDebugDrawBaseColour", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "" );
+idCVar r_pbrTextureTransform( "r_pbrTextureTransform", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_BOOL, "apply gltfTexture transforms" );
 
 
 bgfx::VertexLayout PBRShader::TextureTransformVertex::layout;
@@ -113,8 +115,14 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 	auto &smpList = data->SamplerList( );
 
 	uint32_t hasTexturesMask = 0;
-	uint16_t hasTransformMask = 0;
+	uint32_t hasTransformMask = 0;
+	//this should aways fit into the u_texTransformMask uniform
+	//4floats can hold 8 16bit values, the values can be decreased to 8bit if an maximum of 255 textures for a pass is enough. (probably is)
+	//right now:
+	// the first one is the hash for convenience with texture slot usage.
+	// the next 4 are the indices for textureTransform items within the vertex stream
 	int16_t indices[Samplers::PBR_MAXTEXTRANS+1];
+	memset(indices,0,sizeof(int16_t)*Samplers::PBR_MAXTEXTRANS+1);
 
 	gltfTexture *texture;
 	gltfImage	*image;
@@ -123,9 +131,9 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 		texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
 		image = imgList[texture->source];
 
-		uint32 maskedIdx = (Samplers::PBR_BASECOLOR-Samplers::PBR_MASKOFFSET);
+		uint32 maskedIdx = (Samplers::PBR_BASECOLOR);
 		indices[maskedIdx] =
-			SetTextureTransform(material->pbrMetallicRoughness.baseColorTexture.extensions.KHR_texture_transform,hasTransformMask,maskedIdx);
+			SetTextureTransform(image,material->pbrMetallicRoughness.baseColorTexture.extensions.KHR_texture_transform,hasTransformMask,maskedIdx);
 
 		bgfx::setTexture( Samplers::PBR_BASECOLOR, baseColorSampler, image->bgfxTexture.handle );
 		hasTexturesMask |= 1 << maskedIdx;
@@ -137,9 +145,9 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 		texture = texList[material->pbrMetallicRoughness.metallicRoughnessTexture.index];
 		image = imgList[texture->source];
 
-		uint32 maskedIdx = (Samplers::PBR_METALROUGHNESS-Samplers::PBR_MASKOFFSET);
+		uint32 maskedIdx = (Samplers::PBR_METALROUGHNESS);
 		indices[maskedIdx] = 
-			SetTextureTransform(material->pbrMetallicRoughness.metallicRoughnessTexture.extensions.KHR_texture_transform,hasTransformMask,maskedIdx);
+			SetTextureTransform(image,material->pbrMetallicRoughness.metallicRoughnessTexture.extensions.KHR_texture_transform,hasTransformMask,maskedIdx);
 
 		bgfx::setTexture( Samplers::PBR_METALROUGHNESS, metallicRoughnessSampler, image->bgfxTexture.handle );
 		hasTexturesMask |= 1 << maskedIdx;
@@ -151,9 +159,9 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 		texture = texList[material->normalTexture.index];
 		image = imgList[texture->source];
 
-		uint32 maskedIdx = (Samplers::PBR_NORMAL-Samplers::PBR_MASKOFFSET);
+		uint32 maskedIdx = (Samplers::PBR_NORMAL);
 		indices[maskedIdx] = 
-			SetTextureTransform( material->normalTexture.extensions.KHR_texture_transform, hasTransformMask, maskedIdx );
+			SetTextureTransform(image, material->normalTexture.extensions.KHR_texture_transform, hasTransformMask, maskedIdx );
 
 		bgfx::setTexture( Samplers::PBR_NORMAL, normalSampler, image->bgfxTexture.handle );
 		hasTexturesMask |= 1 << maskedIdx;
@@ -164,9 +172,9 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 		texture = texList[material->occlusionTexture.index];
 		image = imgList[texture->source];
 		
-		uint32 maskedIdx = (Samplers::PBR_OCCLUSION-Samplers::PBR_MASKOFFSET);
+		uint32 maskedIdx = (Samplers::PBR_OCCLUSION);
 		indices[maskedIdx] = 
-			SetTextureTransform( material->occlusionTexture.extensions.KHR_texture_transform, hasTransformMask, maskedIdx );
+			SetTextureTransform(image, material->occlusionTexture.extensions.KHR_texture_transform, hasTransformMask, maskedIdx );
 
 		bgfx::setTexture( Samplers::PBR_OCCLUSION, occlusionSampler, image->bgfxTexture.handle );
 		hasTexturesMask |= 1 << maskedIdx;
@@ -177,9 +185,9 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 		texture = texList[material->emissiveTexture.index];
 		image = imgList[texture->source];
 
-		uint32 maskedIdx = ( Samplers::PBR_EMISSIVE - Samplers::PBR_MASKOFFSET );
+		uint32 maskedIdx = ( Samplers::PBR_EMISSIVE );
 		indices[maskedIdx] =
-			SetTextureTransform( material->occlusionTexture.extensions.KHR_texture_transform, hasTransformMask, maskedIdx );
+			SetTextureTransform( image,material->emissiveTexture.extensions.KHR_texture_transform, hasTransformMask, maskedIdx );
 
 		bgfx::setTexture( Samplers::PBR_EMISSIVE, emissiveSampler, image->bgfxTexture.handle );
 		hasTexturesMask |= 1 << maskedIdx;;
@@ -194,6 +202,9 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 
 	if ( !material->doubleSided )
 		state |= BGFX_STATE_CULL_CW;
+
+	if ( r_pbrTextureTransform.GetBool( ) )
+		hasTexturesMask |= 1 << 10;
 
 	hasTexturesValues[0] = static_cast< float >( hasTexturesMask );
 
@@ -215,8 +226,12 @@ uint64_t PBRShader::bindMaterial( const gltfMaterial *material, gltfData *data )
 	bgfx::setUniform( fragmentOptionsUniform, fragmentOptions );
 
 	//mask to indicate which texture has an transform 
-	indices[Samplers::PBR_MAXTEXTRANS] =  hasTransformMask;
-	bgfx::setUniform( textureTransformMask,  (float*)&indices);
+	float transOptions[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+
+
+	transOptions[0] = hasTransformMask;
+	memcpy(&transOptions[1],&indices[1],sizeof(int16_t)*Samplers::PBR_MAXTEXTRANS);
+	bgfx::setUniform( textureTransformMask, transOptions);
 
 	return state;
 }
@@ -228,9 +243,13 @@ void PBRShader::bindAlbedoLUT( bool compute ) {
 		bgfx::setTexture( Samplers::PBR_ALBEDO_LUT, albedoLUTSampler, albedoLUTTexture );
 }
 
-void PBRShader::UpdateTextureTransforms( ) {
+void PBRShader::UpdateTextureTransforms( ) 
+{
 
 	int transformCount = textureTransformList.Num( );
+	if (!transformCount)
+		return;
+
 	size_t stride = TextureTransformVertex::layout.getStride( );
 	const bgfx::Memory *mem = bgfx::alloc( uint32_t( stride * Max( textureTransformList.Num( ), 1 ) ) );
 	for ( size_t i = 0; i < transformCount; i++ ) {
@@ -239,6 +258,7 @@ void PBRShader::UpdateTextureTransforms( ) {
 
 		transform->offset = gltfTransform->offset;
 		transform->scale = gltfTransform->scale;
+
 		transform->rotation = gltfTransform->rotation;
 		
 		transform->texCoord = gltfTransform->texCoord;
@@ -249,11 +269,20 @@ void PBRShader::UpdateTextureTransforms( ) {
 }
 
 
-int16_t PBRShader::SetTextureTransform(gltfExt_KHR_texture_transform *transform,uint16_t &hasTransformMask , uint32_t mask) {
+int16_t PBRShader::SetTextureTransform(gltfImage* image,gltfExt_KHR_texture_transform *transform,uint32_t &hasTransformMask , uint32_t mask) {
 	if ( transform != nullptr ) {
-		auto &texTrans = textureTransformList.Alloc( );
-		texTrans = transform;
-		texTrans->index = textureTransformList.Num( );
+		if (image->bgfxTexture.loaded && !transform->resolved )
+		{
+			float facX = 1.0f/image->bgfxTexture.dim.x;
+			float facY = 1.0f/image->bgfxTexture.dim.y;
+			transform->offset = idVec2(facX * transform->offset.x,facY * transform->offset.y) ;
+			transform->resolved = true;
+		}
+		int idx = textureTransformList.Num();
+		textureTransformList.AssureSizeAlloc(idx+1,idListNewElement<gltfExt_KHR_texture_transform> );
+		auto &texTrans = textureTransformList[idx];
+		*texTrans = *transform;
+		texTrans->index = textureTransformList.Num( )-1;
 		hasTransformMask |= 1 << mask;
 		return textureTransformList.Num( );
 	}
@@ -261,7 +290,6 @@ int16_t PBRShader::SetTextureTransform(gltfExt_KHR_texture_transform *transform,
 }
 
 void PBRShader::TextureTransformVertex::init( ) {
-	//float2; float2; float; ushort; ushort;
 	layout.begin( )
 		.add( bgfx::Attrib::TexCoord0, 2, bgfx::AttribType::Float )
 		.add( bgfx::Attrib::TexCoord1, 2, bgfx::AttribType::Float )

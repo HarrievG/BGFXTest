@@ -599,7 +599,7 @@ public:
 //https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_transform/schema/KHR_texture_transform.textureInfo.schema.json
 class gltfExt_KHR_texture_transform {
 public:
-	gltfExt_KHR_texture_transform( ) : offset( vec2_zero ), rotation( 0.0f ), scale( vec2_one ), texCoord( -1 ),index(0) { }
+	gltfExt_KHR_texture_transform( ) : offset( vec2_zero ), rotation( 0.0f ), scale( vec2_one ), texCoord( -1 ),index(0),resolved(false) { }
 	idVec2	offset;
 	float	rotation;
 	idVec2	scale;
@@ -609,6 +609,7 @@ public:
 
 	//for shader
 	uint	index;
+	bool	resolved;
 };
 
 /////////////////////////////////////////////////////////////////////////////

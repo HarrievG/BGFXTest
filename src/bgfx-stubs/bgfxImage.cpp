@@ -62,6 +62,7 @@ void bgfxImageLoad( byte *data, size_t length, bgfxTextureHandle *handle, uint32
 		handle->handle = bgfx::createTexture2D( width, height, false, 1, bgfx::TextureFormat::RGBA8, flags, bgfx::copy( imageData, width * height * 4 ) );
 		handle->dim.x = width;
 		handle->dim.y = height;
+		handle->loaded = true;
 		stbi_image_free( imageData );
 	}
 	else

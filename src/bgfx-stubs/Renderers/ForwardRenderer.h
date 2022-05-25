@@ -22,18 +22,11 @@ public:
 		const static int MAX_MESHES = 255;
 		void SetData(gltfData * _data ) { data = _data ; }
 		int getUniqueID( const RenderItem &item ) const {
-			//int ret = item.state;
-			//ret = item.gltfMeshID*item.gltfMesh_PrimitiveID;
-			//if ( item.gltfSkinID != -1 )
-			//	ret *= item.gltfSkinID;
-
-
 			return item.gltfMaterialID 
 				+ ((item.gltfMeshID + 1) * (data->MaterialList().Num()+1))
 				+ ((item.gltfMesh_PrimitiveID + 1) * (data->MeshList().Num()+1 ) * (data->MaterialList().Num()+1)) ;
 		}
-		
-		//int Compare( const RenderItem & lhs, const RenderItem & rhs ) const { return lhs.gltfMaterialID - rhs.gltfMaterialID;};
+
 		int Compare( const RenderItem & lhs, const RenderItem & rhs ) const { return getUniqueID(lhs) - getUniqueID(rhs);};
 		gltfData * data;
 	};

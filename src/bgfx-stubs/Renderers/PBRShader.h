@@ -9,6 +9,7 @@ class gltfMaterial;
 class gltfData;
 class PBRShader {
 public:
+	//float2; float2; float; ushort; ushort;
 	struct TextureTransformVertex {
 		idVec2 offset;		//8
 
@@ -40,7 +41,7 @@ private:
 	static constexpr uint16_t ALBEDO_LUT_SIZE = 32;
 	static constexpr uint16_t ALBEDO_LUT_THREADS = 32;
 
-	int16_t SetTextureTransform(gltfExt_KHR_texture_transform *transform,uint16_t &hasTransformMask , uint32_t mask);
+	int16_t SetTextureTransform(gltfImage* image,gltfExt_KHR_texture_transform *transform,uint32_t &hasTransformMask , uint32_t mask);
 	bgfx::UniformHandle baseColorFactorUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle metallicRoughnessNormalOcclusionFactorUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle emissiveFactorUniform = BGFX_INVALID_HANDLE;
@@ -61,6 +62,6 @@ private:
 	
 	bgfx::DynamicVertexBufferHandle				textureTransformData = BGFX_INVALID_HANDLE;
 	TextureTransformVertex						textureTransformVertex;
-	idList<gltfExt_KHR_texture_transform *> 	textureTransformList; 
+	idList<gltfExt_KHR_texture_transform*> 		textureTransformList; 
 	bgfx::UniformHandle							textureTransformMask = BGFX_INVALID_HANDLE;
 };
