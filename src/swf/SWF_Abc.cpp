@@ -87,6 +87,7 @@ idStr SWF_AbcFile::asString( swfMultiname *mn, swfConstant_pool_info &constant_p
 		ret+= " ";ret+=constant_pool.utf8Strings[mn->nameIndex];
 		break;
 
+	case TypeName:
 	case Multiname:
 	case MultinameA:
 		ret += " "; ret += asString(&constant_pool.multinameInfos[mn->index],constant_pool);
@@ -157,40 +158,45 @@ void SWF_AbcFile::traceConstantPool( swfConstant_pool_info &constant_pool )
 
 void ReadMultiName( idSWFBitStream & bitstream ,swfMultiname & target )
 {
-	 target.type = (swfConstantKind_t )bitstream.ReadU8();
-	 target.index = 0;
-	 target.nameIndex = 0;
-	 switch ( target.type ) 	
-	 {
-	 case RTQnameL:
-	 case RTQnameLA:
-		 //0,0
-		 break;
-	 case Qname:
-	 case QnameA:
-		 target.index = bitstream.ReadEncodedU32();
-		 target.nameIndex = bitstream.ReadEncodedU32();
-		 break;
+	target.type = (swfConstantKind_t )bitstream.ReadU8();
+	target.index = 0;
+	target.nameIndex = 0;
+	switch ( target.type ) 	
+	{
+	case RTQnameL:
+	case RTQnameLA:
+		//0,0
+		break;
+	case Qname:
+	case QnameA:
+		target.index = bitstream.ReadEncodedU32();
+		target.nameIndex = bitstream.ReadEncodedU32();
+		break;
 
-	 case RTQname:
-	 case RTQnameA:
-		 target.nameIndex = bitstream.ReadEncodedU32();
-		 break;
+	case RTQname:
+	case RTQnameA:
+		target.nameIndex = bitstream.ReadEncodedU32();
+		break;
 
-	 case Multiname:
-	 case MultinameA:
-		 target.nameIndex = bitstream.ReadEncodedU32( );
-		 target.index = bitstream.ReadEncodedU32( );
-		 break;
+	case TypeName:
+		target.nameIndex = bitstream.ReadEncodedU32( );
+		target.nameIndexT =bitstream.ReadEncodedU32( );
+		target.indexT = bitstream.ReadEncoded<uint8>( );
+		break;
+	case Multiname:
+	case MultinameA:
+		target.nameIndex = bitstream.ReadEncodedU32( );
+		target.index = bitstream.ReadEncodedU32( );
+		break;
 
-	 case MultinameL:
-	 case MultinameLA:
-		 target.index = bitstream.ReadEncodedU32( );
-		 break;
-	 default:
-		 common->FatalError("Invalid Multiname type");
-		 break;
-	 }
+	case MultinameL:
+	case MultinameLA:
+		target.index = bitstream.ReadEncodedU32( );
+		break;
+	default:
+		common->FatalError("Invalid Multiname type");
+		break;
+	}
 }
 
 void ReadConstantPoolInfo( idSWFBitStream & bitstream ,  swfConstant_pool_info & target )
@@ -581,22 +587,19 @@ void SWF_AbcFile::ReadInstanceInfo( idSWFBitStream &bitstream, swfInstance_info 
 	if 	( (newInstancedata.flags & swfInstanceFlags_t::ClassProtectedNs) != 0 )
 		newInstancedata.protectedNs = bitstream.ReadEncodedU32();
 	uint32 interface_count = bitstream.ReadEncodedU32();
+	newInstancedata.interfaces.AssureSize(interface_count);
 	for (uint i =0; i < interface_count; i++ )
 		newInstancedata.interfaces.Alloc() = &constant_pool.multinameInfos[bitstream.ReadEncodedU32()];
 
 	newInstancedata.iinit = &methods[bitstream.ReadEncodedU32()];
 
 	uint32 trait_count = bitstream.ReadEncodedU32( );
+	newInstancedata.traits.AssureSize(trait_count);
 	for (uint i = 0; i < trait_count; i++ ) {
 		auto & newTrait = newInstancedata.traits.Alloc();
 		ReadTraitsInfo(bitstream,newTrait);
 	}
 
-}
-
-void SWF_AbcFile::RemoveAccessibility()
-{
-// look for all 
 }
 
 void SWF_AbcFile::ReadMethodInfo ( idSWFBitStream & bitstream , swfMethod_info & newMethod )
@@ -605,6 +608,7 @@ void SWF_AbcFile::ReadMethodInfo ( idSWFBitStream & bitstream , swfMethod_info &
 	newMethod.paramCount = bitstream.ReadEncodedU32();
 	idx =  bitstream.ReadEncodedU32();
 	newMethod.returnType =  &constant_pool.multinameInfos[idx];
+	newMethod.paramTypes.AssureSize(newMethod.paramCount);
 	for (uint i = 0; i < newMethod.paramCount; i++ ) {
 		idx = bitstream.ReadEncodedU32();
 		newMethod.paramTypes.Alloc() = &constant_pool.multinameInfos[idx];
@@ -621,7 +625,7 @@ void SWF_AbcFile::ReadMethodInfo ( idSWFBitStream & bitstream , swfMethod_info &
 	if ( (newMethod.flags & swfMethod_info::HAS_PARAM_NAMES) != 0 ) 
 	{
 		trace( "newMethod.params %i \n", (int)newMethod.paramCount);
-
+		newMethod.paramNames.AssureSize(newMethod.paramCount);
 		for ( uint i = 0; i < newMethod.paramCount; i++ ) {
 			idx = bitstream.ReadEncodedU32( );
 			newMethod.paramNames.Alloc() = &constant_pool.utf8Strings[idx];

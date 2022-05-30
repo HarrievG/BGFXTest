@@ -10,6 +10,8 @@ struct swfMultiname
 	swfConstantKind_t type;
 	uint32 nameIndex;
 	uint32 index;
+	uint32 nameIndexT;  //second Multiname for types
+	uint32 indexT;		//
 };
 
 struct swfConstant_pool_info
@@ -184,7 +186,6 @@ struct SWF_AbcFile
 	static void traceMN( const char *name, swfMultiname *mn, swfConstant_pool_info &constant_pool );
 	static void traceConstantPool( swfConstant_pool_info &constant_pool );
 
-	void RemoveAccessibility( );
 	uint16						minor_version;
 	uint16						major_version;
 	swfConstant_pool_info		constant_pool;

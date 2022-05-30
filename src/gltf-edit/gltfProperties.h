@@ -76,6 +76,7 @@ class gltfExtra
 public:
 	gltfExtra( ) { }
 	idStr json;
+	idList<gltfExtra *> extras;
 };
 
 class gltfExt_KHR_lights_punctual;
@@ -122,10 +123,10 @@ public:
 	idList<double>			weights;
 	idStr					name;
 	gltfNode_Extensions		extensions;
-	idStr					extras;
+	gltfExtra				extras;
 
 	//
-	gltfNode *parent;
+	gltfNode *		parent;
 	bool			dirty;
 };
 
@@ -138,9 +139,9 @@ class gltfScene {
 public:
 	gltfScene( ) { }
 	idList<int> nodes;
-	idStr name;
-	idStr extensions;
-	idStr extras;
+	idStr		name;
+	idStr		extensions;
+	gltfExtra	extras;
 };
 
 class gltfMesh_Primitive_Attribute {
@@ -156,12 +157,12 @@ class gltfMesh_Primitive {
 public:
 	gltfMesh_Primitive( ) : indices( -1 ), material( -1 ), mode( -1 ) { }
 	idList<gltfMesh_Primitive_Attribute *> attributes;
-	int	indices;
-	int  material;
-	int mode;
-	idStr target;
-	idStr extensions;
-	idStr extras;
+	int			indices;
+	int			material;
+	int			mode;
+	idStr		target;
+	idStr		extensions;
+	gltfExtra	extras;
 	//
 	bgfx::VertexBufferHandle vertexBufferHandle;
 	bgfx::IndexBufferHandle indexBufferHandle;
@@ -172,52 +173,52 @@ public:
 	gltfMesh( ) { };
 
 	idList<gltfMesh_Primitive *> primitives;	// gltfMesh_Primitive[1,*]
-	idList<double> weights;						// number[1,*]
-	idStr name;
-	idStr extensions;
-	idStr extras;
+	idList<double>	weights;						// number[1,*]
+	idStr			name;
+	idStr			extensions;
+	gltfExtra		extras;
 };
 
 class gltfCamera_Orthographic {
 public:
 	gltfCamera_Orthographic( ) : xmag( 0.0f ), ymag( 0.0f ), zfar( 0.0f ), znear( 0.0f ) { };
-	float xmag;
-	float ymag;
-	float zfar;
-	float znear;
-	idStr extensions;
-	idStr extras;
+	float		xmag;
+	float		ymag;
+	float		zfar;
+	float		znear;
+	idStr		extensions;
+	gltfExtra	extras;
 };
 
 class gltfCamera_Perspective {
 public:
 	gltfCamera_Perspective( ) : aspectRatio( 0.0f ), yfov( 0.0f ), zfar( 0.0f ), znear( 0.0f ) { };
-	float aspectRatio;
-	float yfov;
-	float zfar;
-	float znear;
-	idStr extensions;
-	idStr extras;
+	float		aspectRatio;
+	float		yfov;
+	float		zfar;
+	float		znear;
+	idStr		extensions;
+	gltfExtra	extras;
 };
 
 class gltfCamera {
 public:
 	gltfCamera( ) { };
 	gltfCamera_Orthographic orthographic;
-	gltfCamera_Perspective perspective;
-	idStr type;
-	idStr name;
-	idStr extensions;
-	idStr extras;
+	gltfCamera_Perspective	perspective;
+	idStr					type;
+	idStr					name;
+	idStr					extensions;
+	gltfExtra				extras;
 };
 
 class gltfAnimation_Channel_Target {
 public:
 	gltfAnimation_Channel_Target( ) : node( -1 ), TRS( gltfTRS::count ) { };
-	int node;
-	idStr path;
-	idStr extensions;
-	idStr extras;
+	int			node;
+	idStr		path;
+	idStr		extensions;
+	gltfExtra	extras;
 
 	enum gltfTRS {
 		none,
@@ -246,20 +247,20 @@ public:
 class gltfAnimation_Channel {
 public:
 	gltfAnimation_Channel( ) : sampler( -1 ) { };
-	int sampler;
-	gltfAnimation_Channel_Target target;
-	idStr extensions;
-	idStr extras;
+	int								sampler;
+	gltfAnimation_Channel_Target	target;
+	idStr							extensions;
+	gltfExtra						extras;
 };
 
 class gltfAnimation_Sampler {
 public:
 	gltfAnimation_Sampler( ) : input( -1 ), interpolation("LINEAR"),output( -1 ), intType(gltfInterpType::count) { };
-	int input;
-	idStr interpolation;
-	int output;
-	idStr extensions;
-	idStr extras;
+	int			input;
+	idStr		interpolation;
+	int			output;
+	idStr		extensions;
+	gltfExtra	extras;
 
 	enum gltfInterpType {
 		linear,
@@ -285,11 +286,11 @@ public:
 class gltfAnimation {
 public:
 	gltfAnimation( ) : maxTime (0.0f),numFrames(0) { };
-	idList<gltfAnimation_Channel*> channels;
-	idList<gltfAnimation_Sampler*> samplers;
-	idStr name;
-	idStr extensions;
-	idStr extras;
+	idList<gltfAnimation_Channel *>	channels;
+	idList<gltfAnimation_Sampler *>	samplers;
+	idStr							name;
+	idStr							extensions;
+	gltfExtra						extras;
 
 	float maxTime;
 
@@ -308,20 +309,20 @@ public:
 class gltfAccessor_Sparse_Values {
 public:
 	gltfAccessor_Sparse_Values( ) : bufferView( -1 ), byteOffset( -1 ) { };
-	int bufferView;
-	int byteOffset;
-	idStr extensions;
-	idStr extras;
+	int			bufferView;
+	int			byteOffset;
+	idStr		extensions;
+	gltfExtra	extras;
 };
 
 class gltfAccessor_Sparse_Indices {
 public:
 	gltfAccessor_Sparse_Indices( ) : bufferView( -1 ), byteOffset( -1 ), componentType( -1 ) { };
-	int bufferView;
-	int byteOffset;
-	int componentType;
-	idStr extensions;
-	idStr extras;
+	int			bufferView;
+	int			byteOffset;
+	int			componentType;
+	idStr		extensions;
+	gltfExtra	extras;
 };
 
 class gltfAccessor_Sparse {
@@ -331,46 +332,46 @@ public:
 	gltfAccessor_Sparse_Indices indices;
 	gltfAccessor_Sparse_Values values;
 	idStr extensions;
-	idStr extras;
+	gltfExtra	extras;
 };
 
 class gltfAccessor {
 public:
 	gltfAccessor( ) : bufferView( -1 ), byteOffset( 0 ), componentType( -1 ), normalized( false ), count( -1 ) ,
 		floatView(nullptr),vecView(nullptr),quatView(nullptr),matView(nullptr){ }
-	int bufferView;
-	int byteOffset;
-	int componentType;
-	bool normalized;
-	int count;
-	idStr type;
-	idList<double> max;
-	idList<double> min;
+	int					bufferView;
+	int					byteOffset;
+	int					componentType;
+	bool				normalized;
+	int					count;
+	idStr				type;
+	idList<double>		max;
+	idList<double>		min;
 	gltfAccessor_Sparse sparse;
-	idStr name;
-	idStr extensions;
-	idStr extras;
+	idStr				name;
+	idStr				extensions;
+	gltfExtra			extras;
 
 	bgfx::AttribType::Enum bgfxType;
 	uint typeSize;
 
-	idList<float>   * floatView;
-	idList<idVec3*> * vecView;
-	idList<idQuat*> * quatView;
-	idList<idMat4> * matView;
+	idList<float>   *	floatView;
+	idList<idVec3*> *	vecView;
+	idList<idQuat*> *	quatView;
+	idList<idMat4>  *	matView;
 };
 
 class gltfBufferView {
 public:
 	gltfBufferView( ) : buffer( -1 ), byteLength( -1 ), byteStride( 0 ), byteOffset( 0 ), target( -1 ) { };
-	int buffer;
-	int byteLength;
-	int byteStride;
-	int byteOffset;
-	int target;
-	idStr name;
-	idStr extensions;
-	idStr extras;
+	int			buffer;
+	int			byteLength;
+	int			byteStride;
+	int			byteOffset;
+	int			target;
+	idStr		name;
+	idStr		extensions;
+	gltfExtra	extras;
 	//
 	gltfData *parent;
 };
@@ -378,25 +379,25 @@ public:
 class gltfBuffer {
 public:
 	gltfBuffer( ) : byteLength( -1 ), parent( nullptr ) { };
-	idStr uri;
-	int byteLength;
-	idStr name;
-	idStr extensions;
-	idStr extras;
+	idStr		uri;
+	int			byteLength;
+	idStr		name;
+	idStr		extensions;
+	gltfExtra	extras;
 	//
-	gltfData *parent;
+	gltfData *	parent;
 };
 
 class gltfSampler {
 public:
 	gltfSampler( ) : magFilter( 0 ), minFilter( 0 ), wrapS( 10497 ), wrapT( 10497 ) { };
-	int	magFilter;
-	int	minFilter;
-	int	wrapS;
-	int	wrapT;
-	idStr name;
-	idStr extensions;
-	idStr extras;
+	int			magFilter;
+	int			minFilter;
+	int			wrapS;
+	int			wrapT;
+	idStr		name;
+	idStr		extensions;
+	gltfExtra	extras;
 	//
 	uint bgfxSamplerFlags;
 };
@@ -404,12 +405,12 @@ public:
 class gltfImage {
 public:
 	gltfImage( ) : bufferView( -1 ) { }
-	idStr	uri;
-	idStr	mimeType;
-	int		bufferView;
-	idStr	name;
-	idStr	extensions;
-	idStr	extras;
+	idStr		uri;
+	idStr		mimeType;
+	int			bufferView;
+	idStr		name;
+	idStr		extensions;
+	gltfExtra	extras;
 	//
 	bgfxTextureHandle bgfxTexture;
 };
@@ -422,7 +423,7 @@ public:
 	idList<int>	joints; // integer[1,*]
 	idStr		name;
 	idStr		extensions;
-	idStr		extras;
+	gltfExtra	extras;
 };
 
 class gltfExt_KHR_texture_transform;
@@ -440,7 +441,7 @@ public:
 	int							texCoord;
 	float						strength;
 	gltfTexture_Info_Extensions	extensions;
-	idStr						extras;
+	gltfExtra					extras;
 };
 
 class gltfNormalTexture_Info {
@@ -450,7 +451,7 @@ public:
 	int							texCoord;
 	float						scale;
 	gltfTexture_Info_Extensions	extensions;
-	idStr						extras;
+	gltfExtra					extras;
 };
 
 class gltfTexture_Info {
@@ -459,7 +460,7 @@ public:
 	int							index;
 	int							texCoord;
 	gltfTexture_Info_Extensions	extensions;
-	idStr						extras;
+	gltfExtra					extras;
 };
 
 
@@ -470,7 +471,7 @@ public:
 	int							source;
 	idStr						name;
 	gltfTexture_Info_Extensions	extensions;
-	idStr						extras;
+	gltfExtra					extras;	
 };
 
 class gltfMaterial_pbrMetallicRoughness {
@@ -482,7 +483,7 @@ public:
 	float				roughnessFactor;
 	gltfTexture_Info	metallicRoughnessTexture;
 	idStr				extensions;
-	idStr				extras;
+	gltfExtra			extras;
 };
 
 class gltfMaterial {
@@ -525,12 +526,12 @@ public:
 class gltfAsset {
 public:
 	gltfAsset( ) { }
-	idStr	copyright;
-	idStr	generator;
-	idStr	version;
-	idStr	minVersion;
-	idStr	extensions;
-	idStr	extras;
+	idStr		copyright;
+	idStr		generator;
+	idStr		version;
+	idStr		minVersion;
+	idStr		extensions;
+	gltfExtra	extras;
 };
 
 //this is not used.
@@ -553,7 +554,7 @@ public:
 	float				glossinessFactor;
 	gltfTexture_Info	specularGlossinessTexture;
 	idStr				extensions;
-	idStr				extras;
+	gltfExtra			extras;
 };
 
 //KHR_lights_punctual_spot
@@ -561,10 +562,10 @@ public:
 class gltfExt_KHR_lights_punctual_spot {
 public:
 	gltfExt_KHR_lights_punctual_spot( ) : innerConeAngle(0.0f), outerConeAngle( idMath::ONEFOURTH_PI ){ }
-	float	innerConeAngle;
-	float	outerConeAngle;
-	idStr	extensions;
-	idStr	extras;
+	float		innerConeAngle;
+	float		outerConeAngle;
+	idStr		extensions;
+	gltfExtra	extras;
 };
 typedef gltfExt_KHR_lights_punctual_spot spot;
 
@@ -573,14 +574,14 @@ typedef gltfExt_KHR_lights_punctual_spot spot;
 class gltfExt_KHR_lights_punctual {
 public:
 	gltfExt_KHR_lights_punctual( ) : color(vec3_one),intensity(1.0f),range(-1.0f),intType(-1) { }
-	idVec3	color;
-	float	intensity;
-	spot	spot;
-	idStr	type; //directional=0,point=1,spot=2
-	float	range;
-	idStr	name;
-	idStr	extensions;
-	idStr	extras;
+	idVec3		color;
+	float		intensity;
+	spot		spot;
+	idStr		type; //directional=0,point=1,spot=2
+	float		range;
+	idStr		name;
+	idStr		extensions;
+	gltfExtra	extras;
 
 	int intType;
 
@@ -605,7 +606,7 @@ public:
 	idVec2	scale;
 	int		texCoord;
 	idStr	extensions;
-	idStr	extras;
+gltfExtra	extras;
 
 	//for shader
 	uint	index;
