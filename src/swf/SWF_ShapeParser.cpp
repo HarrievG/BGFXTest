@@ -132,9 +132,6 @@ void idSWFShapeParser::Parse( idSWFBitStream & bitstream, idSWFShape & shape, in
 		ld.indices.SetNum( spld.edges.Num() * 3 );
 		ld.indices.SetNum( 0 );
 
-
-
-
 		//edge list
 		for ( int e = 0; e < spld.edges.Num(); e++ ) {
 			//startcap
@@ -997,7 +994,6 @@ void idSWFShapeParser::ReadFillStyle( idSWFBitStream & bitstream ) {
 	for ( int i = 0; i < lineStyleCount; i++ ) {
 		swfLineStyle_t & lineStyle = lineDraws[idx + i].style;
 		lineStyle.startWidth = bitstream.ReadU16();
-		common->Warning("%i",lineStyle.startWidth / 20);
 		if ( lineStyle2 ) {
 			lineStyle.endWidth = lineStyle.startWidth;
 			uint8 startCapStyle = bitstream.ReadU( 2 );

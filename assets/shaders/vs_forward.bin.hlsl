@@ -1,5 +1,5 @@
 // shaderc command line:
-// bin\shadercRelease.exe -f shaders\vs_forward.sc -o shaders\vs_forward.bin --platform windows --type vertex --verbose -i ./ -p vs_5_0 --debug -O 0
+// bin\shadercRelease.exe -f shaders\vs_forward.sc -o shaders\vs_forward.bin --platform windows --type vertex --verbose -i ./ -p vs_5_0 --debug -O 0 --define USE_SKINNING
 
 
 struct Output
@@ -634,13 +634,40 @@ float3 reinhard2(float3 _x, float _whiteSqr)
 {
 return (_x * (1.0 + _x/_whiteSqr) ) / (1.0 + _x);
 }
-uniform float4x4 u_normalMatrix;
-Output main( float3 a_normal : NORMAL , float3 a_position : POSITION , float4 a_tangent : TANGENT , float2 a_texcoord0 : TEXCOORD0) { Output _varying_; _varying_.v_normal; _varying_.v_tangent; _varying_.v_texcoord; _varying_.v_worldpos;
+uniform float4x4 u_boneMatrices[128];
+float4x4 getSkinningMatrix(float4 _joints_0, float4 _weights_0 )
 {
-_varying_.v_worldpos = mul(u_model[0], float4(a_position, 1.0)).xyz;
+float4x4 skin = float4x4(float4(0.0,0.0,0.0,0.0),float4(0.0,0.0,0.0,0.0),float4(0.0,0.0,0.0,0.0),float4(0.0,0.0,0.0,0.0));
+skin +=
+_weights_0.x * u_boneMatrices[int(_joints_0.x)] +
+_weights_0.y * u_boneMatrices[int(_joints_0.y)] +
+_weights_0.z * u_boneMatrices[int(_joints_0.z)] +
+_weights_0.w * u_boneMatrices[int(_joints_0.w)];
+return skin;
+}
+float4x4 getSkinningNormalMatrix(float4 _joints_0 )
+{
+float4x4 skin = float4x4(float4(1.0,0.0,0.0,0.0),float4(0.0,1.0,0.0,0.0),float4(0.0,0.0,1.0,0.0),float4(0.0,0.0,0.0,1.0));
+return skin;
+}
+uniform float4x4 u_normalMatrix;
+uniform float4 u_vertexOptions;
+float4 getPosition(float3 _position, int4 _indices, float4 _weights)
+{
+if(((uint(u_vertexOptions.x) & (1 << 0)) != 0))
+return mul(getSkinningMatrix(_indices,_weights) ,float4(_position, 1.0));
+else
+return float4(_position,1);
+return float4(_position,1);
+}
+Output main( int4 a_indices : BLENDINDICES , float3 a_normal : NORMAL , float3 a_position : POSITION , float4 a_tangent : TANGENT , float2 a_texcoord0 : TEXCOORD0 , float4 a_weight : BLENDWEIGHT) { Output _varying_; _varying_.v_normal; _varying_.v_tangent; _varying_.v_texcoord; _varying_.v_worldpos;
+{
+float4 target = getPosition(a_position,a_indices,a_weight);
+float3 pos = target.xyz;
+_varying_.v_worldpos = mul(u_model[0], pos );
 _varying_.v_normal = mul(u_normalMatrix, a_normal);
 _varying_.v_tangent = mul(u_model[0],a_tangent.xyz);
 _varying_.v_texcoord = a_texcoord0;
-_varying_.gl_Position = mul(u_modelViewProj, float4(a_position, 1.0));
+_varying_.gl_Position = mul(u_modelViewProj, float4(pos , 1.0));
 } return _varying_;
 }

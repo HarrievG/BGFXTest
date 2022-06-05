@@ -1,3 +1,4 @@
+#pragma once
 // Derived from this Gist by Richard Gale:
 //     https://gist.github.com/RichardGale/6e2b74bc42b3005e08397236e4be0fd0
 #include "../idFramework/idlib/containers/List.h"

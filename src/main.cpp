@@ -25,14 +25,19 @@
 #include "idFramework/sys/win32/win_local.h"
 #include "bgfx-stubs/Font/text_buffer_manager.h"
 #include "swf/SWF.h"
+#include "gltf-edit/gltfAnimation.h"
+#include "bgfx-stubs/bgfxDebugRenderer.h"
+#include "gltf-edit/gltfExtras.h"
 
 //idDeclManager *		declManager = NULL;
 //int idEventLoop::JournalLevel( void ) const { return 0; }
 
 idCVar com_editing( "edit", "0", CVAR_BOOL | CVAR_SYSTEM, "editor mode" );
-idCVar com_sceneName( "sceneName", "Materials_Scifi_02.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
+idCVar com_sceneName( "sceneName", "blender/physics_test.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
+//idCVar com_sceneName( "sceneName", "trs_animtest.glb", CVAR_TOOL, "the gltf scene that is currently being edited" );
+idCVar com_uidebug (  "uiName", "pig.swf", CVAR_TOOL, "the swf that is currently being drawn" );
 idCVar com_developer( "developer", "0", CVAR_BOOL | CVAR_SYSTEM, "developer mode" );
-idCVar com_showImguiDemo( "ImGui demo", "0", CVAR_BOOL | CVAR_SYSTEM, "draw imgui demo window" );
+idCVar com_showImguiDemo( "ImGui_demo", "0", CVAR_BOOL | CVAR_SYSTEM, "draw imgui demo window" );
 idCVar win_outputDebugString( "win_outputDebugString", "1", CVAR_SYSTEM | CVAR_BOOL, "Output to debugger " );
 idCVar win_outputEditString( "win_outputEditString", "1", CVAR_SYSTEM | CVAR_BOOL, "" );
 idCVar win_viewlog( "win_viewlog", "0", CVAR_SYSTEM | CVAR_INTEGER, "" );
@@ -58,6 +63,7 @@ idSession *session = NULL;
 ForwardRenderer * fwRender;
 static TextBufferManager * textMan;
 static TextBufferHandle * gTextHandle = nullptr;
+static gltfData * gSceneData = nullptr;
 void main_loop( void *data ) {
 	auto context = static_cast< bgfxContext_t * >( data );
 
@@ -78,7 +84,7 @@ void main_loop( void *data ) {
 		//swfTest = new idSWF("test_ext.swf",0,textMan);
 		//swfTest = new idSWF("line.swf",0,textMan);
 		//swfTest = new idSWF("edge.swf",0,textMan);
-		swfTest = new idSWF("clicktest_simlpe.swf",0,textMan);
+		swfTest = new idSWF(com_uidebug.GetString(),0,textMan);
 		eventLoop->RegisterCallback( []( const sysEvent_t &event )
 			-> auto {
 			swfTest->HandleEvent(&event);
@@ -107,8 +113,9 @@ void main_loop( void *data ) {
 	else
 	{
 		swfTest->Render( Sys_Milliseconds() );
+		bgfxDebugRenderer::Flush();
 		fwRender->render( com_frameTime );
-
+		gSceneData->Advance();
 		const bgfx::Caps *caps = bgfx::getCaps( );
 		{
 			int txtView = 50;
@@ -148,7 +155,7 @@ void main_loop( void *data ) {
 
 
 	ImGuiIO &io = ImGui::GetIO( );
-	// Update and Render additional Platform Windows
+	// HVG_TODO
 	// Update and Render additional Platform Windows
 	if ( io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable ) {
 		ImGui::UpdatePlatformWindows( );
@@ -351,8 +358,13 @@ int main( int argc, char **argv )
 	context.height = height;
 	context.window = window;
 	
-	bgfxStartImageLoadThread();
+	bgfxDebugRenderer::CreateRenderer();
 
+	bgfxStartImageLoadThread( );
+
+	gltfItem_Extra::Register(new gltfExtra_Scatter("Scatter"));
+	gltfItem_Extra::Register(new gltfExtra_Scatter("scatter5"));
+	gltfItem_Extra::Register(new gltfExtra_cvar("cvar"));
 	if ( com_editing.GetBool() )
 	{
 		sceneEditor->Create();
@@ -360,8 +372,9 @@ int main( int argc, char **argv )
 	}
 	else
 	{
-		gltfParser->Load( "Materials_Scifi_02.glb" );
-		fwRender = new ForwardRenderer( gltfParser->currentAsset );
+		gltfParser->Load( com_sceneName.GetString() );
+		gSceneData = gltfParser->currentAsset;
+		fwRender = new ForwardRenderer( gSceneData );
 		fwRender->reset( width,height);
 		fwRender->initialize();
 		

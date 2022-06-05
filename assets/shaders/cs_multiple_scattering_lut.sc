@@ -166,9 +166,9 @@ void main()
 
     mat.metallic = 1.0; // F0 = albedo -> perfectly reflective surface
     mat = pbrInitMaterial(mat);
-    float albedo_metal = albedo_specular(V, NoV, mat);
+    float albedo_metal = 1.0f;//albedo_specular(V, NoV, mat);
 
-    mat.metallic = 0.0; // F0 = 0.04
+    mat.metallic = 0.00; // F0 = 0.04
     mat = pbrInitMaterial(mat);
     float albedo_dielectric = albedo_specular(V, NoV, mat) + albedo_diffuse(V, NoV, mat);
 

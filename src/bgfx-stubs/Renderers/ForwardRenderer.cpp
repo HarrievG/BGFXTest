@@ -1,15 +1,15 @@
 #include "ForwardRenderer.h"
 #include <bx/string.h>
 #include "..\gltf-edit\gltfParser.h"
+#include "../bgfxDebugRenderer.h"
 
 
 idCVar transposetest( "transposetest", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "1 to transpose");
 
 extern void WriteIndexPair( triIndex_t *dest, const triIndex_t a, const triIndex_t b );
 
-ForwardRenderer::ForwardRenderer(gltfData* sceneData) : Renderer(sceneData) 
+ForwardRenderer::ForwardRenderer(gltfData* sceneData) : Renderer(sceneData) ,targetNode( nullptr )
 {
-
 }
 
 bool ForwardRenderer::supported()
@@ -33,9 +33,9 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 	auto & texList	= data->TextureList();
 	auto & imgList	= data->ImageList();
 	auto & smpList	= data->SamplerList();
+	auto & skinList	= data->SkinList();
 
-	idMat4 mat;
-	gltfData::ResolveNodeMatrix( node, &mat);
+	gltfData::ResolveNodeMatrix( node );
 	idMat4 curTrans = trans * node->matrix ;
 
 	for ( auto &child : node->children )
@@ -43,34 +43,24 @@ void ForwardRenderer::RenderSceneNode(uint64_t state, gltfNode *node, idMat4 tra
 
 	if ( node->mesh != -1 ) 		
 	{
-		for ( auto prim : meshList[node->mesh]->primitives )
+		int primitiveCount=0;
+		for ( auto * prim : meshList[node->mesh]->primitives )
 		{
-			bgfx::setTransform( curTrans.Transpose().ToFloatPtr() );
-
-			if(transposetest.GetInteger() == 1)
-				setNormalMatrix(curTrans.Transpose());
-			else
-				setNormalMatrix(curTrans);
-
-			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
-			bgfx::setIndexBuffer( prim->indexBufferHandle );
-			if ( prim->material != -1 ) 			{
-				gltfMaterial *material = matList[prim->material];
-
-				uint64_t materialState = pbr.bindMaterial( material, data );
-				bgfx::setState( state | materialState );
-
-				bgfx::submit( vDefault, program, 0, ~BGFX_DISCARD_BINDINGS );
-			}
-
-		//	if (r_forceRenderMode.GetInteger() != -1 )
-		//		bgfxSetRenderMode(viewId, context ,r_forceRenderMode.GetInteger());
-
-			bgfx::submit( vDefault, program );
+			
+			RenderItem &item = renderItems.Alloc();
+			item.gltfMeshID = node->mesh;
+			item.gltfMesh_PrimitiveID = primitiveCount;
+			item.gltfSkinID = node->skin;
+			item.transform = curTrans;
+			item.gltfMaterialID = prim->material;
+			primitiveCount++;
 		}
 	}
+}
 
 
+void ForwardRenderer::SetRenderTargetNode(gltfNode * node) {
+	targetNode = node;
 }
 
 extern void WriteIndexPair( triIndex_t *dest, const triIndex_t a, const triIndex_t b );
@@ -107,7 +97,54 @@ idDrawVert *ForwardRenderer::AllocTris( int vertCount, const triIndex_t *tempInd
 	}
 
 	return vtxData + startVert;
+}
 
+
+void ForwardRenderer::Flush( uint64_t state ) 
+{
+	bgfx::ViewId vDefault = 0;
+	auto & meshList = data->MeshList();
+	auto & matList = data->MaterialList();
+
+	for (auto & item : renderItems )
+	{
+		idMat4 & curTrans = item.transform;
+		gltfMesh_Primitive * prim = meshList[item.gltfMeshID]->primitives[item.gltfMesh_PrimitiveID];
+
+		float vertexOptions[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+		uint32_t vertexOptionsMask = 0;
+
+		bgfx::setTransform( curTrans.Transpose( ).ToFloatPtr( ) );
+
+		if ( transposetest.GetInteger( ) == 1 )
+			setNormalMatrix( curTrans.Transpose( ) );
+		else
+			setNormalMatrix( curTrans );
+
+		if ( item.gltfSkinID != -1 ) {
+			auto *skin = data->SkinList( )[item.gltfSkinID];
+			auto *acc = data->AccessorList( )[skin->inverseBindMatrices];
+
+			setSkinningMatrix( skin, acc );
+
+			vertexOptionsMask |= 1 << 0;
+		}
+
+		bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
+		bgfx::setIndexBuffer( prim->indexBufferHandle );
+		if ( prim->material != -1 ) {
+			gltfMaterial *material = matList[prim->material];
+
+			uint64_t materialState = pbr.bindMaterial( material, data );
+			bgfx::setState( state | materialState );
+		}
+
+		vertexOptions[0] = static_cast< float >( vertexOptionsMask );
+		bgfx::setUniform( vertexOptionsUniform, vertexOptions );
+
+		bgfx::submit( vDefault, program, 0, ~BGFX_DISCARD_BINDINGS );
+	}
+	renderItems.Clear();
 }
 
 void ForwardRenderer::onRender(float dt)
@@ -115,7 +152,7 @@ void ForwardRenderer::onRender(float dt)
     bgfx::ViewId vDefault = 0;
 
     bgfx::setViewName(vDefault, "Forward render pass");
-    bgfx::setViewClear(vDefault, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, 0x6495EDFF, 1.0f, 0);
+    bgfx::setViewClear(vDefault, BGFX_CLEAR_COLOR | BGFX_CLEAR_DEPTH, /*0x6495EDFF*/0x0, 1.0f, 0);
     bgfx::setViewRect(vDefault, 0, 0, width, height);
     bgfx::setViewFrameBuffer(vDefault, frameBuffer);
 
@@ -133,33 +170,30 @@ void ForwardRenderer::onRender(float dt)
     pbr.bindAlbedoLUT();
     lights.BindLights();
 
-	auto &nodeList = data->NodeList( ); 
-	idMat4 mat;
-	auto &scenes = data->SceneList( );
-	for ( auto &scene : scenes )
+	if ( !targetNode  )
 	{
-		for ( auto &node : scene->nodes)
-		{
-			idMat4 mat = mat4_identity;
-			RenderSceneNode(state, nodeList[node], mat, data);
+		auto &nodeList = data->NodeList( );
+		idMat4 mat;
+		auto &scenes = data->SceneList( );
+		for ( auto &scene : scenes ) {
+			for ( auto &node : scene->nodes ) {
+				idMat4 mat = mat4_identity;
+				RenderSceneNode( state, nodeList[node], mat, data );
+			}
+			break; // only the first for now.
 		}
-		break; // only the first for now.
-	}
+	}else
+		RenderSceneNode( state, targetNode, mat4_identity, data );
+
+	idSort_RenderItem sort;
+	sort.SetData(data);
+	renderItems.SortWithTemplate(sort);
+	//for (auto & item : renderItems)
+	//	common->Printf( "%i\t%i\t%i\n",item.gltfMeshID,item.gltfMesh_PrimitiveID,item.gltfSkinID );
+	Flush(state);
 
 	lights.Update();
-
-    //for(auto & mesh : scene.p)
-    //{
-    //    idMat4 model = glm::identity<idMat4>();
-    //    bgfx::setTransform(glm::value_ptr(model));
-    //    setNormalMatrix(model);
-    //    bgfx::setVertexBuffer(0, mesh.vertexBuffer);
-    //    bgfx::setIndexBuffer(mesh.indexBuffer);
-    //    const Material& mat = scene->materials[mesh.material];
-    //    uint64_t materialState = pbr.bindMaterial(mat);
-    //    bgfx::setState(state | materialState);
-    //    bgfx::submit(vDefault, program, 0, ~BGFX_DISCARD_TEXTURE_SAMPLERS);
-    //}
+	pbr.UpdateTextureTransforms();
 
     bgfx::discard(BGFX_DISCARD_ALL);
 }

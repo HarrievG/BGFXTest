@@ -18,9 +18,9 @@
 #include "gltfParser.h"
 #include <ImGuizmo.h>
 #include "gltfParser.h"
+#include "gltfProperties.h"
 
 //tinygltf::TinyGLTF gGLFTLoader;
-
 //static gltfSceneEditor localSceneEditor;
 gltfSceneEditor *sceneEditor = nullptr;// = &localSceneEditor;
 
@@ -59,6 +59,7 @@ void gltfSceneEditor::Init( const char * sceneFile )
 	sceneRender->reset(1920,1080);
 	sceneRender->initialize();
 	assetExplorer->Init();
+	assetExplorer->SetRenderer(sceneRender);
 	static auto *thisPtr = this;
 	selectedScene = nullptr;
 	currentData	 = nullptr;
@@ -151,8 +152,7 @@ void gltfSceneEditor::Init( const char * sceneFile )
 }
 void gltfSceneEditor::RenderSceneNode( bgfxContext_t *context, gltfNode *node, idMat4 trans, const idList<gltfNode *> &nodeList )
 {
-	idMat4 mat;
-	gltfData::ResolveNodeMatrix( node, &mat);
+	gltfData::ResolveNodeMatrix( node );
 	idMat4 curTrans = trans * node->matrix ;
 	static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
 	if ( node->mesh != -1 ) 		
@@ -188,8 +188,10 @@ bool gltfSceneEditor::Render( bgfxContext_t *context )
 {
 	if ( !bgfx::isValid( renderTarget.rb ) )
 		renderTarget.rb = bgfx::getTexture(sceneRender->frameBuffer, 0);
-
-	sceneRender->render( com_frameTime );
+	if (sceneViewOpen )
+		sceneRender->render( com_frameTime );
+	else
+		assetExplorer->Render( context );
 
 	//if ( !bgfx::isValid( renderTarget.fbh ) )
 	//{
@@ -321,6 +323,9 @@ bool gltfSceneEditor::imDraw( ) {
 
 	if (ImGui::Begin("GLTF SCENE",&sceneViewOpen, flags ))
 	{
+		if ( currentData )
+			currentData->Advance( );
+
 		localWindowPos = ImGui::GetWindowPos( );
 		localWindowSize = ImGui::GetWindowSize();
 		localMousePos = idVec2( io.MousePos.x - ImGui::GetWindowPos( ).x, io.MousePos.y - ImGui::GetWindowPos( ).y );
@@ -354,7 +359,7 @@ bool gltfSceneEditor::imDraw( ) {
 				if ( ImGui::BeginMenu( "Cameras" ) ) {
 					if (currentData && selectedScene ) {
 						int camCount = 0;
-						idList<gltfCamera*> cams = currentData->CameraList( );
+						auto &cams = currentData->CameraList( );
 						for (auto & camera : cams ) {
 							idStr camName;
 							if (!camera->name.IsEmpty( ))
@@ -365,6 +370,7 @@ bool gltfSceneEditor::imDraw( ) {
 							if (ImGui::MenuItem(camName.c_str())) {
 								currentCamera = cams[camCount];
 								selectedCameraId = camCount;
+								sceneRender->SetCamera(selectedCameraId);
 							}
 							ImGui::PopID(  );
 							camCount++;
@@ -376,11 +382,12 @@ bool gltfSceneEditor::imDraw( ) {
 			}
 			ImGui::EndMenuBar( );
 		}
-		//fixme DrawCameraInfo( currentCamera );
+		DrawCameraInfo( currentCamera );
 		DrawNodeInfo( selectedNode );
 		if (isValid(renderTarget.rb))
 			ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) 1920 /2 , ( float ) 1080 /2), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
-	}
+	}else
+		sceneViewOpen = false;
 	ImGui::End();
 	DrawSceneList();
 
@@ -391,6 +398,7 @@ void gltfSceneEditor::DrawCameraInfo( gltfCamera *camera )
 	if ( !currentData || !currentCamera ) 
 		return;
 
+	
 	static bool p_open = true;
 	static int corner = 1;
 	ImGuiIO &io = ImGui::GetIO( );
@@ -411,45 +419,72 @@ void gltfSceneEditor::DrawCameraInfo( gltfCamera *camera )
 		window_flags |= ImGuiWindowFlags_NoMove;
 	}
 	ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
-	if ( ImGui::Begin( "Camera info", &p_open, window_flags ) ) {
+	if ( ImGui::Begin( "Camera info", &p_open, window_flags ) && selectedCameraId != -1) {
 	
-		gltfCameraNodePtrs res = currentData->GetCameraNodes( currentCamera );
+		//auto &camManager = *editorData->cameraManager;
+		//auto camOverride = camManager.GetOverride( selectedCameraId );
+		//if ( camOverride == camManager.EmptOverrideEntry ) {
+		//	if ( !camManager.IsOverride( selectedCameraId ) )
+		//		camOverride = camManager.Override( selectedCameraId );
+		//	else
+		//		camOverride = camManager.GetOverride( selectedCameraId, true );
+		//}
+		//
+		//auto *camNode = currentData->NodeList( )[camOverride.newNodeID];
+		//idMat4 camMat = currentData->GetViewMatrix( camOverride.newCameraID ).Transpose( );
+		auto *camNode = editorData->cameraManager->GetOwner(selectedCameraId);
+		idMat4 camMat = currentData->GetViewMatrix( selectedCameraId ).Transpose( );
 
+		idVec3 mouseDir = idVec3( io.MouseDelta.x, 0.0f, io.MouseDelta.y );
+		mouseDir.Normalize( );
 		if ( io.MouseDown[1] ) {
+			camNode->rotation *= idAngles(mouseDir).ToQuat();
 
-			res.translationNode->rotation *= idAngles(0, io.MouseDelta.x * ( com_frameTime / 100000.0f ), io.MouseDelta.y *  ( com_frameTime / 100000.0f )).ToQuat();
+			idVec3 forward = idVec3( camMat[2][0], camMat[2][1], camMat[2][2] );
+			idVec3 up = idVec3( camMat[1][0], camMat[1][1], camMat[1][2] );
+			idVec3 right = idVec3( camMat[0][0], camMat[0][1], camMat[0][2] );
+			
 
-
-			idVec3 dir = idVec3( cameraView[2][0], cameraView[2][1], cameraView[2][2] );
-
-			//idQuat dir = res.orientationNode != nullptr ? res.translationNode->rotation + res.orientationNode->rotation : res.translationNode->rotation;
+			forward.Normalize();
+			up.Normalize();
+			right.Normalize();
 
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_W ) ) {
-				res.translationNode->translation -= dir *  ( com_frameTime / 100000.0f );
+				camNode->translation -= forward ;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_S ) ) {
-				res.translationNode->translation += dir *  ( com_frameTime / 100000.0f );
+				camNode->translation += forward ;
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_R ) ) {
+				camNode->translation += up ;
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_F ) ) {
+				camNode->translation -= up;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_A ) ) {
-				res.translationNode->rotation *= idAngles( ( com_frameTime / 100000.0f ),0, 0 ).ToQuat( );
+				camNode->translation -= right;
 			}
 			if ( ImGui::IsKeyDown( SDL_SCANCODE_D ) ) {
-				res.translationNode->rotation *= idAngles( -( com_frameTime / 100000.0f ),0, 0).ToQuat( );
+				camNode->translation += right;
 			}
-			res.translationNode->dirty = true;
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_Q ) ) {
+				camNode->rotation *= idAngles(0,1,0).ToQuat();
+			}
+			if ( ImGui::IsKeyDown( SDL_SCANCODE_E ) ) {
+				camNode->rotation *= idAngles(0,-1,0).ToQuat();
+			}
+			camNode->dirty = true;
 		}
 
 		ImGui::Text( "Camera" );
-		if ( res.translationNode != nullptr && !currentCamera->name.IsEmpty( ) )
+		if ( !currentCamera->name.IsEmpty( ) )
 		{
 			ImGui::SameLine();
 			ImGui::Text( ": %s", currentCamera->name.c_str());
 		}
 		ImGui::Separator( );
-		if ( res.translationNode != nullptr ) {
-			ImGui::Text( "Position" );
-			ImGui::DragFloat3( "##campos", res.translationNode->translation.ToFloatPtr( ) );
-		}
+		ImGui::Text( "Position" );
+		ImGui::DragFloat3( "##campos", camNode->translation.ToFloatPtr( ) );
 		ImGui::Separator( );
 
 		if ( ImGui::BeginPopupContextWindow( ) )         {
@@ -545,6 +580,8 @@ void gltfSceneEditor::DrawSceneList()
 					for ( auto &scene : scenes )
 					{
 						bool selected = selectedScene == scene;
+						selectedSceneId = sceneCount;
+
 						ImGui::PushID( sceneCount++ );
 						if ( ImGui::Selectable( scene->name.Length( ) ? scene->name.c_str( ) : data->FileName( ).c_str( ), selected ) )
 						{
@@ -682,20 +719,23 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 {
 	if (!guiVisible)
 		return false;
-	if (!bgfx::isValid( renderTarget.fbh ))
-		renderTarget.fbh = Renderer::createFrameBuffer( );
+	//if (!bgfx::isValid( renderTarget.fbh ))
+	//{
+	//	renderTarget.fbh = Renderer::createFrameBuffer( );
+	//	renderTarget.rb = bgfx::createTexture2D( r_gltfEditRenderWidth.GetInteger(), r_gltfEditRenderHeight.GetInteger(), false, 1, bgfx::TextureFormat::BGRA8, BGFX_TEXTURE_BLIT_DST );
+	//}
 		//bgfxCreateMrtTarget( renderTarget, "AssetExplorerView" );
 
-	bgfx::touch( renderTarget.viewId );
-	static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
+//	bgfx::touch( renderTarget.viewId );
+	//static bgfx::UniformHandle  g_AttribLocationTex = bgfx::createUniform( "colorUniformHandle", bgfx::UniformType::Sampler );
 	if (selectedMesh != nullptr )
 	{
-		bgfx::touch( renderTarget.viewId );
-		bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
+		//bgfx::touch( renderTarget.viewId );
+		//bgfx::setViewTransform( renderTarget.viewId, cameraView.ToFloatPtr( ), cameraProjection.ToFloatPtr( ) );
 
-		float modelTransform[16];
+		//float modelTransform[16];
 		//bx::mtxIdentity( modelTransform );
-		////bx::mtxMul( tmp, modelScale, xtmp );
+		//bx::mtxMul( tmp, modelScale, xtmp );
 		////bx::mtxMul( modelTransform, tmp, modelTranslation );
 	 //   bgfx::setTransform( modelTransform );
 		//bgfx::setUniform(context->pbrContext.u_normalTransform,&modelTransform);
@@ -703,39 +743,48 @@ bool gltfAssetExplorer::Render( bgfxContext_t *context )
 		auto & texList = currentData->TextureList();
 		auto & imgList = currentData->ImageList();
 		auto & smpList = currentData->SamplerList();
-		for ( auto prim : selectedMesh->primitives )
-		{
+		auto & meshList = currentData->MeshList();
+		gltfNode gltfnode;
 
-			if ( prim->material != -1 ) 
-			{
-				gltfMaterial *material = matList[prim->material];
-				//prim->material 
-				if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) 			{
-					gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
-					gltfSampler *sampler = smpList[texture->sampler];
-					gltfImage *image = imgList[texture->source];
-					bgfx::setTexture( 0, context->pbrContext.s_baseColor, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
-				}
-				if ( material->normalTexture.index!= -1 ) {
-					gltfTexture *texture = texList[material->normalTexture.index];
-					gltfSampler *sampler = smpList[texture->sampler];
-					gltfImage *image = imgList[texture->source];
-					bgfx::setTexture( 1, context->pbrContext.s_normal, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
-				}
-			}
-			//if ( selectedImage )
-			//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
+		gltfnode.mesh = 0;//meshList.IndexOf( (gltfMesh  *)selectedMesh );
+		gltfnode.matrix = mat4_identity;
+		gltfnode.dirty = false;
+		renderer->SetRenderTargetNode(&gltfnode);
+		renderer->render(com_frameTime);
+		renderer->SetRenderTargetNode(nullptr);
+		//for ( auto prim : selectedMesh->primitives )
+		//{
 
-			bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
-			bgfx::setIndexBuffer( prim->indexBufferHandle );
-			bgfx::submit( renderTarget.viewId, context->pbrContext.pbrProgram );
-		}
+		//	if ( prim->material != -1 ) 
+		//	{
+		//		gltfMaterial *material = matList[prim->material];
+		//		//prim->material 
+		//		if ( material->pbrMetallicRoughness.baseColorTexture.index != -1 ) 			{
+		//			gltfTexture *texture = texList[material->pbrMetallicRoughness.baseColorTexture.index];
+		//			gltfSampler *sampler = smpList[texture->sampler];
+		//			gltfImage *image = imgList[texture->source];
+		//			bgfx::setTexture( 0, context->pbrContext.s_baseColor, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+		//		}
+		//		if ( material->normalTexture.index!= -1 ) {
+		//			gltfTexture *texture = texList[material->normalTexture.index];
+		//			gltfSampler *sampler = smpList[texture->sampler];
+		//			gltfImage *image = imgList[texture->source];
+		//			bgfx::setTexture( 1, context->pbrContext.s_normal, image->bgfxTexture.handle, sampler->bgfxSamplerFlags );
+		//		}
+		//	}
+		//	//if ( selectedImage )
+		//	//	bgfx::setTexture( 0, g_AttribLocationTex, selectedImage->bgfxTexture.handle );
 
-		if ( bgfx::isValid( renderTarget.rb ) )
-			bgfx::blit( 100 - renderTarget.viewId, renderTarget.rb, 0, 0, renderTarget.fbTextureHandles[0] );
+		//	bgfx::setVertexBuffer( 0, prim->vertexBufferHandle );
+		//	bgfx::setIndexBuffer( prim->indexBufferHandle );
+		//	bgfx::submit( renderTarget.viewId, context->pbrContext.pbrProgram );
+		//}
+
+		//if ( bgfx::isValid( renderTarget.fbh ) )
+		//	bgfx::blit( 100 - renderTarget.viewId,renderTarget.rb , 0, 0, bgfx::getTexture(renderTarget.fbh, 0));
 	    
 	}
-	return false;
+	return true;
 }
 bool gltfAssetExplorer::imDraw( ) 
 {
@@ -840,7 +889,9 @@ bool gltfAssetExplorer::imDraw( )
 					camPos -= camAngle.ToForward( ) * com_frameTime;
 				}
 			}
-			ImGui::Image((void*)(intptr_t)renderTarget.rb.idx, idVec2( ( float ) renderTarget.width / 2, ( float ) renderTarget.height / 2 ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
+			renderTarget.rb = bgfx::getTexture(renderer->frameBuffer);
+			if ( isValid( renderTarget.rb ) )
+				ImGui::Image( ( void * ) ( intptr_t ) renderTarget.rb.idx, idVec2( ( float ) 1920 / 2, ( float ) 1080 / 2 ), idVec2( 0.0f, 0.0f ), idVec2( 1.0f, 1.0f ) );
 
 			float windowWidth = ( float ) ImGui::GetWindowWidth( );
 			float windowHeight = ( float ) ImGui::GetWindowHeight( );

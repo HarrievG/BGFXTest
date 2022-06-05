@@ -2,6 +2,7 @@
 #define PBR_SH_HEADER_GUARD
 
 #include "samplers.sh"
+#include "texCoord_transform.sh"
 
 #ifdef WRITE_LUT
 IMAGE2D_WR(i_texAlbedoLUT, rgba32f, SAMPLER_PBR_ALBEDO_LUT);
@@ -24,16 +25,19 @@ uniform vec4 u_metallicRoughnessNormalOcclusionFactor;
 uniform vec4 u_emissiveFactorVec;
 uniform vec4 u_hasTextures;
 
-#define u_hasBaseColorTexture         ((uint(u_hasTextures.x) & (1 << 0)) != 0)
-#define u_hasMetallicRoughnessTexture ((uint(u_hasTextures.x) & (1 << 1)) != 0)
-#define u_hasNormalTexture            ((uint(u_hasTextures.x) & (1 << 2)) != 0)
-#define u_hasOcclusionTexture         ((uint(u_hasTextures.x) & (1 << 3)) != 0)
-#define u_hasEmissiveTexture          ((uint(u_hasTextures.x) & (1 << 4)) != 0)
+#define u_hasBaseColorTexture			((uint(u_hasTextures.x) & (1 << SAMPLER_PBR_BASECOLOR)) != 0)
+#define u_hasMetallicRoughnessTexture	((uint(u_hasTextures.x) & (1 << SAMPLER_PBR_METALROUGHNESS)) != 0)
+#define u_hasNormalTexture				((uint(u_hasTextures.x) & (1 << SAMPLER_PBR_NORMAL)) != 0)
+#define u_hasOcclusionTexture			((uint(u_hasTextures.x) & (1 << SAMPLER_PBR_OCCLUSION)) != 0)
+#define u_hasEmissiveTexture			((uint(u_hasTextures.x) & (1 << SAMPLER_PBR_EMISSIVE)) != 0)
+#define u_doTextureTransform			((uint(u_hasTextures.x) & (1 << 10)) != 0)
+#define u_BlendMaskValue				(u_hasTextures.w)
 
-#define u_metallicRoughnessFactor (u_metallicRoughnessNormalOcclusionFactor.xy)
-#define u_normalScale             (u_metallicRoughnessNormalOcclusionFactor.z)
-#define u_occlusionStrength       (u_metallicRoughnessNormalOcclusionFactor.w)
-#define u_emissiveFactor          (u_emissiveFactorVec.xyz)
+#define u_metallicRoughnessFactor	(u_metallicRoughnessNormalOcclusionFactor.xy)
+#define u_normalScale				(u_metallicRoughnessNormalOcclusionFactor.z)
+#define u_occlusionStrength			(u_metallicRoughnessNormalOcclusionFactor.w)
+#define u_emissiveFactor			(u_emissiveFactorVec.xyz)
+
 
 #endif
 
@@ -65,9 +69,15 @@ struct PBRMaterial
 
 vec4 pbrBaseColor(vec2 texcoord)
 {
+	vec2 finalCoord = vec2_splat(0.0f);
     if(u_hasBaseColorTexture)
     {
-        return texture2D(s_texBaseColor, texcoord) * u_baseColorFactor;
+		if (u_doTextureTransform)
+			finalCoord = pbrBaseColorTexCoord(texcoord);
+		else
+			finalCoord = texcoord;
+
+        return texture2D(s_texBaseColor, finalCoord ) * u_baseColorFactor;
     }
     else
     {

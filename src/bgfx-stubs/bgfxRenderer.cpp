@@ -20,8 +20,6 @@ ACES\t= 6\n\
 ACES_LUM\t= 7\n";
 
 idCVar r_tonemappingMode( "r_tonemappingMode", "1", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, toneMappingModeStr );
-idCVar viewtest( "viewtest", "0", CVAR_RENDERER | CVAR_ARCHIVE | CVAR_INTEGER, "1 to mutliply with view" );
-
 
 extern idCVar r_multipleScatteringEnabled;
 extern idCVar r_whiteFurnaceEnabled;
@@ -37,7 +35,9 @@ void Renderer::initialize()
 	normalMatrixUniform = bgfx::createUniform("u_normalMatrix", bgfx::UniformType::Mat4);
 	exposureVecUniform = bgfx::createUniform("u_exposureVec", bgfx::UniformType::Vec4);
 	tonemappingModeVecUniform = bgfx::createUniform("u_tonemappingModeVec", bgfx::UniformType::Vec4);
-
+	boneMatricesUniform = bgfx::createUniform("u_boneMatrices", bgfx::UniformType::Mat4,128);
+	vertexOptionsUniform = bgfx::createUniform("u_vertexOptions", bgfx::UniformType::Vec4);
+	
 	// triangle used for blitting
 	constexpr float BOTTOM = -1.0f, TOP = 3.0f, LEFT = -1.0f, RIGHT = 3.0f;
 	const PosVertex vertices[3] = { { LEFT, BOTTOM, 0.0f }, { RIGHT, BOTTOM, 0.0f }, { LEFT, TOP, 0.0f } };
@@ -163,6 +163,7 @@ bool Renderer::supported()
 void Renderer::setViewProjection(bgfx::ViewId view)
 {
 	idMat4 curTrans = data->GetViewMatrix( camId );
+
 	idVec3 idup = idVec3( curTrans[0][1], curTrans[1][1], curTrans[2][1] );
 	idVec3 forward = idVec3( -curTrans[0][2], -curTrans[1][2], -curTrans[2][2] );
 	idVec3 pos = idVec3( curTrans[0][3], curTrans[1][3], curTrans[2][3] );
@@ -173,6 +174,21 @@ void Renderer::setViewProjection(bgfx::ViewId view)
 	bx::Vec3 up = bx::Vec3( idup.x, idup.y, idup.z );
 	bx::mtxLookAt( viewMat.ToFloatPtr( ), eye, at, up, bx::Handness::Right );
 
+	//if ( data->cameraManager->HasOverideID( camId ) )
+	//	camId = data->cameraManager->GetOverride( camId ).newCameraID;
+
+	if (!camId && !data->CameraList().Num())
+	{
+		auto * newCam = data->Camera();
+		newCam->perspective.aspectRatio = 1920.0/1080.0;
+		newCam->perspective.yfov = 90;
+		newCam->perspective.zfar = 100000;
+		newCam->perspective.znear = 0;
+		//note to self. stop modifying gltfData!
+		auto * newNode = data->Node();
+		newNode->camera = 0;
+		camId = 0;
+	}
 	gltfCamera_Perspective &sceneCam = data->CameraList( )[camId]->perspective;
 	bx::mtxProj( projMat.ToFloatPtr( ), RAD2DEG( sceneCam.yfov ), sceneCam.aspectRatio, sceneCam.znear, sceneCam.zfar, bgfx::getCaps( )->homogeneousDepth, bx::Handness::Right );
 	bgfx::setViewTransform( view, viewMat.ToFloatPtr( ), projMat.ToFloatPtr( ) );
@@ -183,24 +199,48 @@ void Renderer::setNormalMatrix(const idMat4& modelMat)
 {
 	// usually the normal matrix is based on the model view matrix
 	// but shading is done in world space (not eye space) so it's just the model matrix
-	idMat4 modelViewMat = viewMat * modelMat;
+	idMat4 modelViewMat = modelMat;
 
 	// if we don't do non-uniform scaling, the normal matrix is the same as the model-view matrix
 	// (only the magnitude of the normal is changed, but we normalize either way)
 	//glm::mat3 normalMat = glm::mat3(modelMat);
-
+	
 	// use adjugate instead of inverse
 	// see https://github.com/graphitemaster/normals_revisited#the-details-of-transforming-normals
 	// cofactor is the transpose of the adjugate
 	//idMat
 	//glm::mat3 normalMat = glm::transpose( glm::adjugate( glm::mat3( modelMat ) ) );
 	//common->DWarning(" Matrix adjugate!" );
-	
-	idMat4 normalMat = modelMat.Inverse();//.Transpose();
-	if (viewtest.GetInteger() == 1 )
-		normalMat = modelViewMat;
+	//idMat4 normalMat = modelMat.Inverse();//.Transpose();
+	//idMat4 normalMat = modelViewMat;
 
-	bgfx::setUniform(normalMatrixUniform, normalMat.ToFloatPtr());
+	bgfx::setUniform(normalMatrixUniform, modelViewMat.ToFloatPtr());
+}
+
+
+void Renderer::setSkinningMatrix( gltfSkin *skin,gltfAccessor * acc ) {
+	idMat4 world = mat4_identity;
+	idList<idMat4> values = data->GetAccessorViewMat( acc );
+
+	auto &nodeList = data->NodeList( );
+	int count = 0;
+		
+	if ( skin->skeleton == -1 )
+		skin->skeleton = skin->joints[0];
+	
+	gltfNode *root = nodeList[skin->skeleton];
+
+	for ( int joint : skin->joints ) {
+		world = mat4_identity;
+		auto *node = nodeList[joint];
+		idMat4 *bindMat = &values[count];
+		bindMat->TransposeSelf( );
+		data->ResolveNodeMatrix(node, &world );
+		*bindMat = world * *bindMat;
+		bindMat->TransposeSelf( );
+		count++;
+	}
+	bgfx::setUniform( boneMatricesUniform, values.Ptr( ), values.Num( ) );
 }
 
 void Renderer::blitToScreen(bgfx::ViewId view)

@@ -176,9 +176,6 @@ idDrawVert * swfRenderer::AllocTris( int vertCount, const triIndex_t * tempIndex
 
 }
 
-void swfRenderer::CreateDeviceObjects() {
-
-}
 swfRenderer::swfRenderer() {
 	swfView = 49;
 	vtxCount = 0;

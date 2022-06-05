@@ -1,5 +1,5 @@
 // shaderc command line:
-// bin\shadercRelease.exe -f shaders\cs_multiple_scattering_lut.sc -o shaders\cs_multiple_scattering_lut.bin --platform windows --type compute --verbose -i ./ -p cs_5_0 --debug -O 0
+// bin\shadercRelease.exe -f shaders\cs_multiple_scattering_lut.sc -o shaders\cs_multiple_scattering_lut.bin --platform windows --type compute --verbose -i ./ -p cs_5_0 --debug -O 0 --define USE_SKINNING
 
 float intBitsToFloat(int _x) { return asfloat(_x); }
 float2 intBitsToFloat(uint2 _x) { return asfloat(_x); }
@@ -635,6 +635,62 @@ float4 imageLoad(Texture2D<unorm float> _image, int2 _uv) { return _image[_uv].x
 float4 imageLoad(Texture2D<unorm float2> _image, int2 _uv) { return _image[_uv].xyyy; } int2 imageSize(Texture2D<unorm float2> _image) { uint2 result; _image.GetDimensions(result.x, result.y); return int2(result); } float4 imageLoad(RWTexture2D<unorm float2> _image, int2 _uv) { return _image[_uv].xyyy; } void imageStore(RWTexture2D<unorm float2> _image, int2 _uv, float4 _value) { _image[_uv] = _value.xy; } int2 imageSize(RWTexture2D<unorm float2> _image) { uint2 result; _image.GetDimensions(result.x, result.y); return int2(result); } float4 imageLoad(Texture2DArray<unorm float2> _image, int3 _uvw) { return _image[_uvw].xyyy; } int3 imageSize(Texture2DArray<unorm float2> _image) { uint3 result; _image.GetDimensions(result.x, result.y, result.z); return int3(result); } float4 imageLoad(RWTexture2DArray<unorm float2> _image, int3 _uvw) { return _image[_uvw].xyyy; } void imageStore(RWTexture2DArray<unorm float2> _image, int3 _uvw, float4 _value) { _image[_uvw] = _value.xy; } int3 imageSize(RWTexture2DArray<unorm float2> _image) { uint3 result; _image.GetDimensions(result.x, result.y, result.z); return int3(result); } float4 imageLoad(Texture3D<unorm float2> _image, int3 _uvw) { return _image[_uvw].xyyy; } int3 imageSize(Texture3D<unorm float2> _image) { uint3 result; _image.GetDimensions(result.x, result.y, result.z); return int3(result); } float4 imageLoad(RWTexture3D<unorm float2> _image, int3 _uvw) { return _image[_uvw].xyyy; } void imageStore(RWTexture3D<unorm float2> _image, int3 _uvw, float4 _value) { _image[_uvw] = _value.xy; } int3 imageSize(RWTexture3D<unorm float2> _image) { uint3 result; _image.GetDimensions(result.x, result.y, result.z); return int3(result); }
 float4 imageLoad(Texture2D<unorm float4> _image, int2 _uv) { return _image[_uv].xyzw; } int2 imageSize(Texture2D<unorm float4> _image) { uint2 result; _image.GetDimensions(result.x, result.y); return int2(result); } float4 imageLoad(RWTexture2D<unorm float4> _image, int2 _uv) { return _image[_uv].xyzw; } void imageStore(RWTexture2D<unorm float4> _image, int2 _uv, float4 _value) { _image[_uv] = _value.xyzw; } int2 imageSize(RWTexture2D<unorm float4> _image) { uint2 result; _image.GetDimensions(result.x, result.y); return int2(result); } float4 imageLoad(Texture2DArray<unorm float4> _image, int3 _uvw) { return _image[_uvw].xyzw; } int3 imageSize(Texture2DArray<unorm float4> _image) { uint3 result; _image.GetDimensions(result.x, result.y, result.z); return int3(result); } float4 imageLoad(RWTexture2DArray<unorm float4> _image, int3 _uvw) { return _image[_uvw].xyzw; } void imageStore(RWTexture2DArray<unorm float4> _image, int3 _uvw, float4 _value) { _image[_uvw] = _value.xyzw; } int3 imageSize(RWTexture2DArray<unorm float4> _image) { uint3 result; _image.GetDimensions(result.x, result.y, result.z); return int3(result); } float4 imageLoad(Texture3D<unorm float4> _image, int3 _uvw) { return _image[_uvw].xyzw; } int3 imageSize(Texture3D<unorm float4> _image) { uint3 result; _image.GetDimensions(result.x, result.y, result.z); return int3(result); } float4 imageLoad(RWTexture3D<unorm float4> _image, int3 _uvw) { return _image[_uvw].xyzw; } void imageStore(RWTexture3D<unorm float4> _image, int3 _uvw, float4 _value) { _image[_uvw] = _value.xyzw; } int3 imageSize(RWTexture3D<unorm float4> _image) { uint3 result; _image.GetDimensions(result.x, result.y, result.z); return int3(result); }
 void imageAtomicAdd(RWTexture2D<uint> _image, int2 _uv, uint4 _value) { InterlockedAdd(_image[_uv], _value.x); }
+uniform float4 u_texTransformMask;
+struct TextureTransform
+{
+float2 offset;
+float2 scale;
+float rotation;
+uint texCoord;
+uint mask;
+};
+Buffer<float2> b_TextureTransforms : register(t[13]);
+float2 getTexCoord(uint texSlot,float2 _texcoord)
+{
+return _texcoord;
+}
+TextureTransform getTransform(uint i)
+{
+int index = 3 * i;
+TextureTransform transForm;
+transForm.offset = b_TextureTransforms[index + 0];
+transForm.scale = b_TextureTransforms[index + 1];
+transForm.rotation = b_TextureTransforms[index + 2].x;
+half2 fp16 = b_TextureTransforms[index + 2].y;
+transForm.texCoord = uint(fp16.x);
+transForm.mask = uint(fp16.y);
+return transForm;
+}
+float2 getTexCoordT(TextureTransform transform , float2 _texcoord)
+{
+float2 _offset = transform.offset;
+float2 _scale = transform.scale;
+float _rot = transform.rotation;
+float3x3 translation = float3x3(1,0,0,
+0,1,0,
+_offset.x,_offset.y,1);
+float3x3 rotation = float3x3(
+cos(_rot), sin(_rot), 0,
+-sin(_rot), cos(_rot), 0,
+0, 0, 1
+);
+float3x3 scale = float3x3(0,0,0,
+_scale.x,_scale.y,0,
+0,0,1);
+float3x3 target = mul(mul(translation,rotation),scale);
+return ( mul(target,float3(_texcoord, 1)) ).xy;
+}
+float2 pbrBaseColorTexCoord(float2 texcoord)
+{
+if (((uint(u_texTransformMask.x) & (1 << 1)) != 0))
+{
+half2 fp16 = u_texTransformMask.y;
+TextureTransform transform = getTransform(fp16.x);
+return getTexCoordT(transform, texcoord);
+}
+else
+return texcoord;
+}
 RWTexture2D<float4> i_texAlbedoLUT : register(u[0]); ;
 uniform float4 u_multipleScatteringVec;
 struct PBRMaterial
@@ -782,8 +838,8 @@ mat.albedo = vec4_splat(1.0);
 mat.roughness = roughness;
 mat.metallic = 1.0;
 mat = pbrInitMaterial(mat);
-float albedo_metal = albedo_specular(V, NoV, mat);
-mat.metallic = 0.0;
+float albedo_metal = 1.0f;
+mat.metallic = 0.00;
 mat = pbrInitMaterial(mat);
 float albedo_dielectric = albedo_specular(V, NoV, mat) + albedo_diffuse(V, NoV, mat);
 imageStore(i_texAlbedoLUT, coords, float4(albedo_metal, albedo_dielectric, 0.0, 1.0));

@@ -7,7 +7,7 @@
 #include "cube_atlas.h"
 #include "../idFramework/idlib/containers/List.h"
 #include "../idFramework/Common.h"
-#include "../../vcpkg_installed/x64-windows/include/bx/bx.h"
+#include <bx/bx.h>
 
 class RectanglePacker
 {

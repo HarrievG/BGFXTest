@@ -12,13 +12,20 @@ $input v_worldpos, v_normal, v_tangent, v_texcoord
 #include "lights.sh"
 #include "lights_punctual.sh"
 
-uniform vec4 u_camPos;
+uniform vec4 u_fragmentOptions;
 
+#define u_pbrDebug					((uint(u_fragmentOptions.x) & (1 << 0)) != 0)
+#define u_pbrDebugDrawBaseColour	((uint(u_fragmentOptions.x) & (1 << 1)) != 0)
+#define u_pbrDebugDrawNormals		((uint(u_fragmentOptions.x) & (1 << 2)) != 0)
+#define u_pbrDebugDrawNormalsMat	((uint(u_fragmentOptions.x) & (1 << 3)) != 0)
+
+
+uniform vec4 u_camPos;
 void main()
-{
+{	
     PBRMaterial mat = pbrMaterial(v_texcoord);
     // convert normal map from tangent space -> world space (= space of v_tangent, etc.)
-    vec3 N = convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
+    vec3 N =convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
     mat.a = specularAntiAliasing(N, mat.a);
 
     // shading
@@ -74,7 +81,7 @@ void main()
 			if(attenuation > 0.0)
 			{
 				vec3 L = normalize(light.position - fragPos);
-
+		
 				vec3 radianceIn = light.intensity * attenuation;
 				float NoL = saturate(dot(N, L));
 				radianceOut += BRDF(V, L, N, NoV, NoL, mat) * msFactor * radianceIn * NoL;
@@ -92,10 +99,24 @@ void main()
     gl_FragColor.rgb = radianceOut;
     gl_FragColor.a = mat.albedo.a;
 
+	if (u_BlendMaskValue > 0 && (mat.albedo.a - (u_BlendMaskValue-1.0)) < 0.0)
+		discard;
+	
+
 	//normal debug
+	if (u_pbrDebugDrawNormals)
+		gl_FragColor.rgb = (N + 1.0) / 2.0;
+	if (u_pbrDebugDrawNormalsMat)
+		gl_FragColor.rgb = ( mat.normal + 1.0) / 2.0; 
+
 	//gl_FragColor.rgb = (v_normal + 1.0) / 2.0;
-	//gl_FragColor.rgb = (N + 1.0) / 2.0; 
+
 	//gl_FragColor.rgb = v_tangent * 0.5 + vec3_splat(0.5);
-	 
+
+	if (u_pbrDebugDrawBaseColour)
+		gl_FragColor.rgb = pbrBaseColor(v_texcoord);
+	
+	//gl_FragColor.rgb = vec3_splat(mat.roughness);
+	//gl_FragColor.rgb = vec3_splat(mat.metallic);
 }
 	

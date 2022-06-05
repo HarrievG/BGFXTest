@@ -12,10 +12,8 @@
 #include "idFramework/idlib/containers/List.h" 
 #include "common.h"
 #include <bx/rng.h>
+#include "idFramework/idlib/math/VectorI.h"
 
-
-extern idCVar		r_SceneEditRenderWidth;
-extern idCVar		r_SceneEditRenderHeight;
 
 // all drawing is done to a 640 x 480 virtual screen size
 // and will be automatically scaled to the real resolution
@@ -100,6 +98,8 @@ struct pbrVertex {
     idVec3 normal;
     idVec4 tangent;
 	idVec2 uv;
+	idVec4 weight;
+	idVec4i boneIndex;
     //idVec3 bitangent;
     //uint32_t abgr;
 };
@@ -176,6 +176,7 @@ class gltfMaterial;
 struct bgfxMaterial {
     gltfMaterial * material;
     TransparencyMode TransparencyMode = TransparencyMode::OPAQUE_;
+	uint32_t lastMask;
 };
 //
 //struct MeshGroup

@@ -41,7 +41,7 @@ private:
 	gltfCamera *		currentCamera;
 	gltfData *			editorData;
 	int					selectedCameraId;
-
+	int					selectedSceneId;
 	//HVG_TODO -> Use hash index
 	//bgfxModelList		renderModels; 
 	idStrList			modelNames;
@@ -75,7 +75,7 @@ public:
 	virtual bool imDraw( ) override;
 	virtual bool Show(bool visible ) override ;
 	virtual bool isVisible( ) override { return guiVisible;};
-
+	void SetRenderer(ForwardRenderer * render ) { renderer = render; }
 	void DrawImAssetTree();
 private:
 	bool guiVisible;
@@ -91,6 +91,7 @@ private:
 	idAngles			camAngle;
 
 	bgfxMrtContext_t	renderTarget;
+	ForwardRenderer *	renderer;
 };
 
 extern gltfAssetExplorer * assetExplorer;

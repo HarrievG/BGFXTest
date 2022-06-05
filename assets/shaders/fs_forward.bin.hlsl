@@ -1,5 +1,5 @@
 // shaderc command line:
-// bin\shadercRelease.exe -f shaders\fs_forward.sc -o shaders\fs_forward.bin --platform windows --type fragment --verbose -i ./ -p ps_5_0 --debug -O 0
+// bin\shadercRelease.exe -f shaders\fs_forward.sc -o shaders\fs_forward.bin --platform windows --type fragment --verbose -i ./ -p ps_5_0 --debug -O 0 --define USE_SKINNING
 
 
 float intBitsToFloat(int _x) { return asfloat(_x); }
@@ -675,6 +675,62 @@ float f = dot(fenc, fenc);
 float g = sqrt(1.0 - f * 0.25);
 return float3(fenc * g, -(1.0 - f * 0.5));
 }
+uniform float4 u_texTransformMask;
+struct TextureTransform
+{
+float2 offset;
+float2 scale;
+float rotation;
+uint texCoord;
+uint mask;
+};
+Buffer<float2> b_TextureTransforms : register(t[13]);
+float2 getTexCoord(uint texSlot,float2 _texcoord)
+{
+return _texcoord;
+}
+TextureTransform getTransform(uint i)
+{
+int index = 3 * i;
+TextureTransform transForm;
+transForm.offset = b_TextureTransforms[index + 0];
+transForm.scale = b_TextureTransforms[index + 1];
+transForm.rotation = b_TextureTransforms[index + 2].x;
+half2 fp16 = b_TextureTransforms[index + 2].y;
+transForm.texCoord = uint(fp16.x);
+transForm.mask = uint(fp16.y);
+return transForm;
+}
+float2 getTexCoordT(TextureTransform transform , float2 _texcoord)
+{
+float2 _offset = transform.offset;
+float2 _scale = transform.scale;
+float _rot = transform.rotation;
+float3x3 translation = float3x3(1,0,0,
+0,1,0,
+_offset.x,_offset.y,1);
+float3x3 rotation = float3x3(
+cos(_rot), sin(_rot), 0,
+-sin(_rot), cos(_rot), 0,
+0, 0, 1
+);
+float3x3 scale = float3x3(0,0,0,
+_scale.x,_scale.y,0,
+0,0,1);
+float3x3 target = mul(mul(translation,rotation),scale);
+return ( mul(target,float3(_texcoord, 1)) ).xy;
+}
+float2 pbrBaseColorTexCoord(float2 texcoord)
+{
+if (((uint(u_texTransformMask.x) & (1 << 1)) != 0))
+{
+half2 fp16 = u_texTransformMask.y;
+TextureTransform transform = getTransform(fp16.x);
+return getTexCoordT(transform, texcoord);
+}
+else
+return texcoord;
+}
 uniform SamplerState s_texAlbedoLUTSampler : register(s[0]); uniform Texture2D s_texAlbedoLUTTexture : register(t[0]); static BgfxSampler2D s_texAlbedoLUT = { s_texAlbedoLUTSampler, s_texAlbedoLUTTexture };
 uniform SamplerState s_texBaseColorSampler : register(s[1]); uniform Texture2D s_texBaseColorTexture : register(t[1]); static BgfxSampler2D s_texBaseColor = { s_texBaseColorSampler, s_texBaseColorTexture };
 uniform SamplerState s_texMetallicRoughnessSampler : register(s[2]); uniform Texture2D s_texMetallicRoughnessTexture : register(t[2]); static BgfxSampler2D s_texMetallicRoughness = { s_texMetallicRoughnessSampler, s_texMetallicRoughnessTexture };
@@ -700,9 +756,14 @@ float a;
 };
 float4 pbrBaseColor(float2 texcoord)
 {
-if(((uint(u_hasTextures.x) & (1 << 0)) != 0))
+float2 finalCoord = vec2_splat(0.0f);
+if(((uint(u_hasTextures.x) & (1 << 1)) != 0))
 {
-return bgfxTexture2D(s_texBaseColor, texcoord) * u_baseColorFactor;
+if (((uint(u_hasTextures.x) & (1 << 10)) != 0))
+finalCoord = pbrBaseColorTexCoord(texcoord);
+else
+finalCoord = texcoord;
+return bgfxTexture2D(s_texBaseColor, finalCoord ) * u_baseColorFactor;
 }
 else
 {
@@ -711,7 +772,7 @@ return u_baseColorFactor;
 }
 float2 pbrMetallicRoughness(float2 texcoord)
 {
-if(((uint(u_hasTextures.x) & (1 << 1)) != 0))
+if(((uint(u_hasTextures.x) & (1 << 2)) != 0))
 {
 return bgfxTexture2D(s_texMetallicRoughness, texcoord).bg * (u_metallicRoughnessNormalOcclusionFactor.xy);
 }
@@ -722,7 +783,7 @@ return (u_metallicRoughnessNormalOcclusionFactor.xy);
 }
 float3 pbrNormal(float2 texcoord)
 {
-if(((uint(u_hasTextures.x) & (1 << 2)) != 0))
+if(((uint(u_hasTextures.x) & (1 << 3)) != 0))
 {
 return normalize((bgfxTexture2D(s_texNormal, texcoord).rgb * 2.0) - 1.0) * (u_metallicRoughnessNormalOcclusionFactor.z);
 }
@@ -733,7 +794,7 @@ return float3(0.0, 0.0, 1.0);
 }
 float pbrOcclusion(float2 texcoord)
 {
-if(((uint(u_hasTextures.x) & (1 << 3)) != 0))
+if(((uint(u_hasTextures.x) & (1 << 4)) != 0))
 {
 float occlusion = bgfxTexture2D(s_texOcclusion, texcoord).r;
 return occlusion + (1.0 - occlusion) * (1.0 - (u_metallicRoughnessNormalOcclusionFactor.w));
@@ -745,7 +806,7 @@ return 1.0;
 }
 float3 pbrEmissive(float2 texcoord)
 {
-if(((uint(u_hasTextures.x) & (1 << 4)) != 0))
+if(((uint(u_hasTextures.x) & (1 << 5)) != 0))
 {
 return bgfxTexture2D(s_texEmissive, texcoord).rgb * (u_emissiveFactorVec.xyz);
 }
@@ -904,11 +965,17 @@ float innerConeCos;
 float outerConeCos;
 uint type;
 };
+const float GAMMA = 2.2;
+const float INV_GAMMA = 1.0 / 2.2;
 Buffer<float4> b_Lights : register(t[12]);
 const int LightType_Directional = 0;
 const int LightType_Point = 1;
 const int LightType_Spot = 2;
 const int LightType_old = 3;
+float3 linearTosRGB(float3 color)
+{
+return pow(color, vec3_splat(INV_GAMMA));
+}
 Light getLight(uint i)
 {
 int index = 4 * i;
@@ -920,7 +987,7 @@ light.intensity = b_Lights[index + 1].w;
 light.position = b_Lights[index + 2].xyz;
 light.innerConeCos = b_Lights[index + 2].w;
 light.outerConeCos = b_Lights[index + 3].x;
-light.type = b_Lights[index + 3].y;
+light.type = int(b_Lights[index + 3].y);
 return light;
 }
 float getRangeAttenuation(float range, float distance)
@@ -1086,12 +1153,13 @@ modelScale.y = length(float3(modelMatrix[1].xyz));
 modelScale.z = length(float3(modelMatrix[2].xyz));
 return normalize(refractionVector) * thickness * modelScale;
 }
+uniform float4 u_fragmentOptions;
 uniform float4 u_camPos;
 void main( float4 gl_FragCoord : SV_POSITION , float3 v_normal : NORMAL , float4 v_tangent : TANGENT , float2 v_texcoord : TEXCOORD0 , float3 v_worldpos : POSITION1 , out float4 bgfx_FragData0 : SV_TARGET0 )
 {
 float4 bgfx_VoidFrag = vec4_splat(0.0);
 PBRMaterial mat = pbrMaterial(v_texcoord);
-float3 N = convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
+float3 N =convertTangentNormal(v_normal, v_tangent.xyz, mat.normal);
 mat.a = specularAntiAliasing(N, mat.a);
 float3 camPos = u_camPos.xyz;
 float3 fragPos = v_worldpos;
@@ -1145,4 +1213,12 @@ radianceOut += getAmbientLight().irradiance * mat.diffuseColor * mat.occlusion;
 radianceOut += mat.emissive;
 bgfx_FragData0.rgb = radianceOut;
 bgfx_FragData0.a = mat.albedo.a;
+if ((u_hasTextures.w) > 0 && (mat.albedo.a - ((u_hasTextures.w)-1.0)) < 0.0)
+discard;
+if (((uint(u_fragmentOptions.x) & (1 << 2)) != 0))
+bgfx_FragData0.rgb = (N + 1.0) / 2.0;
+if (((uint(u_fragmentOptions.x) & (1 << 3)) != 0))
+bgfx_FragData0.rgb = ( mat.normal + 1.0) / 2.0;
+if (((uint(u_fragmentOptions.x) & (1 << 1)) != 0))
+bgfx_FragData0.rgb = pbrBaseColor(v_texcoord);
 }

@@ -52,17 +52,17 @@ bgfxTextureHandle bgfxImageLoad( byte *data, size_t length ) {
 	return ret;
 }
 
-void bgfxImageLoad( byte *data, size_t length,bgfxTextureHandle * handle) {
+void bgfxImageLoad( byte *data, size_t length, bgfxTextureHandle *handle, uint32_t flags) {
 
 	int width, height, channels;
 
 	stbi_uc *imageData = stbi_load_from_memory( ( stbi_uc const * ) data, length, &width, &height, &channels, STBI_rgb_alpha );
 	if ( imageData != NULL ) 	
 	{
-		uint32_t tex_flags = BGFX_TEXTURE_NONE | BGFX_SAMPLER_U_CLAMP | BGFX_SAMPLER_V_CLAMP;//add point and repeat
-		handle->handle = bgfx::createTexture2D( width, height, false, 1, bgfx::TextureFormat::RGBA8, tex_flags, bgfx::copy( imageData, width * height * 4 ) );
+		handle->handle = bgfx::createTexture2D( width, height, false, 1, bgfx::TextureFormat::RGBA8, flags, bgfx::copy( imageData, width * height * 4 ) );
 		handle->dim.x = width;
 		handle->dim.y = height;
+		handle->loaded = true;
 		stbi_image_free( imageData );
 	}
 	else
@@ -86,7 +86,7 @@ imageLoad_t * GetNextImage()
 }
 
 //targetHandle will be written from another thread!
-void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle * targetHandle ) {
+void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle * targetHandle, uint32_t flags ) {
 	Sys_EnterCriticalSection( CRITICAL_SECTION_IMAGE_LOAD );
 	
 	loadQueue.AssureSizeAlloc( loadQueue.Num() + 1, idListNewElement<imageLoad_t> );
@@ -94,6 +94,7 @@ void bgfxImageLoadAsync( byte *data, size_t length, bgfxTextureHandle * targetHa
 	next->data = data;
 	next->length = length;
 	next->targetHandle = targetHandle;
+	next->flags = flags;
 	targetHandle->handle = sDummyTextureHandle;
 	Sys_LeaveCriticalSection( CRITICAL_SECTION_IMAGE_LOAD );
 
@@ -109,7 +110,7 @@ int bgfxImageLoadThread( void *prunning ) {
 		SDL_SemWait(loadSem);
 		imageLoad_t *next = GetNextImage( );
 		if ( next )
-			bgfxImageLoad( next->data, next->length,next->targetHandle );
+			bgfxImageLoad( next->data, next->length,next->targetHandle,next->flags );
 	}
 	return 0;
 }

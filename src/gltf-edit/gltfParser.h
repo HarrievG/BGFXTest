@@ -10,6 +10,7 @@
 struct parsable {
 public:
 	virtual void parse(idToken & token )=0;
+	virtual void parse(idToken & token , idLexer * parser){};
 	virtual idStr &Name( ) = 0;
 };
 
@@ -17,17 +18,47 @@ template<class T>
 class parseType {
 public:
 	void Set(T * type ) { item = type; }
+	virtual ~parseType() { delete item; }
 	T* item;
 };
 
 class gltfItem : public parsable, public parseType<idStr>
 {
 public:
-	gltfItem( idStr Name) : name( Name ){ item = nullptr; }
+	gltfItem( idStr Name) : name( Name ) { item = nullptr; }
 	virtual void parse( idToken &token ) { *item = token; };
 	virtual idStr &Name( ) {return name;}
+	~gltfItem(){}
 private:
 	idStr name;
+};
+
+class gltfObject : public parsable, public parseType<idStr> {
+public:
+	gltfObject( idStr Name ) : name( Name ), object("null"){}
+	virtual void parse( idToken &token ) {}
+	virtual void parse(idToken & token , idLexer * parser){
+		parser->UnreadToken( &token );parser->ParseBracedSection( object );
+	}
+	virtual idStr &Name( ) { return name; }
+private:
+	idStr name;
+	idStr object;
+};
+
+class gltfItemArray;
+class gltfItem_Extra : public parsable, public parseType<gltfExtra> {
+public:
+	gltfItem_Extra( idStr Name ) : name( Name ), data(nullptr),parser(nullptr) { item = nullptr; }
+	virtual void parse( idToken &token ) ;
+	virtual idStr &Name( ) { return name; }
+	void Set( gltfExtra *type, idLexer *lexer ) { parseType::Set( type ); parser = lexer; }	
+	static void Register(parsable * extra);
+private:
+	idStr name;
+	gltfData *data;
+	idLexer* parser;
+	static gltfItemArray*items;
 };
 
 class gltfItem_uri : public parsable, public parseType<idStr> {
@@ -59,6 +90,9 @@ private:																				\
 	idLexer *parser;}
 #pragma endregion 
 
+gltfItemClassParser( animation_sampler,				idList<gltfAnimation_Sampler*> );
+gltfItemClassParser( animation_channel_target,		gltfAnimation_Channel_Target );
+gltfItemClassParser( animation_channel,				idList<gltfAnimation_Channel*>);
 gltfItemClassParser( mesh_primitive,				idList<gltfMesh_Primitive *>);
 gltfItemClassParser( mesh_primitive_attribute,		idList<gltfMesh_Primitive_Attribute *> );
 gltfItemClassParser( integer_array,					idList<int>);
@@ -66,6 +100,7 @@ gltfItemClassParser( number_array,					idList<double>);//does float suffice?
 gltfItemClassParser( mat4,							idMat4 );
 gltfItemClassParser( vec4,							idVec4 );
 gltfItemClassParser( vec3,							idVec3 );
+gltfItemClassParser( vec2,							idVec2 );
 gltfItemClassParser( quat,							idQuat );
 gltfItemClassParser( accessor_sparse,				gltfAccessor_Sparse );
 gltfItemClassParser( accessor_sparse_indices,		gltfAccessor_Sparse_Indices );
@@ -76,16 +111,16 @@ gltfItemClassParser( pbrMetallicRoughness,			gltfMaterial_pbrMetallicRoughness )
 gltfItemClassParser( texture_info,					gltfTexture_Info);
 gltfItemClassParser( normal_texture,				gltfNormalTexture_Info);
 gltfItemClassParser( occlusion_texture,				gltfOcclusionTexture_Info );
-gltfItemClassParser( extra,							gltfExtra );
 gltfItemClassParser( node_extensions,				gltfNode_Extensions );
 gltfItemClassParser( material_extensions,			gltfMaterial_Extensions );
+gltfItemClassParser( texture_info_extensions,		gltfTexture_Info_Extensions );
 
 //extensions
-//gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfExtension );
-//gltfItemClassParser( KHR_materials_pbrSpecularGlossiness, gltfMaterial_Extensions );
-gltfItemClassParser( KHR_lights_punctual, gltfExtensions );
-gltfItemClassParser( Node_KHR_lights_punctual, gltfNode_Extensions );
-gltfItemClassParser( Material_KHR_materials_pbrSpecularGlossiness, gltfMaterial_Extensions );
+gltfItemClassParser( KHR_lights_punctual,							gltfExtensions );
+gltfItemClassParser( Node_KHR_lights_punctual,						gltfNode_Extensions );
+gltfItemClassParser( Material_KHR_materials_pbrSpecularGlossiness,	gltfMaterial_Extensions );
+gltfItemClassParser( TextureInfo_KHR_texture_transform,				gltfTexture_Info_Extensions );
+
 #undef gltfItemClassParser
 
 #pragma region helper macro to define more gltf data types that only rely on token
@@ -108,9 +143,12 @@ class gltfItemArray
 {
 public:
 	~gltfItemArray( ) { items.DeleteContents(true); }
-	gltfItemArray( ){ };
+	gltfItemArray( ) { };
 	void AddItemDef( parsable *item ) { items.Alloc( ) = item;}
-	int Parse(idLexer * lexer );
+	int Fill( idLexer *lexer, idDict *strPairs );
+	int Parse(idLexer * lexer , bool forwardLexer = false );
+	template<class T>
+	T* Get(idStr name ){ for ( auto * item : items) if (item->Name() == name) return static_cast<T*>(item); return nullptr; }
 private:
 	idList<parsable*> items;
 };
@@ -140,8 +178,8 @@ public:
 		}
 		void operator ++( );
 	};	
-	auto begin( );
-	auto end( );
+	gltfPropertyArray::Iterator begin( );
+	gltfPropertyArray::Iterator end( );
 private:
 	bool iterating;
 	bool dirty;

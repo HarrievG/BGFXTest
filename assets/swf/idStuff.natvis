@@ -16,10 +16,14 @@
 			</Expand>
 	</Type>
 
+	<Type Name="idVec4">
+		<DisplayString>{{{x,g},{y,g},{z,g},{w,g}}}</DisplayString>
+	</Type>
+
 	<Type Name="idVec2">
 		<DisplayString>{{{x},{y}}}</DisplayString>
 	</Type>
-
+	
 	<Type Name="idStr">
 		<DisplayString>{data,s}</DisplayString>
 	</Type>

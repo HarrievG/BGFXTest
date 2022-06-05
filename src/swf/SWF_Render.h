@@ -1,8 +1,3 @@
-/*
-* Copyright 2013 Jeremie Roy. All rights reserved.
-* License: https://github.com/bkaradzic/bgfx/blob/master/LICENSE
-*/
-
 #ifndef	__SWF_RENDER_H__
 #define	__SWF_RENDER_H__
 #include "bx/handlealloc.h"
@@ -12,9 +7,8 @@ class swfRenderer
 public:
 	swfRenderer();
 	~swfRenderer(){};
-	void CreateDeviceObjects();
-	idDrawVert * AllocTris( int vertCount, const triIndex_t * tempIndexes, int indexCount);
 
+	idDrawVert * AllocTris( int vertCount, const triIndex_t * tempIndexes, int indexCount);
 	void Flush();
 private:
 	static const int MAX_INDEXES = ( 20000 * 6 );
@@ -37,9 +31,6 @@ private:
 	bgfx::VertexBufferHandle vertexBufferHandle;
 	bgfx::IndexBufferHandle indexBufferHandle;
 	uint8_t swfView;
-
-
-
 };
 
 #endif // __SWF_RENDER_H__

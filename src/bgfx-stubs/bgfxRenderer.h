@@ -69,7 +69,7 @@ public:
 	// used for tonemapping
 	bgfx::FrameBufferHandle frameBuffer = BGFX_INVALID_HANDLE;
 	static bgfx::FrameBufferHandle createFrameBuffer(bool hdr = true, bool depth = true);
-
+	void SetCamera(int cameraID ) { camId = cameraID; }
 protected:
 	struct PosVertex
 	{
@@ -89,7 +89,7 @@ protected:
 
 	void setViewProjection(bgfx::ViewId view);
 	void setNormalMatrix(const idMat4& modelMat);
-
+	void setSkinningMatrix( gltfSkin *skin,gltfAccessor * acc);
 	void blitToScreen(bgfx::ViewId view = MAX_VIEW);
 
 	static bgfx::TextureFormat::Enum findDepthFormat(unsigned long long textureFlags, bool stencil = false);
@@ -115,6 +115,7 @@ protected:
 	int				idxCount;
 
 	bgfx::VertexBufferHandle blitTriangleBuffer = BGFX_INVALID_HANDLE;
+	bgfx::UniformHandle vertexOptionsUniform = BGFX_INVALID_HANDLE;
 private:
 
 	bgfx::ProgramHandle blitProgram = BGFX_INVALID_HANDLE;
@@ -123,6 +124,7 @@ private:
 	bgfx::UniformHandle normalMatrixUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle exposureVecUniform = BGFX_INVALID_HANDLE;
 	bgfx::UniformHandle tonemappingModeVecUniform = BGFX_INVALID_HANDLE;
+	bgfx::UniformHandle boneMatricesUniform = BGFX_INVALID_HANDLE;
 
 
 };
