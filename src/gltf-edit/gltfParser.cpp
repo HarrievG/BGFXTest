@@ -225,6 +225,38 @@ gltfPropertyArray::Iterator gltfPropertyArray::end( )  {
 	return Iterator{ this , endPtr};
 }
 
+int gltfItemArray::Fill( idLexer *lexer, idDict *strPairs ) {
+	idToken token;
+	bool parsing = true;
+	int parseCount = 0;
+	lexer->ExpectTokenString( "{" );
+	while ( parsing && !lexer->PeekTokenString( "}" ) && lexer->ExpectAnyToken( &token ) ) {
+		lexer->ExpectTokenString( ":" );
+		idStr key = token;
+		idStr value;
+		key.StripTrailingWhitespace( );
+		if ( lexer->PeekTokenString( "{" ) ) {
+			lexer->ParseBracedSectionExact( value );
+			value.StripTrailingWhitespace( );
+			strPairs->Set( key, value );
+		} else {
+			lexer->ExpectAnyToken( &token );
+			value = token;
+			value.StripTrailingWhitespace( );
+			key.StripTrailingWhitespace( );
+			strPairs->Set( key, token );
+		}
+
+		parseCount++;
+		parsing = lexer->PeekTokenString( "," );
+		if ( parsing )
+			lexer->ExpectTokenString( "," );
+	}
+	lexer->ExpectTokenString( "}" );
+	return parseCount;
+}
+
+
 int gltfItemArray::Parse(idLexer * lexer, bool forwardLexer/* = false*/) {
 	idToken token;
 	bool parsing = true;

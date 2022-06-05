@@ -145,6 +145,7 @@ public:
 	~gltfItemArray( ) { items.DeleteContents(true); }
 	gltfItemArray( ) { };
 	void AddItemDef( parsable *item ) { items.Alloc( ) = item;}
+	int Fill( idLexer *lexer, idDict *strPairs );
 	int Parse(idLexer * lexer , bool forwardLexer = false );
 	template<class T>
 	T* Get(idStr name ){ for ( auto * item : items) if (item->Name() == name) return static_cast<T*>(item); return nullptr; }
